@@ -17,10 +17,17 @@ import AVFoundation
  
  */
 
+enum FolderPageEnum {
+    case normal
+    case summary
+    case action
+}
+
 
 struct FolderView: View {
     var folder: Folder
     @ObservedObject var vm: VoiceViewModel
+    @State var selection: FolderPageEnum = .action
     
     init(folder: Folder) {
         self.folder = folder
@@ -28,77 +35,104 @@ struct FolderView: View {
     }
     
     var body: some View {
-        VStack {
-            Text("\(vm.recordingsList.count) items")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding()
+        ZStack{
+            LinearGradient(colors:[Color.black, Color.black], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
             
-            // TODO: Display items inside the folder here
-            ScrollView(showsIndicators: false){
-                ForEach(vm.recordingsList.indices, id: \.self) { idx in
-                    VStack{
-                        HStack{
-                            Image(systemName:"headphones.circle.fill")
-                                .font(.system(size:50))
+            VStack {
+                HStack{
+                    Spacer()
+                    Button(action: {selection = .normal}) {
+                        Text("None")
+                    }.padding().background(Color.white).cornerRadius(5).frame(width: 125)
+                    Spacer()
+                    Button(action: {selection = .summary}) {
+                        Text("Summaries")
+                    }.padding().background(Color.white).cornerRadius(5).frame(width: 125)
+                    Spacer()
+                    Button(action: {selection = .action}) {
+                        Text("To-Dos").fontWeight(.medium)
+                    }.padding().background(Color.white).cornerRadius(5).frame(width: 125)
+                    Spacer()
+                }.padding(.horizontal).padding(.vertical).foregroundColor(Color.black)
+                Divider()
+                // TODO: Display items inside the folder here
+                ScrollView(showsIndicators: false){
+                    
+                    Text("\(vm.recordingsList.count) items")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal)
+                    
+                    ForEach(vm.recordingsList.indices, id: \.self) { idx in
+                        VStack{
+                            HStack{
+                                
+                                VStack(alignment:.leading) {
+                                    Text("Name").font(.headline)
+                                    Text("Time").font(.caption)
+                                }
+                                    Spacer()
+                                    NavigationLink(destination: RecordingView(vm: vm, index: idx)) {
+                                        Image(systemName:"chevron.right").font(.system(size:30))
+                                    }
+                                
+                            }.padding(.horizontal).padding(.vertical,5).foregroundColor(.black)
                             
-                            VStack(alignment:.leading) {
-                                Text("\(vm.recordingsList[idx].fileURL.lastPathComponent)")
-                            }
-                            VStack {
-                                Button(action: {
-                                    vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
-                                }) {
-                                    Image(systemName:"xmark.circle.fill")
-                                        .foregroundColor(.white)
-                                        .font(.system(size:15))
-                                }
-                                Spacer()
-                                
-                                Button(action: {
-                                    if vm.recordingsList[idx].isPlaying == true {
-                                        vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
-                                    }else{
-                                        vm.startPlaying(url: vm.recordingsList[idx].fileURL)
+                            HStack {
+                                if selection == .normal{
+                                    Button(action: {
+                                        vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
+                                    }) {
+                                        Image(systemName:"x.circle")
+                                            .font(.system(size:20))
                                     }
-                                }) {
-                                    Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
-                                        .foregroundColor(.white)
-                                        .font(.system(size:30))
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        if vm.recordingsList[idx].isPlaying == true {
+                                            vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
+                                        }else{
+                                            vm.startPlaying(url: vm.recordingsList[idx].fileURL)
+                                        }
+                                    }) {
+                                        Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
+                                            .font(.system(size:20))
+                                    }
+                                    Spacer()
+                                }
+                                if selection == .action {
+                                    Text("actions").font(.body)
                                 }
                                 
-                                NavigationLink(destination: RecordingView(vm: vm, index: idx)) {
-                                    VStack(alignment: .leading) {
-                                        Text("View recording")
-                                    }
+                                if selection == .summary {
+                                    Text("summary").font(.body)
                                 }
-                            }
-                        }.padding()
-                    }.padding(.horizontal,10)
-                        .frame(width: 370, height: 85)
-                        .background(Color(#colorLiteral(red: 0.5568627715, green: 0.3529411852, blue: 0.9686274529, alpha: 1)))
-                        .cornerRadius(30)
-                        .shadow(color: Color(#colorLiteral(red: 0.8039215803, green: 0.8039215803, blue: 0.8039215803, alpha: 1)).opacity(0.3), radius: 10, x: 0, y: 10)
-                }
+                            }.foregroundColor(.black).padding(.horizontal)
+                        }.padding(.horizontal,10).padding(.vertical, 10).frame(width: 350)
+                            .background(Color.white)
+                            .cornerRadius(5)
+                            
+                    }
+                }.padding(.vertical, 10)
+                
+                Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
+                    .foregroundColor(.red)
+                    .font(.system(size: 50))
+                    .onTapGesture {
+                        if vm.isRecording == true {
+                            vm.stopRecording(folderPath: folder.path)
+                        } else {
+                            vm.startRecording(folderPath: folder.path)
+                        }
+                    }
+                
+                
             }
-            
-            Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-            .foregroundColor(.red)
-            .font(.system(size: 45))
-            .onTapGesture {
-                if vm.isRecording == true {
-                    vm.stopRecording(folderPath: folder.path)
-                } else {
-                    vm.startRecording(folderPath: folder.path)
-                }
+            .onReceive(vm.$recordingsList) { updatedList in
+                print("** LIST UPDATE IN FOLDER VIEW **.")
+                print(vm.recordingsList)
             }
-            
-            
+            .navigationTitle(folder.name)
         }
-        .onReceive(vm.$recordingsList) { updatedList in
-            print("** LIST UPDATE IN FOLDER VIEW **.")
-            print(vm.recordingsList)
-        }
-        .navigationTitle(folder.name)
     }
 }

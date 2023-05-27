@@ -64,36 +64,65 @@ class ObservableRecording: ObservableObject, Codable {
 
 struct RecordingView: View {
     @ObservedObject var vm: VoiceViewModel
+    @State private var showingSheet = false
     var index: Int
 
     var body: some View {
-        VStack{
-            Text(vm.recordingsList[index].title)
-            List(vm.recordingsList[index].outputs) { output in
-                VStack{
-                    switch output.type {
-                    case .Summary: Text("Summary")
-                    case .Action: Text("Actions")
-                    case .Transcript: Text("Transcript")
-                    case .Title: Text("THIS SHOULD NEVER BE SHOWN")
-                    }
-                    Text(output.content)
-                    
-                }.onAppear {
-                    print("-- Added Output --")
-                    print(output)
-                }
-            }
-            .onAppear {
-                print("-- Recording At RecordingView --")
-                print(vm.recordingsList[index])
-            }
+        ZStack{
+            LinearGradient(colors:[Color.black, Color.black], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
             
-        }
-        .onReceive(vm.$recordingsList) { updatedList in
-            print("** LIST UPDATE IN RECORDING VIEW **.")
-            print(vm.recordingsList[index].title)
-            print(vm.recordingsList[index].outputs)
+            VStack{
+                HStack{
+                    Text(vm.recordingsList[index].title).font(.title).fontWeight(.bold)
+                    Spacer()
+                }.padding()
+                Divider()
+                List(vm.recordingsList[index].outputs) { output in
+                    VStack(alignment: .leading){
+                        switch output.type {
+                        case .Summary: Text("Summary").font(.headline).padding(.vertical)
+                        case .Action: Text("Actions").font(.headline).padding(.vertical)
+                        case .Transcript: Text("Transcript").font(.headline).padding(.vertical)
+                        case .Title: Text("THIS SHOULD NEVER BE SHOWN").font(.headline).padding(.vertical)
+                        }
+                        
+                        Text(output.content).font(.body)
+                        
+                    }.onAppear {
+                        print("-- Added Output --")
+                        print(output)
+                    }
+                }
+                .onAppear {
+                    print("-- Recording At RecordingView --")
+                    print(vm.recordingsList[index])
+                }
+                Image(systemName: "plus.circle")
+                    .foregroundColor(.white)
+                    .font(.system(size: 50))
+                    .onTapGesture {
+                        showingSheet.toggle()
+                    }.sheet(isPresented: $showingSheet){
+                        SheetView()
+                    }
+
+                
+            }
+            .onReceive(vm.$recordingsList) { updatedList in
+                print("** LIST UPDATE IN RECORDING VIEW **.")
+                print(vm.recordingsList[index].title)
+                print(vm.recordingsList[index].outputs)
+                print(vm.recordingsList[index].outputs)
+            }
         }
     }
 }
+
+struct SheetView: View {
+    
+    var body: some View{
+        Text("Hello")
+    }
+}
+
+

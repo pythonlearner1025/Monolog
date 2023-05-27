@@ -38,7 +38,7 @@ struct HomeView: View {
         else{
             NavigationStack {
                 ZStack{
-                    LinearGradient(colors:[Color.white, Color.white], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
+                    LinearGradient(colors:[Color.black, Color.black], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
                     VStack{
                         Divider().navigationTitle("Folders")
                             .navigationBarItems(trailing: Button("Edit") {})
