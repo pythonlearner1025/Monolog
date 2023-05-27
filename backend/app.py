@@ -74,24 +74,24 @@ class OutputLoad(BaseModel):
 
 @app.post('/api/v1/transcribe')
 async def transcribe(file: UploadFile = File(...)):
-    # Create a temporary file
-    with open(file.filename, 'wb') as f:
-        contents = await file.read()
-        f.write(contents)
+    contents = await file.read()
 
-    # Re-open the temp file in read mode and send to openai
-    with open(file.filename, 'rb') as audio_file:
-        transcript = openai.Audio.transcribe(
-            'whisper-1',
-            file=audio_file, 
-            options={
-                'language': 'en', 
-                'prompt': 'talking about some things I have done today'
-            }
-        )['text']
-        
-    # Clean up the temporary file
-    os.remove(file.filename)
+    # Create a temporary file using NamedTemporaryFile
+    with NamedTemporaryFile(suffix=".m4a", delete=True) as tmp:
+        tmp.write(contents)
+        tmp.flush()
+
+        # Re-open the temp file in read mode and send to openai
+        with open(tmp.name, 'rb') as audio_file:
+            transcript = openai.Audio.transcribe(
+                'whisper-1',
+                file=audio_file, 
+                options={
+                    'language': 'en', 
+                    'prompt': 'talking about some things I have done today'
+                }
+            )['text']
+
     print('*'*10, 'transcript', '*'*10)
     print(transcript)
     return {'transcript': transcript}
