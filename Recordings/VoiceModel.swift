@@ -7,47 +7,38 @@
 
 import Foundation
 import AVFoundation
+import Combine
+import Alamofire
 
-struct Recording: Encodable {
-    var fileURL: URL
-    var createdAt: Date
-    var isPlaying: Bool
-    var title: String // title of the recording, generated asynchronously
-    var outputs: [Output] // list of outputs, generated asynchronously
-}
+/*
+ backend pseudocode
+ 
+ - have a constant of default outputs:
+    * summary
+    * actions
+    * TBD
+ 
+ - show loading screen until transcript is generated
+ - once transcript is generated, begin streaming generation of outputs,
+    in parallel. Sync the JSON blob per every character streamed
+ */
 
-struct Output: Encodable {
-    var type: OutputType
-    var content: String
-}
-
-enum OutputType: String, Encodable {
-    case Transcript
-    case Summary
-    case TODO
-}
-
-extension Recording {
-    func generateOutputs() {
-        // This function will be responsible for generating the title and outputs for the recording asynchronously
-        // Once an output is generated, it will be added to the 'outputs' array
-        // You will need to fill in the implementation details based on your specific use case and APIs you are using
-    }
-}
 
 class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
     var audioPlayer : AVAudioPlayer!
     var indexOfPlayer = 0
-    
+    private var cancellables = Set<AnyCancellable>()
+    let baseURL = "http://0.0.0.0:3000/api/v1/"
+
+
     @Published var isRecording : Bool = false
-    @Published var recordingsList = [Recording]()
+    @Published var recordingsList: [ObservableRecording] = []
     @Published var countSec = 0
     @Published var timerCount : Timer?
     @Published var blinkingCount : Timer?
     @Published var timer : String = "0:00"
     @Published var toggleColor : Bool = false
-    
     
     var playingURL : URL?
     
@@ -64,8 +55,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
         }
     }
-    
-  
     
     func startRecording(folderPath: String) {
         let fileManager = FileManager.default
@@ -117,8 +106,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
 
-    
-    
+    //TODO: realtime update of recordingList...
     func stopRecording(folderPath: String){
         print("stopped recording")
         audioRecorder.stop()
@@ -134,7 +122,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let fileManager = FileManager.default
         let folderURL = URL(fileURLWithPath: folderPath)
         let fileURL = audioRecorder.url
-        let recording = Recording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [])
+        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [])
         recordingsList.insert(recording, at: 0)
         print("recording struct to be saved:")
         print(recording)
@@ -148,40 +136,230 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                print("An error occurred while saving the recording object: \(error)")
            }
         
-        // TODO: generate Title, generate Outputs and modify saved Recording.
-        /*
-            - first generate transcript from audio using Whisper API
-            - then, generate title
-            - generate two other outputs separately
-         
-            Have loading toggle on/off for each. 
-         */
+        generateTranscription(recording: recording).sink(receiveCompletion: { completion in
+            switch completion {
+            case .failure(let error):
+                print("An error occurred while generating transcript: \(error)")
+            case .finished:
+                break
+            }
+        }, receiveValue: { updatedRecording in
+            do {
+                print("*transcript generated*")
+                print(updatedRecording)
+                recording = updatedRecording
+                let updatedData = try encoder.encode(recording)
+                try updatedData.write(to: recordingMetadataURL)
+                if let settings = UserDefaults.standard.settings(forKey: "Settings") {
+                    var futures = settings.outputs.map { outputType -> AnyPublisher<Update, Error> in
+                       self.generateOutput(transcript: recording.outputs[0].content, outputType: outputType, settings: settings)
+                           .eraseToAnyPublisher()
+                   }
+                   futures.append(self.generateTitle(transcript: recording.outputs[0].content, settings: settings).eraseToAnyPublisher())
+                    
+                    Publishers.Sequence(sequence: futures)
+                        .flatMap { $0 }
+                        .sink(receiveCompletion: self.handleReceiveCompletion, receiveValue: {update in
+                            // update entire recording whether it be title, or output stream.
+                            do {
+                                switch update.type {
+                                    case .Summary:
+                                        print("** update: summary **")
+                                        print(update)
+                                        self.updateOutput(type: .Summary, content: update.content, outputs: &recording.outputs)
+                                        break
+                                    case .Action:
+                                        print("** update: action **")
+                                        print(update)
+                                        self.updateOutput(type: .Action, content: update.content, outputs: &recording.outputs)
+                                        break
+                                    case .Title:
+                                        print("** update: Title **")
+                                        print(update)
+                                        recording.title = update.content
+                                    case .Transcript:
+                                        print("** skipping transcript **")
+                                }
+                                let updatedData = try encoder.encode(recording)
+                                try updatedData.write(to: recordingMetadataURL)
+                                print("** after update **")
+                                print(recording)
+                                self.refreshRecording(fileURL: fileURL, recording: recording)
+                                
+                            }
+                            catch {
+                                print("An error occurred while updating the recording object: \(error)")
+                            }
+                        })
+                       .store(in: &self.cancellables)
+                }
+                
+            } catch {
+                print("An error occurred while updating the recording object: \(error)")
+            }
+        }).store(in: &cancellables) // make sure `cancellables` is a property of the class so the subscription does not get deallocated
     }
     
-   
+    func updateOutput(type: OutputType, content: String, outputs: inout [Output]) {
+        if let index = outputs.firstIndex(where: { $0.type == type }) {
+            outputs[index].content = content
+        } else {
+            let newOutput = Output(type: type, content: content)
+            outputs.append(newOutput)
+        }
+    }
+
+    func handleReceiveCompletion(completion: Subscribers.Completion<Error>) {
+        switch completion {
+           case .failure(let error):
+               print("An error occurred while generating transcript: \(error)")
+           case .finished:
+               break
+           }
+    }
     
+    
+    func generateOutput(transcript: String, outputType: OutputType, settings: Settings) -> Future<Update, Error> {
+        return Future { promise in
+            let url = self.baseURL + "generate_output"
+            print("ATTENTION HERE")
+            print(outputType.rawValue)
+            let parameters: [String: Any] = [
+                "type": outputType.rawValue,
+                "transcript": transcript
+            ]
+            
+            AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+                .responseJSON { response in
+                    switch response.result {
+                    case .success(let value):
+                        if let JSON = value as? [String: Any] {
+                            let output = JSON["out"] as? String ?? ""
+                            let update = Update(type: outputType, content: output)
+                            promise(.success(update))
+                        }
+                    case .failure(let error):
+                        promise(.failure(error))
+                    }
+            }
+        }
+    }
+    
+    func generateTitle(transcript: String, settings: Settings) -> Future<Update, Error> {
+        return Future { promise in
+            let url = self.baseURL + "generate_title"
+            
+            let parameters: [String: Any] = [
+                "transcript": transcript
+            ]
+            
+            AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+                .responseJSON { response in
+                    switch response.result {
+                    case .success(let value):
+                        if let JSON = value as? [String: Any] {
+                            let title = JSON["title"] as? String ?? ""
+                            let update = Update(type: .Title, content: title)
+                            promise(.success(update))
+                        }
+                    case .failure(let error):
+                        promise(.failure(error))
+                    }
+            }
+        }
+    }
+
+    func generateTranscription(recording: ObservableRecording) -> Future<ObservableRecording, Error> {
+        return Future { promise in
+            let url = URL(string: self.baseURL + "transcribe")!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("Bearer 046cc07d8daab73e53e9089dda05acf4750e1a3cd23c87bff0cbafd0975a949b", forHTTPHeaderField: "Authorization")
+
+            // Set the content type to be multipart/form-data
+            let boundary = UUID().uuidString
+            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+            var data = Data()
+            data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(recording.fileURL.lastPathComponent)\"\r\n".data(using: .utf8)!)
+            data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+
+            do {
+                let fileData = try Data(contentsOf: recording.fileURL)
+                data.append(fileData)
+            } catch {
+                print("Failed to read file data: \(error)")
+                promise(.failure(error))
+                return
+            }
+
+            data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+
+            // Set the HTTPBody with the form data we created
+            request.httpBody = data
+
+            URLSession.shared.dataTask(with: request) { (data, response, error) in
+                guard let data = data, error == nil else {
+                    print("Error: \(error?.localizedDescription ?? "Unknown error")")
+                    promise(.failure(error!))
+                    return
+                }
+
+                do {
+                    let decoder = JSONDecoder()
+                    let response = try decoder.decode([String: String].self, from: data)
+                    if let transcript = response["transcript"] {
+                        let updatedRecording = recording
+                        let output: Output = Output(type: .Transcript, content: transcript)
+                        updatedRecording.outputs = [output]
+                        promise(.success(updatedRecording))
+                    } else {
+                        promise(.failure(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"])))
+                    }
+                } catch {
+                    print("Decoding error: \(error)")
+                    promise(.failure(error))
+                }
+            }.resume()
+        }
+    }
+    
+    func refreshRecording(fileURL: URL, recording: ObservableRecording) {
+        if let index = recordingsList.firstIndex(where: { $0.fileURL == fileURL }) {
+            recordingsList[index] = recording
+        }
+    }
 
     func fetchAllRecording(folderPath: String){
         let fileManager = FileManager.default
         let folderURL = URL(fileURLWithPath: folderPath)
         let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601 // match the encoding strategy
 
         for i in directoryContents {
-            print(i)
             if (i.lastPathComponent == "raw") {
-                print("Skip raw folder")
+                continue
             }
             else {
-                recordingsList.append(Recording(fileURL: i, createdAt: getFileDate(for: i), isPlaying: false, title: "Untitled", outputs: []))
+                let jsonURL = folderURL.appendingPathComponent("\(i.lastPathComponent)")
+                do {
+                    let data = try Data(contentsOf: jsonURL)
+                    let recording = try decoder.decode(ObservableRecording.self, from: data)
+                    recordingsList.append(recording)
+                } catch {
+                    print("An error occurred while decoding the recording object: \(error)")
+                }
             }
         }
-        
+
         recordingsList.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
     }
-    
-    
+
     func startPlaying(url : URL) {
         print("start playing")
+        print(url)
         playingURL = url
         
         let playSession = AVAudioSession.sharedInstance()
@@ -200,7 +378,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             
             for i in 0..<recordingsList.count {
                 if recordingsList[i].fileURL == url {
-                    recordingsList[i].isPlaying = true
+                    print("setting to true")
+                    let updatedRecording = recordingsList[i]
+                    updatedRecording.isPlaying = true
+                    recordingsList[i] = updatedRecording
                 }
             }
             
@@ -217,16 +398,20 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         
         for i in 0..<recordingsList.count {
             if recordingsList[i].fileURL == url {
-                recordingsList[i].isPlaying = false
+                let updatedRecording = recordingsList[i]
+                updatedRecording.isPlaying = false
+                recordingsList[i] = updatedRecording
             }
         }
     }
     
  
-    func deleteRecording(url : URL) {
-        
+    func deleteRecording(folderPath: String, url : URL) {
+        let fileManager = FileManager.default
+        let folderURL = URL(fileURLWithPath: folderPath)
+        let recordingMetadataURL = folderURL.appendingPathComponent("\(url.lastPathComponent).json")
         do {
-            try FileManager.default.removeItem(at: url)
+            try FileManager.default.removeItem(at: recordingMetadataURL)
         } catch {
             print("Can't delete")
         }

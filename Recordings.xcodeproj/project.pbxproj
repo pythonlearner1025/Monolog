@@ -17,6 +17,10 @@
 		7791A0FB2A1EA58F005088C4 /* FolderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7791A0FA2A1EA58F005088C4 /* FolderView.swift */; };
 		7791A0FD2A1EAD4F005088C4 /* VoiceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7791A0FC2A1EAD4F005088C4 /* VoiceModel.swift */; };
 		7791A1012A1EB0E1005088C4 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7791A1002A1EB0E1005088C4 /* Extensions.swift */; };
+		77ABE06C2A1FF32600EED914 /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ABE06B2A1FF32600EED914 /* UserSettings.swift */; };
+		77ABE06F2A1FF36100EED914 /* Structs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ABE06E2A1FF36100EED914 /* Structs.swift */; };
+		77ABE0712A1FF85800EED914 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ABE0702A1FF85800EED914 /* RecordingView.swift */; };
+		77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 77ABE0732A21AD4300EED914 /* Alamofire */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +54,9 @@
 		7791A0FA2A1EA58F005088C4 /* FolderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderView.swift; sourceTree = "<group>"; };
 		7791A0FC2A1EAD4F005088C4 /* VoiceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceModel.swift; sourceTree = "<group>"; };
 		7791A1002A1EB0E1005088C4 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		77ABE06B2A1FF32600EED914 /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
+		77ABE06E2A1FF36100EED914 /* Structs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Structs.swift; sourceTree = "<group>"; };
+		77ABE0702A1FF85800EED914 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +64,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,11 +108,14 @@
 		7791A0CF2A1E9496005088C4 /* Recordings */ = {
 			isa = PBXGroup;
 			children = (
+				77ABE06D2A1FF35400EED914 /* Structs */,
+				77ABE06A2A1FF31A00EED914 /* Settings */,
 				7791A0FF2A1EB0CF005088C4 /* Extensions */,
 				7791A0FC2A1EAD4F005088C4 /* VoiceModel.swift */,
 				7791A0D02A1E9496005088C4 /* RecordingsApp.swift */,
 				7791A0D22A1E9496005088C4 /* HomeView.swift */,
 				7791A0FA2A1EA58F005088C4 /* FolderView.swift */,
+				77ABE0702A1FF85800EED914 /* RecordingView.swift */,
 				7791A0D42A1E9497005088C4 /* Assets.xcassets */,
 				7791A0D62A1E9497005088C4 /* Preview Content */,
 			);
@@ -144,6 +155,22 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		77ABE06A2A1FF31A00EED914 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				77ABE06B2A1FF32600EED914 /* UserSettings.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		77ABE06D2A1FF35400EED914 /* Structs */ = {
+			isa = PBXGroup;
+			children = (
+				77ABE06E2A1FF36100EED914 /* Structs.swift */,
+			);
+			path = Structs;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -160,6 +187,9 @@
 			dependencies = (
 			);
 			name = Recordings;
+			packageProductDependencies = (
+				77ABE0732A21AD4300EED914 /* Alamofire */,
+			);
 			productName = Recordings;
 			productReference = 7791A0CD2A1E9496005088C4 /* Recordings.app */;
 			productType = "com.apple.product-type.application";
@@ -232,6 +262,9 @@
 				Base,
 			);
 			mainGroup = 7791A0C42A1E9496005088C4;
+			packageReferences = (
+				77ABE0722A21AD4300EED914 /* XCRemoteSwiftPackageReference "Alamofire" */,
+			);
 			productRefGroup = 7791A0CE2A1E9496005088C4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -275,9 +308,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				7791A1012A1EB0E1005088C4 /* Extensions.swift in Sources */,
+				77ABE06C2A1FF32600EED914 /* UserSettings.swift in Sources */,
 				7791A0D32A1E9496005088C4 /* HomeView.swift in Sources */,
+				77ABE06F2A1FF36100EED914 /* Structs.swift in Sources */,
 				7791A0D12A1E9496005088C4 /* RecordingsApp.swift in Sources */,
 				7791A0FD2A1EAD4F005088C4 /* VoiceModel.swift in Sources */,
+				77ABE0712A1FF85800EED914 /* RecordingView.swift in Sources */,
 				7791A0FB2A1EA58F005088C4 /* FolderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -603,6 +639,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		77ABE0722A21AD4300EED914 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		77ABE0732A21AD4300EED914 /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 77ABE0722A21AD4300EED914 /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7791A0C52A1E9496005088C4 /* Project object */;
 }

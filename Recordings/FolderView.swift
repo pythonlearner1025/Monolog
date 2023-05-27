@@ -11,23 +11,10 @@ import AVFoundation
 
 // recordings struct
 /*
- - raw audio file
- - title (asynchronous)
- - list of outputs (asynchronous), defaults being:
-    - Transcript
-    - Summary
-    - TODO
+    TODO: https://chat.openai.com/c/4541f437-7a4a-447e-b976-a36893e564a5
+    //stuck in getting recordingList to auto-refresh. made it into an observableObject,
+    but no luck.
  
- Note:
-    - each output should be generated based on user global settings. User can
-    add new default outputs (premium feature) and can tweak the length,style,format of outputs
- 
- Implementation:
-    - I am handed the raw audio data
-    - save the raw audio data + generic title first in data obj, leave outputs blank
-        - make sure to save inside the folder
-    - put in an background job to generate title + outputs
-    - as jobs finish, update the saved data obj.
  */
 
 
@@ -53,18 +40,18 @@ struct FolderView: View {
             
             // TODO: Display items inside the folder here
             ScrollView(showsIndicators: false){
-                ForEach(vm.recordingsList, id: \.createdAt) { recording in
-                    VStack{
+                ForEach(vm.recordingsList.indices, id: \.self) { idx in
+                    NavigationStack{
                         HStack{
                             Image(systemName:"headphones.circle.fill")
                                 .font(.system(size:50))
                             
                             VStack(alignment:.leading) {
-                                Text("\(recording.fileURL.lastPathComponent)")
+                                Text("\(vm.recordingsList[idx].fileURL.lastPathComponent)")
                             }
                             VStack {
                                 Button(action: {
-                                    vm.deleteRecording(url:recording.fileURL)
+                                    vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
                                 }) {
                                     Image(systemName:"xmark.circle.fill")
                                         .foregroundColor(.white)
@@ -73,19 +60,23 @@ struct FolderView: View {
                                 Spacer()
                                 
                                 Button(action: {
-                                    if recording.isPlaying == true {
-                                        vm.stopPlaying(url: recording.fileURL)
+                                    if vm.recordingsList[idx].isPlaying == true {
+                                        vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
                                     }else{
-                                        vm.startPlaying(url: recording.fileURL)
+                                        vm.startPlaying(url: vm.recordingsList[idx].fileURL)
                                     }
                                 }) {
-                                    Image(systemName: recording.isPlaying ? "stop.fill" : "play.fill")
+                                    Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
                                         .foregroundColor(.white)
                                         .font(.system(size:30))
                                 }
                                 
+                                NavigationLink(destination: RecordingView(vm: vm, index: idx)) {
+                                    VStack(alignment: .leading) {
+                                        Text("View recording")
+                                    }
+                                }
                             }
-                            
                         }.padding()
                     }.padding(.horizontal,10)
                         .frame(width: 370, height: 85)
@@ -107,6 +98,10 @@ struct FolderView: View {
             }
             
             
+        }
+        .onReceive(vm.$recordingsList) { updatedList in
+            print("** LIST UPDATE IN FOLDER VIEW **.")
+            print(vm.recordingsList)
         }
         .navigationTitle(folder.name)
     }

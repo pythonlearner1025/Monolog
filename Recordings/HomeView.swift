@@ -17,6 +17,15 @@ struct Folder: Identifiable {
 }
 
 struct HomeView: View {
+    @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
+
+    init() {
+        if isFirstLaunch {
+            setup()
+            isFirstLaunch = false
+        }
+    }
+
     @State private var folders: [Folder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
@@ -54,31 +63,28 @@ struct HomeView: View {
             .padding()
         }
     
+    func setup() {
+        //default settings
+        let defaultSettings = Settings(outputs: [.Transcript, .Summary, .Action], length: .medium, format: .bullet, style: .casual)
+        UserDefaults.standard.store(defaultSettings, forKey: "Settings")
+        // default folders
+        let fileManager = FileManager.default
+        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        let allFilesFolderPath = applicationSupportDirectory.appendingPathComponent("All")
+        let deletedFilesFolderPath =
+            applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        do {
+            try fileManager.createDirectory(at: allFilesFolderPath, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: deletedFilesFolderPath,
+                                            withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("An error occurred while creating the 'All' directory: \(error)")
+        }
+    }
     
     func loadFolders() {
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
-        
-        // Check if the app is being launched for the first time
-        let isFirstLaunch = UserDefaults.standard.bool(forKey: "isFirstLaunch")
-        print("is first launch")
-        print(isFirstLaunch)
-        if isFirstLaunch == true {
-            // If it is the first launch, create the 'All' folder
-            let allFilesFolderPath = applicationSupportDirectory.appendingPathComponent("All")
-            let deletedFilesFolderPath =
-                applicationSupportDirectory.appendingPathComponent("Recently Deleted")
-            do {
-                try fileManager.createDirectory(at: allFilesFolderPath, withIntermediateDirectories: true, attributes: nil)
-                try fileManager.createDirectory(at: deletedFilesFolderPath,
-                                                withIntermediateDirectories: true, attributes: nil)
-            } catch {
-                print("An error occurred while creating the 'All' directory: \(error)")
-            }
-            
-            // Update the UserDefaults value to indicate that the app has been launched before
-            UserDefaults.standard.setValue(false, forKey: "isFirstLaunch")
-        }
         
         do {
            let folderURLs = try fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
