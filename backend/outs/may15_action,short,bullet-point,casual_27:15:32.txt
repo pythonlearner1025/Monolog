@@ -1,0 +1,9 @@
+- Define requirements for the reading assistant tool prototype
+- Improve AI generated questions for the reading assistant tool
+- Consider adding an outline feature for blog generated content
+- Be intimately involved in a problem space when looking for startup ideas
+- Learn to live in the future and create interesting things to bridge gaps between the future and present
+- Notice what's missing, what's wrong, what's bad, investigate problems further, make them your own, and develop solutions for them
+- Do hard and unappealing work really well, as it could be valued and paid for 
+- Don't turn off good habits like the unsexy and schlep filters just to have ideas
+- Algorithmically look for demand and try to determine why some things are missing

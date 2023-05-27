@@ -1,0 +1,7 @@
+- Develop a prototype tool that offers users interesting questions they might want to ask about bits and pieces of text.
+- Learn iteratively about what the user is interested in while reading the article.
+- Develop an outline feature for any generated blog.
+- Notice what's missing, what's wrong, what's bad, investigate the problem, and develop solutions for it.
+- Don't spend time trying to learn entrepreneurship, how to start a company, all of that. Rather, live in the future, really be involved in the problem and just loving what you do to the point where you really want this thing, you really care about this thing existing to the degree that most people don't.
+- Your startups rarely die because of high competition. It's actually better for you to have some competition because it's a sign that there's a market and people want this thing.
+- Doing hard things and doing things that other people don't want or other people normally don't find interesting and doing it really well could be valued because people pay you to rather do it than you do it.

@@ -1,0 +1,4 @@
+- Main point of Paul Graham's "How to Get Startup Ideas": intimately involve yourself in a problem space you're passionate about and live in the future by building interesting things that bridge gaps between the future and the present
+- Notice what's missing or can be done better and develop solutions for it
+- Competition is overestimated by young founders and having some competition is actually a sign of a market
+- Hard work and doing things others find unappealing can be valued and clear roadblocks to good ideas

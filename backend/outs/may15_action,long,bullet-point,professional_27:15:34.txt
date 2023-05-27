@@ -1,0 +1,7 @@
+Action Items:
+* Consider adding a feature for outlining any blog generated similar to Wikipedia's table of contents.
+* Think about generating Q&A questions at the end of articles to engage the reader more and encourage further exploration.
+* Find ways to live in the future, be intimately involved in a problem space, and build interesting things that bridge gaps between the future and the present.
+* Develop the habit of noticing what's missing, wrong, or bad in everyday life to investigate problems further and develop solutions for them.
+* Be aware of filters like the schlep filter and unsexy filter, but do not turn them off just to come up with ideas. They can help clear more roadblocks between you and coming up with a good idea and actually turning that idea into something useful. 
+* Avoid relying on recipes for ideas, but instead look for demand and try to determine why certain things are not there.

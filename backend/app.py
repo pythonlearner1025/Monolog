@@ -12,6 +12,7 @@ import requests
 import base64
 import os
 
+
 load_dotenv()
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -58,8 +59,10 @@ class Format(str, Enum):
 class OutputType(str, Enum):
     Summary = 'Summary'
     Action = 'Action'
+    Custom = 'Custom'
 
 class Settings(BaseModel):
+    prompt: str
     length: Length
     style: Style
     format: Format
@@ -75,7 +78,6 @@ class OutputLoad(BaseModel):
 @app.post('/api/v1/transcribe')
 async def transcribe(file: UploadFile = File(...)):
     contents = await file.read()
-
     # Create a temporary file using NamedTemporaryFile
     with NamedTemporaryFile(suffix=".m4a", delete=True) as tmp:
         tmp.write(contents)
@@ -96,21 +98,27 @@ async def transcribe(file: UploadFile = File(...)):
     print(transcript)
     return {'transcript': transcript}
 
-
 @app.post('/api/v1/generate_title')
 def generate_title(load: TitleLoad):
-    gpt = ChatBot(system=TITLE_SYSTEM)
+    gpt = ChatBot(system=get_title())
     title = gpt(load.transcript)
     return {'title': title}
 
 @app.post('/api/v1/generate_output')
 def generate_output(load: OutputLoad):
     if load.type == 'Summary':
-        gpt = ChatBot(system=SUMMARY_SYSTEM) 
-        out = gpt(load.transcript) 
+        gpt = ChatBot(system=get_summary('short', 'bullet-point', 'casual')) 
+        out: str = gpt(load.transcript) 
+        out = out.replace('*', '-') 
     elif load.type == 'Action':
-        gpt = ChatBot(system=ACTION_SYSTEM)
-        out = gpt(load.transcript)
+        gpt = ChatBot(system=get_action('short', 'bullet-point', 'casual'))
+        out: str = gpt(load.transcript)
+        out = out.replace('*', '-') 
+    elif load.type == 'Custom':
+        # TODO: 
+        # gpt = ChatBot(system=get_custom(load.settings.prompt, load.settings.length, load.settings.format, load.settings.style))
+        # out = gpt(load.transcript)
+        pass
     return {'out': out}
 
 if __name__ == "__main__":
