@@ -29,10 +29,6 @@ struct FolderView: View {
     
     var body: some View {
         VStack {
-            Text(folder.name)
-                .font(.title)
-                .padding()
-            
             Text("\(vm.recordingsList.count) items")
                 .font(.subheadline)
                 .foregroundColor(.gray)
@@ -41,7 +37,7 @@ struct FolderView: View {
             // TODO: Display items inside the folder here
             ScrollView(showsIndicators: false){
                 ForEach(vm.recordingsList.indices, id: \.self) { idx in
-                    NavigationStack{
+                    VStack{
                         HStack{
                             Image(systemName:"headphones.circle.fill")
                                 .font(.system(size:50))
@@ -106,4 +102,3 @@ struct FolderView: View {
         .navigationTitle(folder.name)
     }
 }
-

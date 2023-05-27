@@ -31,36 +31,51 @@ struct HomeView: View {
     @State private var newFolderName = ""
     
     var body: some View {
+        if isFirstLaunch {
+            
+        }
+        
+        else{
             NavigationStack {
-                List(folders) { folder in
-                    NavigationLink(destination: FolderView(folder: folder)) {
-                        VStack(alignment: .leading) {
-                            Text(folder.name)
-                            Text("\(folder.count) items")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                ZStack{
+                    LinearGradient(colors:[Color.white, Color.white], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
+                    VStack{
+                        Divider().navigationTitle("Folders")
+                            .navigationBarItems(trailing: Button("Edit") {})
+                        
+                        List(folders) { folder in
+                            NavigationLink(destination: FolderView(folder: folder)) {
+                                VStack(alignment: .leading) {
+                                    Text(folder.name)
+                                    Text("\(folder.count) items")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }.onAppear(perform: loadFolders).scrollContentBackground(.hidden)
+                        HStack{
+                            Spacer()
+                            Button(action: {
+                                showAlert = true
+                            }) {
+                                Image(systemName: "folder.badge.plus").font(.title)
+                            }
+                            .alert("New Folder", isPresented: $showAlert, actions: {
+                                TextField("New folder name", text: $newFolderName)
+                                Button("Create", action: {
+                                    createFolder(title: newFolderName)
+                                    newFolderName=""
+                                }
+                                )
+                                Button("Cancel", role: .cancel, action: {})
+                            }).padding(.trailing).padding(.top).padding(.trailing)
+                            
                         }
                     }
                 }
-                .onAppear(perform: loadFolders)
-
-                Button(action: {
-                    showAlert = true
-                }) {
-                    Text("Add Folder")
-                }
-                .alert("New Folder", isPresented: $showAlert, actions: {
-                    TextField("New folder name", text: $newFolderName)
-                    Button("Create", action: {
-                        createFolder(title: newFolderName)
-                        newFolderName=""
-                        }
-                    )
-                    Button("Cancel", role: .cancel, action: {})
-                })
                 
             }
-            .padding()
+        }
         }
     
     func setup() {
