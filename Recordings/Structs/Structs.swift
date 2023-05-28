@@ -22,25 +22,25 @@ struct Output: Encodable,Decodable, Identifiable {
     var content: String
 }
 
-enum OutputType: String, Encodable, Decodable {
+enum OutputType: String, Encodable, Decodable, CaseIterable {
     case Title
     case Transcript
     case Summary
     case Action
 }
 
-enum LengthType: String, Encodable, Decodable {
+enum LengthType: String, Encodable, Decodable, CaseIterable {
     case short
     case medium
     case long
 }
 
-enum FormatType: String, Encodable, Decodable {
+enum FormatType: String, Encodable, Decodable, CaseIterable {
     case bullet
     case paragraph
 }
 
-enum StyleType: String, Encodable, Decodable{
+enum StyleType: String, Encodable, Decodable, CaseIterable {
     case casual
     case professional
 }

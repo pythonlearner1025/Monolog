@@ -17,10 +17,10 @@ import AVFoundation
  
  */
 
-enum FolderPageEnum {
-    case normal
-    case summary
-    case action
+enum FolderPageEnum: String, CaseIterable {
+    case normal = "None"
+    case summary = "Summaries"
+    case action = "To-Dos"
 }
 
 
@@ -28,6 +28,8 @@ struct FolderView: View {
     var folder: Folder
     @ObservedObject var vm: VoiceViewModel
     @State var selection: FolderPageEnum = .action
+    @State private var isShowingSettings = false
+
     
     init(folder: Folder) {
         self.folder = folder
@@ -35,33 +37,22 @@ struct FolderView: View {
     }
     
     var body: some View {
-        ZStack{
-            LinearGradient(colors:[Color.black, Color.black], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
+        NavigationStack{
+            
             
             VStack {
-                HStack{
-                    Spacer()
-                    Button(action: {selection = .normal}) {
-                        Text("None")
-                    }.padding().background(Color.white).cornerRadius(5).frame(width: 125)
-                    Spacer()
-                    Button(action: {selection = .summary}) {
-                        Text("Summaries")
-                    }.padding().background(Color.white).cornerRadius(5).frame(width: 125)
-                    Spacer()
-                    Button(action: {selection = .action}) {
-                        Text("To-Dos").fontWeight(.medium)
-                    }.padding().background(Color.white).cornerRadius(5).frame(width: 125)
-                    Spacer()
-                }.padding(.horizontal).padding(.vertical).foregroundColor(Color.black)
-                Divider()
+                Picker(selection: $selection, label: Text("")){
+                    ForEach(FolderPageEnum.allCases, id: \.self){ option in
+                        Text(option.rawValue)
+                    }
+                }.pickerStyle(SegmentedPickerStyle()).padding()
+                Text("\(vm.recordingsList.count) items")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
                 // TODO: Display items inside the folder here
                 ScrollView(showsIndicators: false){
                     
-                    Text("\(vm.recordingsList.count) items")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal)
                     
                     ForEach(vm.recordingsList.indices, id: \.self) { idx in
                         VStack{
@@ -101,23 +92,25 @@ struct FolderView: View {
                                     Spacer()
                                 }
                                 if selection == .action {
-                                    Text("actions").font(.body)
+                                    Text("Action").font(.body)
                                 }
                                 
                                 if selection == .summary {
-                                    Text("summary").font(.body)
+                                    Text("Summary").font(.body)
                                 }
-                            }.foregroundColor(.black).padding(.horizontal)
-                        }.padding(.horizontal,10).padding(.vertical, 10).frame(width: 350)
+                            }.padding(.horizontal)
+                        }.padding(.horizontal,10).padding(.vertical, 15).frame(width: 350)
                             .background(Color.white)
-                            .cornerRadius(5)
+                            .cornerRadius(5).border(Color.black, width: 2)
                             
                     }
-                }.padding(.vertical, 10)
+                }.padding(.vertical, 10).sheet(isPresented: $isShowingSettings){
+                    SettingsView()
+                }
                 
                 Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
                     .foregroundColor(.red)
-                    .font(.system(size: 50))
+                    .font(.system(size: 50, weight: .thin))
                     .onTapGesture {
                         if vm.isRecording == true {
                             vm.stopRecording(folderPath: folder.path)
@@ -132,7 +125,65 @@ struct FolderView: View {
                 print("** LIST UPDATE IN FOLDER VIEW **.")
                 print(vm.recordingsList)
             }
-            .navigationTitle(folder.name)
+            .navigationTitle("\(folder.name)")
+            .navigationBarItems(trailing: HStack{
+                ShareLink(item: "Google.com"){
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Button(action: {isShowingSettings.toggle()}){
+                    Image(systemName: "gearshape")
+                }
+            })
+        }
+    }
+}
+
+struct SettingsView: View {
+    @Environment(\.presentationMode) var presentationMode1
+    
+    @State private var selectedFormat = FormatType.bullet
+    @State private var selectedLength = LengthType.short
+    @State private var selectedStyle = StyleType.casual
+    
+    var body: some View {
+        NavigationStack{
+            Form {
+                Section(header: Text("Length")) {
+                    Picker("Select Length", selection: $selectedLength) {
+                        ForEach(LengthType.allCases, id: \.self) { option in
+                            Text(option.rawValue)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                Section(header: Text("Format")) {
+                    Picker("Select Length", selection: $selectedLength) {
+                        ForEach(FormatType.allCases, id: \.self) { option in
+                            Text(option.rawValue)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                Section(header: Text("Style")) {
+                    Picker("Select Length", selection: $selectedLength) {
+                        ForEach(StyleType.allCases, id: \.self) { option in
+                            Text(option.rawValue)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                Button("Save") {
+                    // Perform submission logic here
+                }
+            }
+            .navigationBarTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode1.wrappedValue.dismiss()
+                    }
+                }
+            }
         }
     }
 }

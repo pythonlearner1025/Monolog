@@ -64,64 +64,130 @@ class ObservableRecording: ObservableObject, Codable {
 
 struct RecordingView: View {
     @ObservedObject var vm: VoiceViewModel
+    
     @State private var showingSheet = false
+    @State private var selectedLength = ""
+    @State private var selectedTone = ""
+    @State private var selectedFormat = ""
+    @State private var customInput = ""
+    
     var index: Int
 
     var body: some View {
-        ZStack{
-            LinearGradient(colors:[Color.black, Color.black], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
+        NavigationStack{
+            
             
             VStack{
-                HStack{
-                    Text(vm.recordingsList[index].title).font(.title).fontWeight(.bold)
-                    Spacer()
-                }.padding()
-                Divider()
-                List(vm.recordingsList[index].outputs) { output in
-                    VStack(alignment: .leading){
-                        switch output.type {
-                        case .Summary: Text("Summary").font(.headline).padding(.vertical)
-                        case .Action: Text("Actions").font(.headline).padding(.vertical)
-                        case .Transcript: Text("Transcript").font(.headline).padding(.vertical)
-                        case .Title: Text("THIS SHOULD NEVER BE SHOWN").font(.headline).padding(.vertical)
-                        }
-                        
-                        Text(output.content).font(.body)
-                        
-                    }.onAppear {
-                        print("-- Added Output --")
-                        print(output)
+                ScrollView(showsIndicators: false){
+                    List(vm.recordingsList[index].outputs) { output in
+                        VStack(alignment: .leading){
+                            switch output.type {
+                            case .Summary: Text("Summary").font(.headline).padding(.vertical)
+                            case .Action: Text("Actions").font(.headline).padding(.vertical)
+                            case .Transcript: Text("Transcript").font(.headline).padding(.vertical)
+                            case .Title: Text("THIS SHOULD NEVER BE SHOWN").font(.headline).padding(.vertical)
+                            }
+                            
+                            Text(output.content).font(.body)
+                            Divider()
+                            
+                        }.onAppear {
+                            print("-- Added Output --")
+                            print(output)
+                        }.padding().listRowSeparator(.hidden)
+                    }.scrollContentBackground(.hidden)
+                    .onAppear {
+                        print("-- Recording At RecordingView --")
+                        print(vm.recordingsList[index])
                     }
                 }
-                .onAppear {
-                    print("-- Recording At RecordingView --")
-                    print(vm.recordingsList[index])
-                }
                 Image(systemName: "plus.circle")
-                    .foregroundColor(.white)
-                    .font(.system(size: 50))
+                    .font(.system(size: 50, weight: .thin))
                     .onTapGesture {
                         showingSheet.toggle()
                     }.sheet(isPresented: $showingSheet){
-                        SheetView()
+                        SheetView(selectedLength: $selectedLength, selectedTone: $selectedTone, selectedFormat: $selectedFormat, customInput: $customInput)
                     }
 
                 
-            }
+            }.navigationTitle(vm.recordingsList[index].title)
             .onReceive(vm.$recordingsList) { updatedList in
                 print("** LIST UPDATE IN RECORDING VIEW **.")
                 print(vm.recordingsList[index].title)
                 print(vm.recordingsList[index].outputs)
                 print(vm.recordingsList[index].outputs)
-            }
+            }.navigationBarItems(trailing: HStack{
+                ShareLink(item: "Google.com"){
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Button(action: {}){
+                    Image(systemName: "gearshape")
+                }
+            })
         }
     }
 }
 
 struct SheetView: View {
+    @Environment(\.presentationMode) var presentationMode
+    @Binding var selectedLength: String
+    @Binding var selectedTone: String
+    @Binding var selectedFormat: String
+    @Binding var customInput: String
+    
+    let lengthOptions = ["Short", "Medium", "Long"]
+    let toneOptions = ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
+    let formatOptions = ["Option A", "Option B", "Option C", "Option D", "Option E"]
     
     var body: some View{
-        Text("Hello")
+        NavigationStack {
+                Form {
+                    Section(header: Text("Length")) {
+                        Picker("Select Length", selection: $selectedLength) {
+                            ForEach(lengthOptions, id: \.self) { option in
+                                Text(option)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                    
+                    Section(header: Text("Tone")) {
+                        Picker("Select Tone", selection: $selectedTone) {
+                            ForEach(toneOptions, id: \.self) { option in
+                                Text(option)
+                            }
+                        }
+                        .pickerStyle(DefaultPickerStyle())
+                    }
+                    
+                    Section(header: Text("Format")) {
+                        Picker("Select Format", selection: $selectedFormat) {
+                            ForEach(formatOptions, id: \.self) { option in
+                                Text(option)
+                            }
+                        }
+                        .pickerStyle(DefaultPickerStyle())
+                    }
+                    
+                    Section(header: Text("Custom Input")) {
+                        TextEditor(text: $customInput)
+                            .frame(height: 100)
+                    }
+                    
+                    Button("Submit") {
+                        // Perform submission logic here
+                    }
+                }
+                .navigationBarTitle("Custom Output")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                }
+            
+        }
     }
 }
 

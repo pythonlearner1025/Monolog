@@ -38,27 +38,51 @@ struct HomeView: View {
         else{
             NavigationStack {
                 ZStack{
-                    LinearGradient(colors:[Color.black, Color.black], startPoint: .top, endPoint: .bottom).opacity(0.25).ignoresSafeArea()
+                    
                     VStack{
-                        Divider().navigationTitle("Folders")
+                        Text("").navigationTitle("Folders")
                             .navigationBarItems(trailing: Button("Edit") {})
-                        
-                        List(folders) { folder in
-                            NavigationLink(destination: FolderView(folder: folder)) {
-                                VStack(alignment: .leading) {
-                                    Text(folder.name)
-                                    Text("\(folder.count) items")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
+
+                        List{
+                            Text("Default").font(.title2).bold().listRowSeparator(.hidden).padding(.leading, -21).padding(.bottom)
+                            ForEach(folders.indices, id: \.self) { folderi in
+                                if folderi == 0 || folderi == 2 {
+                                    NavigationLink(destination: FolderView(folder: folders[folderi])) {
+                                        VStack(alignment: .leading) {
+                                            Text(folders[folderi].name)
+                                            Text("\(folders[folderi].count) items")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
                                 }
                             }
+                            
+                            Text("User Created").font(.title2).bold().listRowSeparator(.hidden).padding(.leading, -21).padding(.vertical)
+                            ForEach(folders.indices, id: \.self) { folderi in
+                                if folderi != 0 {
+                                    if folderi != 2{
+                                        NavigationLink(destination: FolderView(folder: folders[folderi])) {
+                                            VStack(alignment: .leading) {
+                                                Text(folders[folderi].name)
+                                                Text("\(folders[folderi].count) items")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            
+                            
                         }.onAppear(perform: loadFolders).scrollContentBackground(.hidden)
                         HStack{
                             Spacer()
                             Button(action: {
                                 showAlert = true
                             }) {
-                                Image(systemName: "folder.badge.plus").font(.title)
+                                Image(systemName: "folder.badge.plus").font(.system(size: 40, weight: .thin))
                             }
                             .alert("New Folder", isPresented: $showAlert, actions: {
                                 TextField("New folder name", text: $newFolderName)
