@@ -75,10 +75,9 @@ struct RecordingView: View {
 
     var body: some View {
         NavigationStack{
-            
-            
+
             VStack{
-                ScrollView(showsIndicators: false){
+                HStack{
                     List(vm.recordingsList[index].outputs) { output in
                         VStack(alignment: .leading){
                             switch output.type {
@@ -100,7 +99,9 @@ struct RecordingView: View {
                         print("-- Recording At RecordingView --")
                         print(vm.recordingsList[index])
                     }
+                
                 }
+                    
                 Image(systemName: "plus.circle")
                     .font(.system(size: 50, weight: .thin))
                     .onTapGesture {
