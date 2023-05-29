@@ -9,7 +9,7 @@
 
 import SwiftUI
 
-struct Folder: Identifiable {
+struct Folder: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var path: String
@@ -30,6 +30,7 @@ struct HomeView: View {
     @State private var showAlert = false
     @State private var newFolderName = ""
     private var section = ["Defaults", "User Created"]
+    @State private var searchText = ""
     
     var body: some View {
         if isFirstLaunch {
@@ -57,56 +58,63 @@ struct HomeView: View {
                         }
                     }
                     Section(header: Text("User-Created")){
-                        ForEach(folders.indices, id: \.self) { folderi in
-                            if folders[folderi].name != "All" || folders[folderi].name != "Recently Deleted" {
-                                    NavigationLink(destination: FolderView(folder: folders[folderi])) {
+                        ForEach(searchResults, id: \.self) { folder in
+                            if folder.name != "All" || folder.name != "Recently Deleted" {
+                                    NavigationLink(destination: FolderView(folder: folder)) {
                                         VStack(alignment: .leading) {
                                             HStack{
                                                 Image(systemName: "folder")
-                                                Text(folders[folderi].name)
+                                                Text(folder.name)
                                             }.font(.body)
-                                            Text("\(folders[folderi].count) items")
+                                            Text("\(folder.count) items")
                                                 .font(.subheadline)
                                                 .foregroundColor(.gray)
                                         }
-                                    }
+                                    }.deleteDisabled(folder.name == "All" || folder.name == "Recently Deleted")
                                 }
+                        }.onDelete{ indexSet in
+                            indexSet.sorted(by: >).forEach{ i in
+                                deleteFolder(targetFolder: folders[i])
                             }
+                            folders.remove(atOffsets: indexSet)
+                        }
                         }
                     }.navigationTitle("Folders")
             .navigationBarItems(trailing:
-            HStack{
-                Button(action:{
-                    
-                }) {
-                    Image(systemName: "folder.badge.minus")
-                }
-                Button(action: {
-                    showAlert = true
-                }) {
-                    Image(systemName: "folder.badge.plus")
-                }
-                .alert("New Folder", isPresented: $showAlert, actions: {
-                    TextField("New folder name", text: $newFolderName)
-                    Button("Create", action: {
-                        createFolder(title: newFolderName)
-                        newFolderName=""
+                EditButton()
+                ).toolbar {
+                    ToolbarItem(placement: .bottomBar){
+                        Button(action: {
+                            showAlert = true
+                        }) {
+                            Image(systemName: "folder.badge.plus")
+                        }
+                        .alert("New Folder", isPresented: $showAlert, actions: {
+                            TextField("New folder name", text: $newFolderName)
+                            Button("Create", action: {
+                                createFolder(title: newFolderName)
+                                newFolderName=""
+                            }
+                            )
+                            Button("Cancel", role: .cancel, action: {})
+                        })
                     }
-                    )
-                    Button("Cancel", role: .cancel, action: {})
-                })
+                }
                 
-            })
+            }.onAppear(perform: loadFolders).searchable(text: $searchText)
                 
-                }.onAppear(perform: loadFolders)
-
-
-                
-                
-            }
+        }
         }
     
 
+    var searchResults: [Folder]{
+        if searchText.isEmpty{
+            return folders
+        }
+        else{
+            return folders.filter{$0.name.contains(searchText)}
+        }
+    }
     
     func setup() {
         //default settings

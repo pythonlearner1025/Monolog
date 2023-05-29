@@ -41,6 +41,7 @@ struct FolderView: View {
             
             
             VStack {
+                // TODO: Display items inside the folder here
                 Picker(selection: $selection, label: Text("")){
                     ForEach(FolderPageEnum.allCases, id: \.self){ option in
                         Text(option.rawValue)
@@ -50,10 +51,8 @@ struct FolderView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
-                // TODO: Display items inside the folder here
-                ScrollView(showsIndicators: false){
-                    
-                    
+                
+                List{
                     ForEach(vm.recordingsList.indices, id: \.self) { idx in
                         VStack{
                             HStack{
@@ -100,8 +99,6 @@ struct FolderView: View {
                                 }
                             }.padding(.horizontal)
                         }.padding(.horizontal,10).padding(.vertical, 15).frame(width: 350)
-                            .background(Color.white)
-                            .cornerRadius(5).border(Color.black, width: 2)
                             
                     }
                 }.padding(.vertical, 10).sheet(isPresented: $isShowingSettings){
