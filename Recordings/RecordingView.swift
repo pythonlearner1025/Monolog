@@ -76,8 +76,6 @@ struct RecordingView: View {
     var body: some View {
         NavigationStack{
 
-            VStack{
-                HStack{
                     List(vm.recordingsList[index].outputs) { output in
                         VStack(alignment: .leading){
                             switch output.type {
@@ -94,40 +92,43 @@ struct RecordingView: View {
                             print("-- Added Output --")
                             print(output)
                         }.padding().listRowSeparator(.hidden)
-                    }.scrollContentBackground(.hidden)
+                    }
                     .onAppear {
                         print("-- Recording At RecordingView --")
                         print(vm.recordingsList[index])
                     }
-                
-                }
+                    .navigationTitle(vm.recordingsList[index].title)
+                    .navigationBarItems(trailing: HStack{
+                        ShareLink(item: "Google.com"){
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        Button(action: {}){
+                            Image(systemName: "gearshape")
+                        }
+                    })
                     
-                Image(systemName: "plus.circle")
-                    .font(.system(size: 50, weight: .thin))
-                    .onTapGesture {
-                        showingSheet.toggle()
-                    }.sheet(isPresented: $showingSheet){
-                        SheetView(selectedLength: $selectedLength, selectedTone: $selectedTone, selectedFormat: $selectedFormat, customInput: $customInput)
-                    }
-
                 
-            }.navigationTitle(vm.recordingsList[index].title)
+            }
             .onReceive(vm.$recordingsList) { updatedList in
                 print("** LIST UPDATE IN RECORDING VIEW **.")
                 print(vm.recordingsList[index].title)
                 print(vm.recordingsList[index].outputs)
                 print(vm.recordingsList[index].outputs)
-            }.navigationBarItems(trailing: HStack{
-                ShareLink(item: "Google.com"){
-                    Image(systemName: "square.and.arrow.up")
+            }
+            .toolbar {
+                ToolbarItem(placement: .bottomBar){
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 50, weight: .thin))
+                        .onTapGesture {
+                            showingSheet.toggle()
+                        }.sheet(isPresented: $showingSheet){
+                            SheetView(selectedLength: $selectedLength, selectedTone: $selectedTone, selectedFormat: $selectedFormat, customInput: $customInput)
+                        }
                 }
-                Button(action: {}){
-                    Image(systemName: "gearshape")
-                }
-            })
+            }
         }
     }
-}
+
 
 struct SheetView: View {
     @Environment(\.presentationMode) var presentationMode

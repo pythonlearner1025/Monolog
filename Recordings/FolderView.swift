@@ -29,6 +29,7 @@ struct FolderView: View {
     @ObservedObject var vm: VoiceViewModel
     @State var selection: FolderPageEnum = .action
     @State private var isShowingSettings = false
+    @State private var searchText = ""
 
     
     init(folder: Folder) {
@@ -38,100 +39,97 @@ struct FolderView: View {
     
     var body: some View {
         NavigationStack{
-            
-            
-            VStack {
+
                 // TODO: Display items inside the folder here
-                Picker(selection: $selection, label: Text("")){
-                    ForEach(FolderPageEnum.allCases, id: \.self){ option in
-                        Text(option.rawValue)
-                    }
-                }.pickerStyle(SegmentedPickerStyle()).padding()
-                Text("\(vm.recordingsList.count) items")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-                
                 List{
+                    VStack{
+                        Picker(selection: $selection, label: Text("")){
+                            ForEach(FolderPageEnum.allCases, id: \.self){ option in
+                                Text(option.rawValue)
+                            }
+                        }.pickerStyle(SegmentedPickerStyle())
+                        Text("\(vm.recordingsList.count) items")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
                     ForEach(vm.recordingsList.indices, id: \.self) { idx in
-                        VStack{
-                            HStack{
-                                
-                                VStack(alignment:.leading) {
-                                    Text("Name").font(.headline)
-                                    Text("Time").font(.caption)
-                                }
+                        Section(){
+                                HStack{
+                                    
+                                    VStack(alignment:.leading) {
+                                        Text("Name").font(.headline)
+                                        Text("Time").font(.caption)
+                                    }
                                     Spacer()
                                     NavigationLink(destination: RecordingView(vm: vm, index: idx)) {
-                                        Image(systemName:"chevron.right").font(.system(size:30))
                                     }
-                                
-                            }.padding(.horizontal).padding(.vertical,5).foregroundColor(.black)
-                            
-                            HStack {
-                                if selection == .normal{
-                                    Button(action: {
-                                        vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
-                                    }) {
-                                        Image(systemName:"x.circle")
-                                            .font(.system(size:20))
-                                    }
-                                    Spacer()
                                     
-                                    Button(action: {
-                                        if vm.recordingsList[idx].isPlaying == true {
-                                            vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
-                                        }else{
-                                            vm.startPlaying(url: vm.recordingsList[idx].fileURL)
-                                        }
-                                    }) {
-                                        Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
-                                            .font(.system(size:20))
-                                    }
-                                    Spacer()
-                                }
-                                if selection == .action {
-                                    Text("Action").font(.body)
                                 }
                                 
-                                if selection == .summary {
-                                    Text("Summary").font(.body)
+                                HStack {
+                                    if selection == .normal{
+                                        Button(action: {
+                                            //                                        vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
+                                        }) {
+                                            Image(systemName:"x.circle")
+                                                .font(.system(size:20))
+                                        }
+                                        Spacer()
+                                        
+                                        Button(action: {
+                                            if vm.recordingsList[idx].isPlaying == true {
+                                                vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
+                                            }else{
+                                                vm.startPlaying(url: vm.recordingsList[idx].fileURL)
+                                            }
+                                        }) {
+                                            Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
+                                                .font(.system(size:20))
+                                        }
+                                        Spacer()
+                                    }
+                                    if selection == .action {
+                                        Text("Action").font(.body)
+                                    }
+                                    
+                                    if selection == .summary {
+                                        Text("Summary").font(.body)
+                                    }
                                 }
-                            }.padding(.horizontal)
-                        }.padding(.horizontal,10).padding(.vertical, 15).frame(width: 350)
+                            
+                        }
                             
                     }
-                }.padding(.vertical, 10).sheet(isPresented: $isShowingSettings){
+                }.sheet(isPresented: $isShowingSettings){
                     SettingsView()
-                }
-                
-                Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
-                    .foregroundColor(.red)
-                    .font(.system(size: 50, weight: .thin))
-                    .onTapGesture {
-                        if vm.isRecording == true {
-                            vm.stopRecording(folderPath: folder.path)
-                        } else {
-                            vm.startRecording(folderPath: folder.path)
-                        }
+                }.navigationTitle("\(folder.name)")
+                .navigationBarItems(trailing: HStack{
+                    ShareLink(item: "Google.com"){
+                        Image(systemName: "square.and.arrow.up")
                     }
-                
-                
+                    Button(action: {isShowingSettings.toggle()}){
+                        Image(systemName: "gearshape")
+                    }
+                }).toolbar{
+                    ToolbarItem(placement: .bottomBar){
+                        Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
+                            .foregroundColor(.red)
+                            .font(.system(size: 50, weight: .thin))
+                            .onTapGesture {
+                                if vm.isRecording == true {
+                                    vm.stopRecording(folderPath: folder.path)
+                                } else {
+                                    vm.startRecording(folderPath: folder.path)
+                                }
+                            }
+                    }
+                }.searchable(text: $searchText)
             }
             .onReceive(vm.$recordingsList) { updatedList in
                 print("** LIST UPDATE IN FOLDER VIEW **.")
                 print(vm.recordingsList)
-            }
-            .navigationTitle("\(folder.name)")
-            .navigationBarItems(trailing: HStack{
-                ShareLink(item: "Google.com"){
-                    Image(systemName: "square.and.arrow.up")
-                }
-                Button(action: {isShowingSettings.toggle()}){
-                    Image(systemName: "gearshape")
-                }
-            })
-        }
+            }.listStyle(.sidebar)
+        
     }
 }
 
