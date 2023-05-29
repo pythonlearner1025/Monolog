@@ -29,6 +29,7 @@ struct HomeView: View {
     @State private var folders: [Folder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
+    private var section = ["Defaults", "User Created"]
     
     var body: some View {
         if isFirstLaunch {
@@ -37,19 +38,33 @@ struct HomeView: View {
         
         else{
             NavigationStack {
-                ZStack{
-                    
-                    VStack{
-                        Text("").navigationTitle("Folders")
-                            .navigationBarItems(trailing: Button("Edit") {})
-
-                        List{
-                            Text("Default").font(.title2).bold().listRowSeparator(.hidden).padding(.leading, -21).padding(.bottom)
-                            ForEach(folders.indices, id: \.self) { folderi in
-                                if folderi == 0 || folderi == 2 {
+                List{
+                    Section(header: Text("Defaults")){
+                        ForEach(folders.indices, id: \.self) { folderi in
+                            if folders[folderi].name == "All" || folders[folderi].name == "Recently Deleted" {
+                                NavigationLink(destination: FolderView(folder: folders[folderi])) {
+                                    VStack(alignment: .leading) {
+                                        HStack{
+                                            Image(systemName: "folder")
+                                            Text(folders[folderi].name)
+                                        }.font(.body)
+                                        Text("\(folders[folderi].count) items")
+                                            .font(.subheadline)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Section(header: Text("User-Created")){
+                        ForEach(folders.indices, id: \.self) { folderi in
+                            if folders[folderi].name != "All" || folders[folderi].name != "Recently Deleted" {
                                     NavigationLink(destination: FolderView(folder: folders[folderi])) {
                                         VStack(alignment: .leading) {
-                                            Text(folders[folderi].name)
+                                            HStack{
+                                                Image(systemName: "folder")
+                                                Text(folders[folderi].name)
+                                            }.font(.body)
                                             Text("\(folders[folderi].count) items")
                                                 .font(.subheadline)
                                                 .foregroundColor(.gray)
@@ -57,50 +72,41 @@ struct HomeView: View {
                                     }
                                 }
                             }
-                            
-                            Text("User Created").font(.title2).bold().listRowSeparator(.hidden).padding(.leading, -21).padding(.vertical)
-                            ForEach(folders.indices, id: \.self) { folderi in
-                                if folderi != 0 {
-                                    if folderi != 2{
-                                        NavigationLink(destination: FolderView(folder: folders[folderi])) {
-                                            VStack(alignment: .leading) {
-                                                Text(folders[folderi].name)
-                                                Text("\(folders[folderi].count) items")
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.gray)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            
-                            
-                        }.onAppear(perform: loadFolders).scrollContentBackground(.hidden)
-                        HStack{
-                            Spacer()
-                            Button(action: {
-                                showAlert = true
-                            }) {
-                                Image(systemName: "folder.badge.plus").font(.system(size: 40, weight: .thin))
-                            }
-                            .alert("New Folder", isPresented: $showAlert, actions: {
-                                TextField("New folder name", text: $newFolderName)
-                                Button("Create", action: {
-                                    createFolder(title: newFolderName)
-                                    newFolderName=""
-                                }
-                                )
-                                Button("Cancel", role: .cancel, action: {})
-                            }).padding(.trailing).padding(.top).padding(.trailing)
-                            
                         }
-                    }
+                    }.navigationTitle("Folders")
+            .navigationBarItems(trailing:
+            HStack{
+                Button(action:{
+                    
+                }) {
+                    Image(systemName: "folder.badge.minus")
                 }
+                Button(action: {
+                    showAlert = true
+                }) {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .alert("New Folder", isPresented: $showAlert, actions: {
+                    TextField("New folder name", text: $newFolderName)
+                    Button("Create", action: {
+                        createFolder(title: newFolderName)
+                        newFolderName=""
+                    }
+                    )
+                    Button("Cancel", role: .cancel, action: {})
+                })
+                
+            })
+                
+                }.onAppear(perform: loadFolders)
+
+
+                
                 
             }
         }
-        }
+    
+
     
     func setup() {
         //default settings
