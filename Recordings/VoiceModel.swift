@@ -390,19 +390,16 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
  
-    func deleteRecording(folderPath: String, url : URL) {
-        let fileManager = FileManager.default
-        let folderURL = URL(fileURLWithPath: folderPath)
-        let recordingMetadataURL = folderURL.appendingPathComponent("\(url.lastPathComponent).json")
+    func deleteRecording(recordingURL: URL, fileURL: URL) {
         do {
-            try FileManager.default.removeItem(at: recordingMetadataURL)
+            try FileManager.default.removeItem(at: recordingURL)
         } catch {
             print("Can't delete")
         }
         
         for i in 0..<recordingsList.count {
             
-            if recordingsList[i].fileURL == url {
+            if recordingsList[i].fileURL == fileURL {
                 if recordingsList[i].isPlaying == true{
                     stopPlaying(url: recordingsList[i].fileURL)
                 }

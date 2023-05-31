@@ -7,72 +7,9 @@
 import SwiftUI
 import Foundation
 
-/*
- REMINDER: allow modification of settings inside the recordings view
-    var settings = UserDefaults.standard.settings(forKey: "Settings") ?? Settings(outputs: [], length: .short, format: .bullet, style: .professional)
-    settings.outputs.append(.TODO)
-    UserDefaults.standard.store(settings, forKey: "Settings")
- */
-/*
-class ObservableRecording: ObservableObject {
-    @Published var data: Recording
-
-    init(recording: Recording) {
-        self.data = recording
-    }
-}
-*/
-
-class ObservableRecording: ObservableObject, Codable {
-    @Published var fileURL: URL
-    @Published var createdAt: Date
-    @Published var isPlaying: Bool
-    @Published var title: String
-    @Published var outputs: [Output]
-    @Published var currentTime: TimeInterval
-    @Published var totalTime: TimeInterval
-
-    enum CodingKeys: CodingKey {
-        case fileURL, createdAt, isPlaying, title, outputs, currentTime, totalTime
-    }
-
-    required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        fileURL = try container.decode(URL.self, forKey: .fileURL)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-        isPlaying = try container.decode(Bool.self, forKey: .isPlaying)
-        title = try container.decode(String.self, forKey: .title)
-        outputs = try container.decode([Output].self, forKey: .outputs)
-        currentTime = try container.decode(TimeInterval.self, forKey: .currentTime)
-        totalTime = try container.decode(TimeInterval.self, forKey: .totalTime)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(fileURL, forKey: .fileURL)
-        try container.encode(createdAt, forKey: .createdAt)
-        try container.encode(isPlaying, forKey: .isPlaying)
-        try container.encode(title, forKey: .title)
-        try container.encode(outputs, forKey: .outputs)
-        try container.encode(currentTime, forKey: .currentTime)
-        try container.encode(totalTime, forKey: .totalTime)
-    }
-
-    // your initializer here
-    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: TimeInterval){
-        self.fileURL = fileURL
-        self.createdAt = createdAt
-        self.isPlaying = isPlaying
-        self.title = title
-        self.outputs = outputs
-        self.currentTime = 0
-        self.totalTime = totalTime
-    }
-}
 
 struct RecordingView: View {
     @ObservedObject var vm: VoiceViewModel
-    
     @State private var showingSheet = false
     @State private var selectedLength = ""
     @State private var selectedTone = ""
@@ -80,45 +17,28 @@ struct RecordingView: View {
     @State private var customInput = ""
     
     var index: Int
-
+    var recordingURL: URL
     var body: some View {
         NavigationStack{
-            List(sortOutputs(vm.recordingsList[index].outputs)) { output in
+            List(sortOutputs(vm.recordingsList[index].outputs).indices, id: \.self) { idx in
                 VStack(alignment: .leading){
-                    switch output.type {
-                    case .Summary:
-                        Text("Summary").font(.headline).padding(.vertical)
-                            .padding(.top, 5)
-                        Text(output.content).font(.body)
-                            .padding(.bottom, 5)
-
-                    case .Action:
-                        Text("Actions").font(.headline).padding(.vertical)
-                            .padding(.top, 5)
-                        Text(output.content).font(.body)
-                            .padding(.bottom, 5)
-
-                    case .Transcript:
-                        Text("Transcript").font(.headline).padding(.vertical)
-                            .padding(.top, 5)
-                        Text(output.content).font(.body)
-                            .padding(.bottom, 5)
-
-                    case .Title:
-                        Text(output.content).font(.title3.weight(.semibold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 5)
+                    let output = sortOutputs(vm.recordingsList[index].outputs)[idx]
+                    switch  output.type {
+                        case .Summary:
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL)
+                        case .Action:
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL)
+                        case .Transcript:
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL)
+                        case .Title:
+                            Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.top, 5)
                     }
                     Divider()
-                }.onAppear {
-                    print("-- Added Output --")
-                    print(output)
                 }
                 .listRowSeparator(.hidden)
-                .listRowBackground(Color(.secondarySystemBackground))
-            }
-            .onAppear {
-                print("-- Recording At RecordingView --")
-                print(vm.recordingsList[index])
+                .listRowBackground(Color(.systemBackground))
+
             }
             .navigationBarItems(trailing: HStack{
                 ShareLink(item: "Google.com"){
@@ -128,15 +48,6 @@ struct RecordingView: View {
                     Image(systemName: "gearshape")
                 }
             })
-            
-                    
-                
-            }
-            .onReceive(vm.$recordingsList) { updatedList in
-                print("** LIST UPDATE IN RECORDING VIEW **.")
-                print(vm.recordingsList[index].title)
-                print(vm.recordingsList[index].outputs)
-                print(vm.recordingsList[index].outputs)
             }
             .toolbar {
                 ToolbarItem(placement: .bottomBar){
@@ -149,6 +60,8 @@ struct RecordingView: View {
                         }
                 }
             }
+            .listStyle(.plain)
+           
         }
     
         func sortOutputs(_ outputs: [Output]) -> [Output] {
@@ -156,7 +69,62 @@ struct RecordingView: View {
         }
     }
 
+// TODO: save on disk changes to text
+struct OutputView: View {
+    @ObservedObject var output: Output
+    var recording: ObservableRecording
+    var recordingURL: URL
+    @State private var isMinimized: Bool = false // Add this state variable
 
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Image(systemName: isMinimized ? "chevron.forward" : "chevron.down")
+                Text(output.type.rawValue).font(.headline).padding(.vertical)
+                    .padding(.top, 5)
+            }
+            .padding(.vertical)
+            .frame(height: 40)
+            .onTapGesture {
+                self.isMinimized.toggle()
+            }
+
+            Group {
+               if !isMinimized {
+                   ZStack {
+                       TextEditor(text: $output.content)
+                           .font(.body)
+                    
+                       Text(output.content).opacity(0).padding(.all, 8)
+                   }
+               }
+            }
+            .animation(.easeInOut.speed(1.25))
+        }
+        .onChange(of: output.content, perform: { value in
+           // This block will be called whenever `output.content` changes.
+           // Insert your function call here.
+           print("output.content changed to: \(value)")
+           saveRecording()
+       })
+       
+    }
+    
+    private func saveRecording() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
+        do {
+            let data = try encoder.encode(recording)
+            try data.write(to: recordingURL)
+            print("saved changes to disk")
+        } catch {
+            print("An error occurred while saving the recording object: \(error)")
+        }
+    }
+    
+}
+
+// TODO: sheet should be equal to settings except custom input
 struct SheetView: View {
     @Environment(\.presentationMode) var presentationMode
     @Binding var selectedLength: String

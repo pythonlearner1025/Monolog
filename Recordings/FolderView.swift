@@ -18,9 +18,9 @@ import AVFoundation
  */
 
 enum FolderPageEnum: String, CaseIterable {
-    case normal = "None"
-    case summary = "Summaries"
-    case action = "To-Dos"
+    case normal = "Transcript"
+    case summary = "Summary"
+    case action = "Action Items"
 }
 
 
@@ -30,7 +30,7 @@ struct FolderView: View {
     @State var selection: FolderPageEnum = .action
     @State private var isShowingSettings = false
     @State private var searchText = ""
-
+    
     
     init(folder: Folder) {
         self.folder = folder
@@ -39,113 +39,112 @@ struct FolderView: View {
     
     var body: some View {
         NavigationStack{
-
-                // TODO: Display items inside the folder here
-                List{
-                    VStack{
-                        
-                        Picker(selection: $selection, label: Text("")){
-                            ForEach(FolderPageEnum.allCases, id: \.self){ option in
-                                Text(option.rawValue)
-                            }
+            
+            // TODO: Display items inside the folder here
+            List{
+                VStack{
+                    
+                    Picker(selection: $selection, label: Text("")){
+                        ForEach(FolderPageEnum.allCases, id: \.self){ option in
+                            Text(option.rawValue)
                         }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .listRowInsets(.init())
-                        .listRowBackground(Color(.secondarySystemBackground))
-                        
                     }
-                    ForEach(vm.recordingsList.indices, id: \.self) { idx in
-                   
+                    .pickerStyle(SegmentedPickerStyle())
+                    .listRowInsets(.init())
+                    .listRowBackground(Color(.secondarySystemBackground))
+                    
+                }
+                ForEach(vm.recordingsList.indices, id: \.self) { idx in
+                    
+                    HStack{
+                        VStack(alignment:.leading) {
+                            Text("\(vm.recordingsList[idx].title)").font(.headline)
+                            Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
+                        }
+                        Spacer()
+                        NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(fileURL: vm.recordingsList[idx].fileURL))) {
+                        }
+                        
+                    }.listRowSeparator(.hidden)
+                    
+                    
+                    VStack {
+                        if selection == .normal{
+                            
+                            VStack{
+                                List(vm.recordingsList[idx].outputs) {output in
+                                    switch output.type {
+                                    case .Summary: Text("")
+                                    case .Action: Text("")
+                                    case .Transcript: Text(output.content).font(.body)
+                                    case .Title: Text("")
+                                    }
+                                }
+                                
+                                Slider(value: $vm.recordingsList[idx].currentTime, in: 0...vm.recordingsList[idx].totalTime
+                                )
+                                if(vm.recordingsList[idx].isPlaying){
+                                    Text("\(vm.audioPlayer.currentTime)")
+                                }
+                                
                                 HStack{
-                                    
-                                    VStack(alignment:.leading) {
-                                        Text("\(vm.recordingsList[idx].title)").font(.headline)
-                                        Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
+                                    Button(action: {
+                                        vm.deleteRecording(recordingURL: getRecordingURL(fileURL:  vm.recordingsList[idx].fileURL), fileURL: vm.recordingsList[idx].fileURL)
+                                    }) {
+                                        Image(systemName:"x.circle")
+                                            .font(.system(size:20))
                                     }
                                     Spacer()
-                                    NavigationLink(destination: RecordingView(vm: vm, index: idx)) {
-                                    }
                                     
-                                }.listRowSeparator(.hidden)
-                        
-                                
-                                VStack {
-                                    if selection == .normal{
+                                    Button(action: {
+                                        if vm.recordingsList[idx].isPlaying == true {
+                                            vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
+                                        }else{
+                                            vm.startPlaying(url: vm.recordingsList[idx].fileURL)
+                                            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+                                                if vm.recordingsList[idx].isPlaying{
+                                                    vm.recordingsList[idx].currentTime = vm.audioPlayer.currentTime
+                                                }
+                                            }
+                                        }
                                         
-                                        VStack{
-                                            List(vm.recordingsList[idx].outputs) {output in
-                                                switch output.type {
-                                                case .Summary: Text("")
-                                                case .Action: Text("")
-                                                case .Transcript: Text(output.content).font(.body)
-                                                case .Title: Text("ERROR")
-                                                }
-                                            }
-                                            
-                                            Slider(value: $vm.recordingsList[idx].currentTime, in: 0...vm.recordingsList[idx].totalTime
-                                            )
-                                            if(vm.recordingsList[idx].isPlaying){
-                                                Text("\(vm.audioPlayer.currentTime)")
-                                            }
-                                            
-                                            HStack{
-                                                Button(action: {
-                                                vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
-                                                }) {
-                                                    Image(systemName:"x.circle")
-                                                        .font(.system(size:20))
-                                                }
-                                                Spacer()
-                                                
-                                                Button(action: {
-                                                    if vm.recordingsList[idx].isPlaying == true {
-                                                        vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
-                                                    }else{
-                                                        vm.startPlaying(url: vm.recordingsList[idx].fileURL)
-                                                        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
-                                                            if vm.recordingsList[idx].isPlaying{
-                                                                vm.recordingsList[idx].currentTime = vm.audioPlayer.currentTime
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                }) {
-                                                    Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
-                                                        .font(.system(size:20))
-                                                }
-                                                Spacer()
-                                            }
-                                        }
+                                    }) {
+                                        Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
+                                            .font(.system(size:20))
                                     }
-                                    if selection == .action {
-                                        List(vm.recordingsList[idx].outputs) {output in
-                                            switch output.type {
-                                            case .Summary: Text("")
-                                            case .Action: Text(output.content).font(.body)
-                                            case .Transcript: Text("")
-                                            case .Title: Text("ERROR")
-                                            }
-                                        }
-                                    }
-                                    
-                                    if selection == .summary {
-                                        List(vm.recordingsList[idx].outputs) {output in
-                                            switch output.type {
-                                            case .Summary: Text(output.content).font(.body)
-                                            case .Action: Text("")
-                                            case .Transcript: Text("")
-                                            case .Title: Text("ERROR")
-                                            }
-                                        }
-                                    }
-                                }.listRowSeparator(.hidden)
-                            
+                                    Spacer()
+                                }
+                            }
+                        }
+                        if selection == .action {
+                            List(vm.recordingsList[idx].outputs) {output in
+                                switch output.type {
+                                case .Summary: Text("")
+                                case .Action: Text(output.content).font(.body)
+                                case .Transcript: Text("")
+                                case .Title: Text("ERROR")
+                                }
+                            }
+                        }
                         
-                            
-                    }
-                }.sheet(isPresented: $isShowingSettings){
-                    SettingsView()
-                }.navigationTitle("\(folder.name)")
+                        if selection == .summary {
+                            List(vm.recordingsList[idx].outputs) {output in
+                                switch output.type {
+                                case .Summary: Text(output.content).font(.body)
+                                case .Action: Text("")
+                                case .Transcript: Text("")
+                                case .Title: Text("ERROR")
+                                }
+                            }
+                        }
+                    }.listRowSeparator(.hidden)
+                    
+                    
+                    
+                }
+            }.sheet(isPresented: $isShowingSettings){
+                SettingsView()
+            }.navigationTitle("\(folder.name)")
                 .navigationBarItems(trailing: HStack{
                     ShareLink(item: "Google.com"){
                         Image(systemName: "square.and.arrow.up")
@@ -167,14 +166,21 @@ struct FolderView: View {
                             }
                     }
                 }
-            }
-            .onReceive(vm.$recordingsList) { updatedList in
-                print("** LIST UPDATE IN FOLDER VIEW **.")
-                print(vm.recordingsList)
-            }.listStyle(.plain)
+        }
+        .onReceive(vm.$recordingsList) { updatedList in
+            print("** LIST UPDATE IN FOLDER VIEW **.")
+            print(vm.recordingsList)
+        }.listStyle(.plain)
         
     }
+
+    func getRecordingURL(fileURL: URL) -> URL {
+        let folderURL = URL(fileURLWithPath: folder.path)
+        return folderURL.appendingPathComponent("\(fileURL.lastPathComponent).json")
+    }
 }
+
+
 
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode1

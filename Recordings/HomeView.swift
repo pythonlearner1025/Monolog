@@ -54,12 +54,14 @@ struct HomeView: View {
                                             .foregroundColor(.gray)
                                     }
                                 }
+                            
                             }
                         }
                     }
                     Section(header: Text("My Folders")){
                         ForEach(searchResults, id: \.self) { folder in
-                            if folder.name != "All" || folder.name != "Recently Deleted" {
+                            if folder.name != "All" && folder.name != "Recently Deleted" {
+                                    
                                     NavigationLink(destination: FolderView(folder: folder)) {
                                         VStack(alignment: .leading) {
                                             HStack{
@@ -101,7 +103,9 @@ struct HomeView: View {
                     }
                 }
                 
-            }.onAppear(perform: loadFolders)
+            }
+            .onAppear(perform: loadFolders)
+            .listStyle(.automatic)
                 
         }
         }

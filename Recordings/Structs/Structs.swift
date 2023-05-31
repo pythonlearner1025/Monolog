@@ -6,21 +6,96 @@
 //
 
 import Foundation
-/*
-struct Recording: Encodable, Decodable {
-    var fileURL: URL
-    var createdAt: Date
-    var isPlaying: Bool
-    var title: String // title of the recording, generated asynchronously
-    var outputs: [Output] // list of outputs, generated asynchronously
-}
- */
 
-struct Output: Encodable,Decodable, Identifiable {
+class ObservableRecording: ObservableObject, Codable, Equatable {
+    @Published var fileURL: URL
+    @Published var createdAt: Date
+    @Published var isPlaying: Bool
+    @Published var title: String
+    @Published var outputs: [Output]
+    @Published var currentTime: TimeInterval
+    @Published var totalTime: TimeInterval
+
+    enum CodingKeys: CodingKey {
+        case fileURL, createdAt, isPlaying, title, outputs, currentTime, totalTime
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        fileURL = try container.decode(URL.self, forKey: .fileURL)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        isPlaying = try container.decode(Bool.self, forKey: .isPlaying)
+        title = try container.decode(String.self, forKey: .title)
+        outputs = try container.decode([Output].self, forKey: .outputs)
+        currentTime = try container.decode(TimeInterval.self, forKey: .currentTime)
+        totalTime = try container.decode(TimeInterval.self, forKey: .totalTime)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(fileURL, forKey: .fileURL)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(isPlaying, forKey: .isPlaying)
+        try container.encode(title, forKey: .title)
+        try container.encode(outputs, forKey: .outputs)
+        try container.encode(currentTime, forKey: .currentTime)
+        try container.encode(totalTime, forKey: .totalTime)
+    }
+
+    // your initializer here
+    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: TimeInterval){
+        self.fileURL = fileURL
+        self.createdAt = createdAt
+        self.isPlaying = isPlaying
+        self.title = title
+        self.outputs = outputs
+        self.currentTime = 0
+        self.totalTime = totalTime
+    }
+    static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {
+           return lhs.fileURL == rhs.fileURL
+               && lhs.createdAt == rhs.createdAt
+               && lhs.isPlaying == rhs.isPlaying
+               && lhs.title == rhs.title
+               && lhs.outputs == rhs.outputs
+               && lhs.currentTime == rhs.currentTime
+               && lhs.totalTime == rhs.totalTime
+       }
+}
+
+class Output: ObservableObject, Codable, Identifiable, Equatable {
     var id = UUID()
     var type: OutputType
-    var content: String
+    @Published var content: String
+    
+    init(type: OutputType, content: String) {
+        self.type = type
+        self.content = content
+    }
+    
+    enum CodingKeys: CodingKey {
+        case id, type, content
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        type = try container.decode(OutputType.self, forKey: .type)
+        content = try container.decode(String.self, forKey: .content)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encode(content, forKey: .content)
+    }
+    
+    static func == (lhs: Output, rhs: Output) -> Bool{
+        return lhs.id == rhs.id
+    }
 }
+
 
 enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
     case Title
