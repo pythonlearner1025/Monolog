@@ -26,7 +26,7 @@ import Alamofire
 
 class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
-    var audioPlayer : AVAudioPlayer!
+    @Published var audioPlayer : AVAudioPlayer!
     var indexOfPlayer = 0
     private var cancellables = Set<AnyCancellable>()
     let baseURL = "http://0.0.0.0:3000/api/v1/"
@@ -113,7 +113,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         
         isRecording = false
         
-        self.countSec = 0
+        
         
         timerCount!.invalidate()
         blinkingCount!.invalidate()
@@ -122,7 +122,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let fileManager = FileManager.default
         let folderURL = URL(fileURLWithPath: folderPath)
         let fileURL = audioRecorder.url
-        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [])
+        do{audioPlayer = try AVAudioPlayer(contentsOf: fileURL)}
+        catch {print("error")}
+        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: audioPlayer.duration)
+        self.countSec = 0
         recordingsList.insert(recording, at: 0)
         print("recording struct to be saved:")
         print(recording)
@@ -403,6 +406,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 recordingsList[i] = updatedRecording
             }
         }
+    }
+    
+    func seekTo(time: TimeInterval){
+        self.audioPlayer.currentTime = time
     }
     
  

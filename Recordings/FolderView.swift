@@ -55,51 +55,92 @@ struct FolderView: View {
                         
                     }
                     ForEach(vm.recordingsList.indices, id: \.self) { idx in
-                        Section(){
+                   
                                 HStack{
                                     
                                     VStack(alignment:.leading) {
-                                        Text("Name").font(.headline)
-                                        Text("Time").font(.caption)
+                                        Text("\(vm.recordingsList[idx].title)").font(.headline)
+                                        Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
                                     }
                                     Spacer()
                                     NavigationLink(destination: RecordingView(vm: vm, index: idx)) {
                                     }
                                     
-                                }
+                                }.listRowSeparator(.hidden)
+                        
                                 
-                                HStack {
+                                VStack {
                                     if selection == .normal{
-                                        Button(action: {
-                                            //                                        vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
-                                        }) {
-                                            Image(systemName:"x.circle")
-                                                .font(.system(size:20))
-                                        }
-                                        Spacer()
                                         
-                                        Button(action: {
-                                            if vm.recordingsList[idx].isPlaying == true {
-                                                vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
-                                            }else{
-                                                vm.startPlaying(url: vm.recordingsList[idx].fileURL)
+                                        VStack{
+                                            List(vm.recordingsList[idx].outputs) {output in
+                                                switch output.type {
+                                                case .Summary: Text("")
+                                                case .Action: Text("")
+                                                case .Transcript: Text(output.content).font(.body)
+                                                case .Title: Text("ERROR")
+                                                }
                                             }
-                                        }) {
-                                            Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
-                                                .font(.system(size:20))
+                                            
+                                            Slider(value: $vm.recordingsList[idx].currentTime, in: 0...vm.recordingsList[idx].totalTime
+                                            )
+                                            if(vm.recordingsList[idx].isPlaying){
+                                                Text("\(vm.audioPlayer.currentTime)")
+                                            }
+                                            
+                                            HStack{
+                                                Button(action: {
+                                                vm.deleteRecording(folderPath: folder.path, url: vm.recordingsList[idx].fileURL)
+                                                }) {
+                                                    Image(systemName:"x.circle")
+                                                        .font(.system(size:20))
+                                                }
+                                                Spacer()
+                                                
+                                                Button(action: {
+                                                    if vm.recordingsList[idx].isPlaying == true {
+                                                        vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
+                                                    }else{
+                                                        vm.startPlaying(url: vm.recordingsList[idx].fileURL)
+                                                        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+                                                            if vm.recordingsList[idx].isPlaying{
+                                                                vm.recordingsList[idx].currentTime = vm.audioPlayer.currentTime
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                }) {
+                                                    Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
+                                                        .font(.system(size:20))
+                                                }
+                                                Spacer()
+                                            }
                                         }
-                                        Spacer()
                                     }
                                     if selection == .action {
-                                        Text("Action").font(.body)
+                                        List(vm.recordingsList[idx].outputs) {output in
+                                            switch output.type {
+                                            case .Summary: Text("")
+                                            case .Action: Text(output.content).font(.body)
+                                            case .Transcript: Text("")
+                                            case .Title: Text("ERROR")
+                                            }
+                                        }
                                     }
                                     
                                     if selection == .summary {
-                                        Text("Summary").font(.body)
+                                        List(vm.recordingsList[idx].outputs) {output in
+                                            switch output.type {
+                                            case .Summary: Text(output.content).font(.body)
+                                            case .Action: Text("")
+                                            case .Transcript: Text("")
+                                            case .Title: Text("ERROR")
+                                            }
+                                        }
                                     }
-                                }
+                                }.listRowSeparator(.hidden)
                             
-                        }
+                        
                             
                     }
                 }.sheet(isPresented: $isShowingSettings){
@@ -130,7 +171,7 @@ struct FolderView: View {
             .onReceive(vm.$recordingsList) { updatedList in
                 print("** LIST UPDATE IN FOLDER VIEW **.")
                 print(vm.recordingsList)
-            }.listStyle(.sidebar)
+            }.listStyle(.plain)
         
     }
 }

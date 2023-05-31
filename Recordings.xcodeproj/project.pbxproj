@@ -21,6 +21,8 @@
 		77ABE06F2A1FF36100EED914 /* Structs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ABE06E2A1FF36100EED914 /* Structs.swift */; };
 		77ABE0712A1FF85800EED914 /* RecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ABE0702A1FF85800EED914 /* RecordingView.swift */; };
 		77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 77ABE0732A21AD4300EED914 /* Alamofire */; };
+		B0E941902A26E2C200D75726 /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */; };
+		B0E941922A26E47B00D75726 /* audio1284822820.m4a in Resources */ = {isa = PBXBuildFile; fileRef = B0E941912A26E47A00D75726 /* audio1284822820.m4a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +59,8 @@
 		77ABE06B2A1FF32600EED914 /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
 		77ABE06E2A1FF36100EED914 /* Structs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Structs.swift; sourceTree = "<group>"; };
 		77ABE0702A1FF85800EED914 /* RecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingView.swift; sourceTree = "<group>"; };
+		B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
+		B0E941912A26E47A00D75726 /* audio1284822820.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = audio1284822820.m4a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +122,8 @@
 				77ABE0702A1FF85800EED914 /* RecordingView.swift */,
 				7791A0D42A1E9497005088C4 /* Assets.xcassets */,
 				7791A0D62A1E9497005088C4 /* Preview Content */,
+				B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */,
+				B0E941912A26E47A00D75726 /* audio1284822820.m4a */,
 			);
 			path = Recordings;
 			sourceTree = "<group>";
@@ -282,6 +288,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7791A0D82A1E9497005088C4 /* Preview Assets.xcassets in Resources */,
+				B0E941922A26E47B00D75726 /* audio1284822820.m4a in Resources */,
 				7791A0D52A1E9497005088C4 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -309,6 +316,7 @@
 			files = (
 				7791A1012A1EB0E1005088C4 /* Extensions.swift in Sources */,
 				77ABE06C2A1FF32600EED914 /* UserSettings.swift in Sources */,
+				B0E941902A26E2C200D75726 /* SwiftUIView.swift in Sources */,
 				7791A0D32A1E9496005088C4 /* HomeView.swift in Sources */,
 				77ABE06F2A1FF36100EED914 /* Structs.swift in Sources */,
 				7791A0D12A1E9496005088C4 /* RecordingsApp.swift in Sources */,
