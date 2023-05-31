@@ -158,7 +158,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                        self.generateOutput(transcript: recording.outputs[0].content, outputType: outputType, settings: settings)
                            .eraseToAnyPublisher()
                    }
-                   futures.append(self.generateTitle(transcript: recording.outputs[0].content, settings: settings).eraseToAnyPublisher())
                     
                     Publishers.Sequence(sequence: futures)
                         .flatMap { $0 }
@@ -180,6 +179,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                                         print("** update: Title **")
                                         print(update)
                                         recording.title = update.content
+                                        self.updateOutput(type: .Title, content: update.content, outputs: &recording.outputs)
                                     case .Transcript:
                                         print("** skipping transcript **")
                                 }
@@ -248,29 +248,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    func generateTitle(transcript: String, settings: Settings) -> Future<Update, Error> {
-        return Future { promise in
-            let url = self.baseURL + "generate_title"
-            
-            let parameters: [String: Any] = [
-                "transcript": transcript
-            ]
-            
-            AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
-                .responseJSON { response in
-                    switch response.result {
-                    case .success(let value):
-                        if let JSON = value as? [String: Any] {
-                            let title = JSON["title"] as? String ?? ""
-                            let update = Update(type: .Title, content: title)
-                            promise(.success(update))
-                        }
-                    case .failure(let error):
-                        promise(.failure(error))
-                    }
-            }
-        }
-    }
 
     func generateTranscription(recording: ObservableRecording) -> Future<ObservableRecording, Error> {
         return Future { promise in

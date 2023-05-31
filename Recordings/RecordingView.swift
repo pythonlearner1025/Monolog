@@ -83,37 +83,52 @@ struct RecordingView: View {
 
     var body: some View {
         NavigationStack{
+            List(sortOutputs(vm.recordingsList[index].outputs)) { output in
+                VStack(alignment: .leading){
+                    switch output.type {
+                    case .Summary:
+                        Text("Summary").font(.headline).padding(.vertical)
+                            .padding(.top, 5)
+                        Text(output.content).font(.body)
+                            .padding(.bottom, 5)
 
-                    List(vm.recordingsList[index].outputs) { output in
-                        VStack(alignment: .leading){
-                            switch output.type {
-                            case .Summary: Text("Summary").font(.headline).padding(.vertical)
-                            case .Action: Text("Actions").font(.headline).padding(.vertical)
-                            case .Transcript: Text("Transcript").font(.headline).padding(.vertical)
-                            case .Title: Text("THIS SHOULD NEVER BE SHOWN").font(.headline).padding(.vertical)
-                            }
-                            
-                            Text(output.content).font(.body)
-                            Divider()
-                            
-                        }.onAppear {
-                            print("-- Added Output --")
-                            print(output)
-                        }.padding().listRowSeparator(.hidden)
+                    case .Action:
+                        Text("Actions").font(.headline).padding(.vertical)
+                            .padding(.top, 5)
+                        Text(output.content).font(.body)
+                            .padding(.bottom, 5)
+
+                    case .Transcript:
+                        Text("Transcript").font(.headline).padding(.vertical)
+                            .padding(.top, 5)
+                        Text(output.content).font(.body)
+                            .padding(.bottom, 5)
+
+                    case .Title:
+                        Text(output.content).font(.title3.weight(.semibold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 5)
                     }
-                    .onAppear {
-                        print("-- Recording At RecordingView --")
-                        print(vm.recordingsList[index])
-                    }
-                    .navigationTitle(vm.recordingsList[index].title)
-                    .navigationBarItems(trailing: HStack{
-                        ShareLink(item: "Google.com"){
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        Button(action: {}){
-                            Image(systemName: "gearshape")
-                        }
-                    })
+                    Divider()
+                }.onAppear {
+                    print("-- Added Output --")
+                    print(output)
+                }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color(.secondarySystemBackground))
+            }
+            .onAppear {
+                print("-- Recording At RecordingView --")
+                print(vm.recordingsList[index])
+            }
+            .navigationBarItems(trailing: HStack{
+                ShareLink(item: "Google.com"){
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Button(action: {}){
+                    Image(systemName: "gearshape")
+                }
+            })
+            
                     
                 
             }
@@ -134,6 +149,10 @@ struct RecordingView: View {
                         }
                 }
             }
+        }
+    
+        func sortOutputs(_ outputs: [Output]) -> [Output] {
+            return outputs.sorted { $0.type < $1.type }
         }
     }
 

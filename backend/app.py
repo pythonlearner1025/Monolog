@@ -60,15 +60,13 @@ class OutputType(str, Enum):
     Summary = 'Summary'
     Action = 'Action'
     Custom = 'Custom'
+    Title = 'Title'
 
 class Settings(BaseModel):
     prompt: str
     length: Length
     style: Style
     format: Format
-
-class TitleLoad(BaseModel):
-    transcript: str
 
 class OutputLoad(BaseModel):
     type: OutputType
@@ -99,12 +97,6 @@ async def transcribe(file: UploadFile = File(...)):
     print(transcript)
     return {'transcript': transcript}
 
-@app.post('/api/v1/generate_title')
-async def generate_title(load: TitleLoad):
-    gpt = CompletionAI(get_title,load.transcript)
-    title = await gpt()
-    return {'title': title}
-
 @app.post('/api/v1/generate_output')
 async def generate_output(load: OutputLoad):
     if load.type == 'Summary':
@@ -115,11 +107,9 @@ async def generate_output(load: OutputLoad):
         gpt = CompletionAI(get_action_out,load.transcript)
         out: str = await gpt()
         out = out.replace('*', '-') 
-    elif load.type == 'Custom':
-        # TODO: 
-        # gpt = ChatBot(system=get_custom(load.settings.prompt, load.settings.length, load.settings.format, load.settings.style))
-        # out = gpt(load.transcript)
-        pass
+    elif load.type == 'Title':
+        gpt = CompletionAI(get_title,load.transcript)
+        out: str = await gpt()
     return {'out': out}
 
 if __name__ == "__main__":

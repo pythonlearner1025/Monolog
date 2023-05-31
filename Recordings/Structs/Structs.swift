@@ -22,11 +22,23 @@ struct Output: Encodable,Decodable, Identifiable {
     var content: String
 }
 
-enum OutputType: String, Encodable, Decodable, CaseIterable {
+enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
     case Title
     case Transcript
     case Summary
     case Action
+    
+    static func < (lhs: OutputType, rhs: OutputType) -> Bool {
+           switch (lhs, rhs) {
+           case (.Title, _): return true
+           case (_, .Title): return false
+           case (.Summary, .Action), (.Summary, .Transcript): return true
+           case (.Action, .Summary), (.Transcript, .Summary): return false
+           case (.Action, .Transcript): return true
+           case (.Transcript, .Action): return false
+           default: return false
+           }
+       }
 }
 
 enum LengthType: String, Encodable, Decodable, CaseIterable {
