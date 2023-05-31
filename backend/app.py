@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from enum import Enum
-from utils import ChatBot
+from utils import CompletionAI
 from prompts import *
 import uvicorn
 import openai
@@ -77,6 +77,8 @@ class OutputLoad(BaseModel):
 
 @app.post('/api/v1/transcribe')
 async def transcribe(file: UploadFile = File(...)):
+    if file.size >= 25000000:
+        return {'transcript': None}
     contents = await file.read()
     # Create a temporary file using NamedTemporaryFile
     with NamedTemporaryFile(suffix=".m4a", delete=True) as tmp:
@@ -93,26 +95,25 @@ async def transcribe(file: UploadFile = File(...)):
                     'prompt': 'talking about some things I have done today'
                 }
             )['text']
-
     print('*'*10, 'transcript', '*'*10)
     print(transcript)
     return {'transcript': transcript}
 
 @app.post('/api/v1/generate_title')
-def generate_title(load: TitleLoad):
-    gpt = ChatBot(system=get_title())
-    title = gpt(load.transcript)
+async def generate_title(load: TitleLoad):
+    gpt = CompletionAI(get_title,load.transcript)
+    title = await gpt()
     return {'title': title}
 
 @app.post('/api/v1/generate_output')
-def generate_output(load: OutputLoad):
+async def generate_output(load: OutputLoad):
     if load.type == 'Summary':
-        gpt = ChatBot(system=get_summary('short', 'bullet-point', 'casual')) 
-        out: str = gpt(load.transcript) 
+        gpt = CompletionAI(get_summary_out,load.transcript) 
+        out: str = await gpt() 
         out = out.replace('*', '-') 
     elif load.type == 'Action':
-        gpt = ChatBot(system=get_action('short', 'bullet-point', 'casual'))
-        out: str = gpt(load.transcript)
+        gpt = CompletionAI(get_action_out,load.transcript)
+        out: str = await gpt()
         out = out.replace('*', '-') 
     elif load.type == 'Custom':
         # TODO: 

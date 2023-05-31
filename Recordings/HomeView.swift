@@ -40,7 +40,7 @@ struct HomeView: View {
         else{
             NavigationStack {
                 List{
-                    Section(header: Text("Defaults")){
+                    Section(){
                         ForEach(folders.indices, id: \.self) { folderi in
                             if folders[folderi].name == "All" || folders[folderi].name == "Recently Deleted" {
                                 NavigationLink(destination: FolderView(folder: folders[folderi])) {
@@ -57,7 +57,7 @@ struct HomeView: View {
                             }
                         }
                     }
-                    Section(header: Text("User-Created")){
+                    Section(header: Text("My Folders")){
                         ForEach(searchResults, id: \.self) { folder in
                             if folder.name != "All" || folder.name != "Recently Deleted" {
                                     NavigationLink(destination: FolderView(folder: folder)) {
@@ -101,7 +101,7 @@ struct HomeView: View {
                     }
                 }
                 
-            }.onAppear(perform: loadFolders).searchable(text: $searchText)
+            }.onAppear(perform: loadFolders)
                 
         }
         }

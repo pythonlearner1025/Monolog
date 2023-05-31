@@ -43,14 +43,16 @@ struct FolderView: View {
                 // TODO: Display items inside the folder here
                 List{
                     VStack{
+                        
                         Picker(selection: $selection, label: Text("")){
                             ForEach(FolderPageEnum.allCases, id: \.self){ option in
                                 Text(option.rawValue)
                             }
-                        }.pickerStyle(SegmentedPickerStyle())
-                        Text("\(vm.recordingsList.count) items")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .listRowInsets(.init())
+                        .listRowBackground(Color(.secondarySystemBackground))
+                        
                     }
                     ForEach(vm.recordingsList.indices, id: \.self) { idx in
                         Section(){
@@ -123,7 +125,7 @@ struct FolderView: View {
                                 }
                             }
                     }
-                }.searchable(text: $searchText)
+                }
             }
             .onReceive(vm.$recordingsList) { updatedList in
                 print("** LIST UPDATE IN FOLDER VIEW **.")
