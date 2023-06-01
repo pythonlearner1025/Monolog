@@ -39,10 +39,16 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     @Published var blinkingCount : Timer?
     @Published var timer : String = "0:00"
     @Published var toggleColor : Bool = false
+    var formatter : DateComponentsFormatter
     
     var playingURL : URL?
     
     init(folderPath: String){
+        self.formatter = DateComponentsFormatter()
+        self.formatter.allowedUnits = [.minute, .second]
+        self.formatter.unitsStyle = .positional
+        self.formatter.zeroFormattingBehavior = [ .pad ]
+        
         super.init()
         fetchAllRecording(folderPath: folderPath)
     }
@@ -124,7 +130,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let fileURL = audioRecorder.url
         do{audioPlayer = try AVAudioPlayer(contentsOf: fileURL)}
         catch {print("error")}
-        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: audioPlayer.duration)
+        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
         print("recording struct to be saved:")
@@ -337,7 +343,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         recordingsList.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
     }
 
-    func startPlaying(url : URL) {
+    func startPlaying(index: Int, url : URL) {
         print("start playing")
         print(url)
         playingURL = url
@@ -356,12 +362,28 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             audioPlayer.prepareToPlay()
             audioPlayer.play()
             
-            for i in 0..<recordingsList.count {
-                if recordingsList[i].fileURL == url {
-                    print("setting to true")
-                    let updatedRecording = recordingsList[i]
-                    updatedRecording.isPlaying = true
-                    recordingsList[i] = updatedRecording
+            recordingsList[index].isPlaying = true
+//            for i in 0..<recordingsList.count {
+//                if recordingsList[i].fileURL == url {
+//                    print("setting to true")
+//                    let updatedRecording = recordingsList[i]
+//                    updatedRecording.isPlaying = true
+//                    recordingsList[i] = updatedRecording
+//                }
+//            }
+            print(self.formatter
+                .string(from:
+                       TimeInterval(audioPlayer.duration))!)
+            print(self.formatter
+                .string(from:
+                            TimeInterval(self.audioPlayer.duration))!)
+            
+            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+                if(self.recordingsList[index].isPlaying){
+                    self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+                    print(self.recordingsList[index].currentTime)
+                    self.recordingsList[index].test = self.recordingsList[index].test + 1
+                    self.objectWillChange.send()
                 }
             }
             

@@ -30,6 +30,7 @@ struct FolderView: View {
     @State var selection: FolderPageEnum = .action
     @State private var isShowingSettings = false
     @State private var searchText = ""
+    var formatter = DateComponentsFormatter()
     
     init(folder: Folder) {
         self.folder = folder
@@ -80,19 +81,19 @@ struct FolderView: View {
                                     }
                                 }
                                 
-                                Slider(value: $vm.recordingsList[idx].currentTime, in: 0...vm.recordingsList[idx].totalTime
-                                )
-                                if(vm.recordingsList[idx].isPlaying){
-                                    Text("\(vm.audioPlayer.currentTime)")
+//                               Slider(value: $vm.recordingsList[idx].currentTime, in: 0...vm.recordingsList[idx].totalTime)
+                                if(true){
+                                    Text("\(vm.recordingsList[idx].currentTime)")
+                                    Text("\(vm.recordingsList[idx].totalTime)")
                                 }
                                 
                                 HStack{
-                                    Button(action: {
-                                        vm.deleteRecording(recordingURL: getRecordingURL(fileURL:  vm.recordingsList[idx].fileURL), fileURL: vm.recordingsList[idx].fileURL)
-                                    }) {
-                                        Image(systemName:"x.circle")
-                                            .font(.system(size:20))
-                                    }
+//                                    Button(action: {
+//                                        vm.deleteRecording(recordingURL: getRecordingURL(fileURL:  vm.recordingsList[idx].fileURL), fileURL: vm.recordingsList[idx].fileURL)
+//                                    }) {
+//                                        Image(systemName:"x.circle")
+//                                            .font(.system(size:20))
+//                                    }
                                     Spacer()
                                     
                                     
@@ -103,20 +104,25 @@ struct FolderView: View {
                                         if vm.recordingsList[idx].isPlaying == true {
                                             vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
                                         }else{
-                                            vm.startPlaying(url: vm.recordingsList[idx].fileURL)
-                                            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
-                                                if vm.recordingsList[idx].isPlaying{
-                                                    vm.recordingsList[idx].currentTime = vm.audioPlayer.currentTime
-                                                }
-                                            }
+                                            vm.startPlaying(index: idx, url: vm.recordingsList[idx].fileURL)
+//                                            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+//                                                if vm.recordingsList[idx].isPlaying{
+//                                                    vm.recordingsList[idx].currentTime = vm.audioPlayer.currentTime
+//                                                }
+//                                            }
                                         }
                                         
-                                    }) {
+                                    }
+                                           
+                                    ) {
                                         Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
                                             .font(.system(size:20))
                                     }
                                     Spacer()
-                                }
+                                }   .onAppear(perform: {
+                                    print("// On appear play button //")
+                                    print(vm.recordingsList[idx].fileURL)
+                                })
                             }
                         }
                         if selection == .action {

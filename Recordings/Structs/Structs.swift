@@ -13,8 +13,9 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     @Published var isPlaying: Bool
     @Published var title: String
     @Published var outputs: [Output]
-    @Published var currentTime: TimeInterval
-    @Published var totalTime: TimeInterval
+    @Published var currentTime: String
+    @Published var totalTime: String
+    @Published var test = 0
 
     enum CodingKeys: CodingKey {
         case fileURL, createdAt, isPlaying, title, outputs, currentTime, totalTime
@@ -27,8 +28,8 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         isPlaying = try container.decode(Bool.self, forKey: .isPlaying)
         title = try container.decode(String.self, forKey: .title)
         outputs = try container.decode([Output].self, forKey: .outputs)
-        currentTime = try container.decode(TimeInterval.self, forKey: .currentTime)
-        totalTime = try container.decode(TimeInterval.self, forKey: .totalTime)
+        currentTime = try container.decode(String.self, forKey: .currentTime)
+        totalTime = try container.decode(String.self, forKey: .totalTime)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -43,13 +44,13 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     }
 
     // your initializer here
-    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: TimeInterval){
+    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: String){
         self.fileURL = fileURL
         self.createdAt = createdAt
         self.isPlaying = isPlaying
         self.title = title
         self.outputs = outputs
-        self.currentTime = 0
+        self.currentTime = ""
         self.totalTime = totalTime
     }
     
