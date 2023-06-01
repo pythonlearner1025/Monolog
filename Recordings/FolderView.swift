@@ -9,14 +9,6 @@
 import SwiftUI
 import AVFoundation
 
-// recordings struct
-/*
-    TODO: https://chat.openai.com/c/4541f437-7a4a-447e-b976-a36893e564a5
-    //stuck in getting recordingList to auto-refresh. made it into an observableObject,
-    but no luck.
- 
- */
-
 enum FolderPageEnum: String, CaseIterable {
     case normal = "Transcript"
     case summary = "Summary"
