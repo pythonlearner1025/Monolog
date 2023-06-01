@@ -7,8 +7,51 @@
 
 import Foundation
 
+
+class Folder: ObservableObject, Codable, Equatable, Hashable {
+    @Published var name: String
+    @Published var path: String
+    @Published var count: Int
+    
+    enum CodingKeys: CodingKey {
+        case name, path, count
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        path = try container.decode(String.self, forKey: .path)
+        count = try container.decode(Int.self, forKey: .count)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(path, forKey: .path)
+        try container.encode(count, forKey: .count)
+    }
+    
+    init (name: String, path: String, count: Int) {
+        self.name = name
+        self.path = path
+        self.count = count
+    }
+    
+    static func == (lhs: Folder, rhs: Folder) -> Bool {
+        return lhs.name == rhs.name
+            && lhs.path == rhs.path
+            && lhs.count == rhs.count
+    }
+    
+    func hash(into hasher: inout Hasher) {
+            hasher.combine(name)
+            hasher.combine(path)
+            hasher.combine(count)
+    }
+}
+
 class ObservableRecording: ObservableObject, Codable, Equatable {
-    @Published var fileURL: URL
+    @Published var filePath: String
     @Published var createdAt: Date
     @Published var isPlaying: Bool
     @Published var title: String
@@ -20,12 +63,12 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     @Published var test = 0
 
     enum CodingKeys: CodingKey {
-        case fileURL, createdAt, isPlaying, title, outputs, currentTime, totalTime, progress, duration
+        case filePath, createdAt, isPlaying, title, outputs, currentTime, totalTime, progress, duration
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        fileURL = try container.decode(URL.self, forKey: .fileURL)
+        filePath = try container.decode(String.self, forKey: .filePath)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         isPlaying = try container.decode(Bool.self, forKey: .isPlaying)
         title = try container.decode(String.self, forKey: .title)
@@ -38,7 +81,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(fileURL, forKey: .fileURL)
+        try container.encode(filePath, forKey: .filePath)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(isPlaying, forKey: .isPlaying)
         try container.encode(title, forKey: .title)
@@ -51,8 +94,8 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     }
 
     // your initializer here
-    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: String, duration: Double){
-        self.fileURL = fileURL
+    init (filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: String, duration: Double){
+        self.filePath = filePath
         self.createdAt = createdAt
         self.isPlaying = isPlaying
         self.title = title
@@ -63,7 +106,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     }
     
     static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {
-           return lhs.fileURL == rhs.fileURL
+           return lhs.filePath == rhs.filePath
                && lhs.createdAt == rhs.createdAt
                && lhs.isPlaying == rhs.isPlaying
                && lhs.title == rhs.title

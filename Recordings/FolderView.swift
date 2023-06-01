@@ -62,10 +62,10 @@ struct FolderView: View {
                             Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
                         }
                         Spacer()
-                        NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(fileURL: vm.recordingsList[idx].fileURL))) {
-                        }
-                        
-                    }.listRowSeparator(.hidden)
+                        NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
+                            
+                        }.listRowSeparator(.hidden)
+                    }
                     
                     
                     VStack {
@@ -80,7 +80,7 @@ struct FolderView: View {
                                     case .Title: EmptyView()
                                     }
                                 }.onAppear{
-                                    print(vm.recordingsList[idx].outputs)
+                                    //print(vm.recordingsList[idx].outputs)
                                 }
                                 
                                 HStack {
@@ -108,18 +108,18 @@ struct FolderView: View {
                                     Spacer()
                                     
                                     Button(action: {
-                                        vm.backwards15(index: idx, url: vm.recordingsList[idx].fileURL)
+                                        vm.backwards15(index: idx, filePath: vm.recordingsList[idx].filePath)
                                     }){
                                         Image(systemName: "gobackward.15")
                                             .font(.title)
-                                            .imageScale(.medium)
+                                            .imageScale(.small)
                                     }.buttonStyle(.borderless)
                                     
                                     Button(action: {
                                         if vm.recordingsList[idx].isPlaying == true {
-                                            vm.stopPlaying(index: idx, url: vm.recordingsList[idx].fileURL)
+                                            vm.stopPlaying(index: idx)
                                         }else{
-                                            vm.startPlaying(index: idx, url: vm.recordingsList[idx].fileURL)
+                                            vm.startPlaying(index: idx, filePath: vm.recordingsList[idx].filePath)
                                         }}) {
                                         Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
                                                 .font(.title)
@@ -127,17 +127,16 @@ struct FolderView: View {
                                     }.buttonStyle(.borderless)
                                     
                                     Button(action: {
-                                        vm.forward15(index: idx, url: vm.recordingsList[idx].fileURL)
+                                        vm.forward15(index: idx, filePath: vm.recordingsList[idx].filePath)
                                     }){
                                         Image(systemName: "goforward.15")
                                             .font(.title)
-                                            .imageScale(.medium)
+                                            .imageScale(.small)
                                     }.buttonStyle(.borderless)
                                     
                                     Spacer()
                                 } .onAppear(perform: {
-                                    print("// On appear play button //")
-                                    print(vm.recordingsList[idx].fileURL)
+                                  
                                 })
                             }
                         }
@@ -184,24 +183,29 @@ struct FolderView: View {
                             .font(.system(size: 50, weight: .thin))
                             .onTapGesture {
                                 if vm.isRecording == true {
-                                    vm.stopRecording(folderPath: folder.path)
+                                    vm.stopRecording()
                                 } else {
-                                    vm.startRecording(folderPath: folder.path)
+                                    vm.startRecording()
                                 }
                             }
                     }
                 }
         }
+        .onChange(of: vm.recordingsList.count) { newCount in
+            print("** #FILES: \(newCount) **")
+            folder.count = newCount
+        }
         .onReceive(vm.$recordingsList) { updatedList in
-            print("** LIST UPDATE IN FOLDER VIEW **.")
-            print(vm.recordingsList)
+            //print("** LIST UPDATE IN FOLDER VIEW **.")
+            //print(vm.recordingsList)
         }.listStyle(.plain)
+        
         
     }
 
-    func getRecordingURL(fileURL: URL) -> URL {
+    func getRecordingURL(filePath: String) -> URL {
         let folderURL = URL(fileURLWithPath: folder.path)
-        return folderURL.appendingPathComponent("\(fileURL.lastPathComponent).json")
+        return folderURL.appendingPathComponent("\(filePath).json")
     }
 }
 

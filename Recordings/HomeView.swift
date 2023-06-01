@@ -9,12 +9,7 @@
 
 import SwiftUI
 
-struct Folder: Identifiable, Hashable {
-    let id = UUID()
-    var name: String
-    var path: String
-    var count: Int
-}
+
 
 struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
@@ -44,35 +39,18 @@ struct HomeView: View {
                         ForEach(folders.indices, id: \.self) { folderi in
                             if folders[folderi].name == "All" || folders[folderi].name == "Recently Deleted" {
                                 NavigationLink(destination: FolderView(folder: folders[folderi])) {
-                                    VStack(alignment: .leading) {
-                                        HStack{
-                                            Image(systemName: "folder")
-                                            Text(folders[folderi].name)
-                                        }.font(.body)
-                                        Text("\(folders[folderi].count) items")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                    }
+                                    FolderInnerView(folder: folders[folderi])
                                 }
-                            
                             }
                         }
                     }
                     Section(header: Text("My Folders")){
                         ForEach(searchResults, id: \.self) { folder in
                             if folder.name != "All" && folder.name != "Recently Deleted" {
-                                    
-                                    NavigationLink(destination: FolderView(folder: folder)) {
-                                        VStack(alignment: .leading) {
-                                            HStack{
-                                                Image(systemName: "folder")
-                                                Text(folder.name)
-                                            }.font(.body)
-                                            Text("\(folder.count) items")
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                        }
-                                    }.deleteDisabled(folder.name == "All" || folder.name == "Recently Deleted")
+                                NavigationLink(destination: FolderView(folder: folder)) {
+                                    FolderInnerView(folder: folder)
+                                }
+.deleteDisabled(folder.name == "All" || folder.name == "Recently Deleted")
                                 }
                         }.onDelete{ indexSet in
                             indexSet.sorted(by: >).forEach{ i in
@@ -202,6 +180,24 @@ struct HomeView: View {
     }
 
 }
+
+struct FolderInnerView: View {
+    @ObservedObject var folder: Folder
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack{
+                Image(systemName: "folder")
+                Text(folder.name)
+            }.font(.body)
+            Text("\(folder.count) items")
+                .font(.subheadline)
+                .foregroundColor(.gray)
+        }
+    }
+    
+}
+
 
 
 struct ContentView_Previews: PreviewProvider {

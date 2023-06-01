@@ -31,7 +31,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var indexOfPlayer = 0
     private var cancellables = Set<AnyCancellable>()
     let baseURL = "http://0.0.0.0:3000/api/v1/"
-
+    let folderPath: String
 
     @Published var isRecording : Bool = false
     @Published var recordingsList: [ObservableRecording] = []
@@ -41,29 +41,18 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     @Published var timer : String = "0:00"
     @Published var toggleColor : Bool = false
     var formatter : DateComponentsFormatter
-    
-    var playingURL : URL?
-    
+        
     init(folderPath: String){
         self.formatter = DateComponentsFormatter()
         self.formatter.allowedUnits = [.minute, .second]
         self.formatter.unitsStyle = .positional
         self.formatter.zeroFormattingBehavior = [ .pad ]
-        
+        self.folderPath = folderPath
         super.init()
-        fetchAllRecording(folderPath: folderPath)
+        fetchAllRecording()
     }
     
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-       
-        for i in 0..<recordingsList.count {
-            if recordingsList[i].fileURL == playingURL {
-                recordingsList[i].isPlaying = false
-            }
-        }
-    }
-    
-    func startRecording(folderPath: String) {
+    func startRecording() {
         let fileManager = FileManager.default
         let rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
         
@@ -77,7 +66,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
         }
         
-        print("Beginning recording")
+        //print("Beginning recording")
         let recordingSession = AVAudioSession.sharedInstance()
         do {
             try recordingSession.setCategory(.playAndRecord, mode: .default)
@@ -86,8 +75,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             print("Cannot setup the Recording")
         }
         
-        let fileName = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
-        print("Recording will be saved at: \(fileName)")
+        let filePath = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
+        //print("Recording will be saved at: \(fileName)")
 
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -97,7 +86,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         ]
         
         do {
-            audioRecorder = try AVAudioRecorder(url: fileName, settings: settings)
+            audioRecorder = try AVAudioRecorder(url: filePath, settings: settings)
             audioRecorder.prepareToRecord()
             audioRecorder.record()
             isRecording = true
@@ -114,14 +103,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
 
     //TODO: realtime update of recordingList...
-    func stopRecording(folderPath: String){
-        print("stopped recording")
+    func stopRecording(){
+        //print("stopped recording")
         audioRecorder.stop()
-        
         isRecording = false
-        
-        
-        
         timerCount!.invalidate()
         blinkingCount!.invalidate()
         
@@ -129,13 +114,15 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let fileManager = FileManager.default
         let folderURL = URL(fileURLWithPath: folderPath)
         let fileURL = audioRecorder.url
+        print("-- saving at this loc --")
+        print(fileURL)
         do{audioPlayer = try AVAudioPlayer(contentsOf: fileURL)}
         catch {print("recording error")}
-        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
+        var recording = ObservableRecording(filePath: fileURL.lastPathComponent, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
-        print("recording struct to be saved:")
-        print(recording)
+        //print("recording struct to be saved:")
+        //print(recording)
         let recordingMetadataURL = folderURL.appendingPathComponent("\(fileURL.lastPathComponent).json")
            let encoder = JSONEncoder()
            encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
@@ -155,7 +142,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
         }, receiveValue: { updatedRecording in
             do {
-                print("*transcript generated*")
+                print("* update: Transcript **")
                 print(updatedRecording)
                 recording = updatedRecording
                 let updatedData = try encoder.encode(recording)
@@ -194,8 +181,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                                 try updatedData.write(to: recordingMetadataURL)
                                 print("** after update **")
                                 print(recording)
-                                self.refreshRecording(fileURL: fileURL, recording: recording)
-                                
+                                self.refreshRecording(recording: recording)
                             }
                             catch {
                                 print("An error occurred while updating the recording object: \(error)")
@@ -228,12 +214,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
            }
     }
     
-    
     func generateOutput(transcript: String, outputType: OutputType, settings: Settings) -> Future<Update, Error> {
         return Future { promise in
             let url = self.baseURL + "generate_output"
-            print("ATTENTION HERE")
-            print(outputType.rawValue)
+            //print("ATTENTION HERE")
+            //print(outputType.rawValue)
             let parameters: [String: Any] = [
                 "type": outputType.rawValue,
                 "transcript": transcript
@@ -254,7 +239,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
         }
     }
-    
 
     func generateTranscription(recording: ObservableRecording) -> Future<ObservableRecording, Error> {
         return Future { promise in
@@ -269,11 +253,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
 
             var data = Data()
             data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
-            data.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(recording.fileURL.lastPathComponent)\"\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(recording.filePath)\"\r\n".data(using: .utf8)!)
             data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
 
             do {
-                let fileData = try Data(contentsOf: recording.fileURL)
+                let fileData = try Data(contentsOf: self.getFileURL(filePath: recording.filePath))
                 data.append(fileData)
             } catch {
                 print("Failed to read file data: \(error)")
@@ -312,13 +296,14 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    func refreshRecording(fileURL: URL, recording: ObservableRecording) {
-        if let index = recordingsList.firstIndex(where: { $0.fileURL == fileURL }) {
+    func refreshRecording(recording: ObservableRecording) {
+        let filePath = recording.filePath
+        if let index = recordingsList.firstIndex(where: { $0.filePath == filePath }) {
             recordingsList[index] = recording
         }
     }
 
-    func fetchAllRecording(folderPath: String){
+    func fetchAllRecording(){
         let fileManager = FileManager.default
         let folderURL = URL(fileURLWithPath: folderPath)
         let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
@@ -344,86 +329,84 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         recordingsList.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
     }
 
-    func startPlaying(index: Int, url : URL) {
+    // TODO: major changes to start / stop playing
+    func startPlaying(index: Int, filePath: String) {
         print("start playing")
-        print(url)
-        playingURL = url
         
+        
+        let url = getFileURL(filePath: filePath)
         let playSession = AVAudioSession.sharedInstance()
         
         do {
-            try playSession.overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
+            try playSession.setCategory(.playback, mode: .default, options: .defaultToSpeaker)
         } catch {
             print("Playing failed in Device")
         }
-
+        
+        
         do {
+            if FileManager.default.fileExists(atPath: url.path) {
+                print("File exists")
+            } else {
+                print("File not found")
+            }
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayerEnabled = true
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
             audioPlayer.play()
-            // self.audioPlayer.currentTime = recordingsList[index].progress
-            
-            let updatedRecording = recordingsList[index]
-            updatedRecording.isPlaying = true
-            recordingsList[index] = updatedRecording
-            print(self.formatter
-                .string(from:
-                       TimeInterval(audioPlayer.duration))!)
-            print(self.formatter
-                .string(from:
-                            TimeInterval(self.audioPlayer.duration))!)
-            
-            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
-                if(self.recordingsList[index].isPlaying){
-                    let updatedRecording = self.recordingsList[index]
-                    
-                    updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-                    print(updatedRecording.currentTime)
-                    
-                    updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
-                    //updatedRecording.test = self.recordingsList[index].test + 1
-//                    if(!self.audioPlayer.isPlaying || updatedRecording.progress == 1.0){
-//                        updatedRecording.isPlaying = false
-//                    }
-                    self.recordingsList[index] = updatedRecording
-                    self.objectWillChange.send()
-                }
-                if (!self.recordingsList[index].isPlaying && self.recordingsList[index].totalTime == self.recordingsList[index].currentTime) {
-                    self.recordingsList[index].progress = 0
-                    self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(0.0))!
-                }
-                self.objectWillChange.send()
-                 
-            }
-            
         } catch {
-            print("Playing Failed")
-            audioPlayerEnabled = false
+            print("Audioplayer failed: \(error)")
         }
+
+  
+        let updatedRecording = recordingsList[index]
+        updatedRecording.isPlaying = true
+        recordingsList[index] = updatedRecording
+        print(self.formatter
+            .string(from:
+                   TimeInterval(audioPlayer.duration))!)
+        print(self.formatter
+            .string(from:
+                        TimeInterval(self.audioPlayer.duration))!)
         
-        
+        // TODO: glitch in play forward by 15 seconds.
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+            if(self.recordingsList[index].isPlaying){
+                let updatedRecording = self.recordingsList[index]
+                
+                updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+                print(updatedRecording.currentTime)
+                updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+                self.recordingsList[index] = updatedRecording
+                self.objectWillChange.send()
+            }
+            if (!self.recordingsList[index].isPlaying && self.recordingsList[index].totalTime == self.recordingsList[index].currentTime) {
+                self.recordingsList[index].progress = 0
+                self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(0.0))!
+            }
+            self.objectWillChange.send()
+             
+        }
     }
     
-    func stopPlaying(index: Int, url : URL) {
+    func stopPlaying(index: Int) {
         print("stopping playing")
         let updatedRecording = recordingsList[index]
         updatedRecording.isPlaying = false
-//        updatedRecording.currentTime = recordingsList[index].currentTime
-//        updatedRecording.progress = recordingsList[index].progress
         recordingsList[index] = updatedRecording
         audioPlayer.stop()
     }
     
-    func forward15(index: Int, url : URL) {
-        startPlaying(index: index, url: url)
+    func forward15(index: Int, filePath : String) {
+        startPlaying(index: index, filePath: filePath)
         if(audioPlayerEnabled){
             let increase = audioPlayer.currentTime + 15
             if increase < audioPlayer.duration {
                 audioPlayer.currentTime = increase
             } else {
-                audioPlayer.currentTime = self.audioPlayer.duration
+                let updatedRecording = recordingsList[index]
+                audioPlayer.currentTime = audioPlayer.duration
             }
             self.objectWillChange.send()
             //stopPlaying(index: index, url: url)
@@ -433,8 +416,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    func backwards15(index: Int, url : URL) {
-        startPlaying(index: index, url: url)
+    func backwards15(index: Int, filePath : String) {
+        startPlaying(index: index, filePath: filePath)
         if(audioPlayerEnabled){
             let decrease = audioPlayer.currentTime - 15
             if decrease > 0 {
@@ -456,7 +439,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
  
-    func deleteRecording(recordingURL: URL, fileURL: URL) {
+    func deleteRecording(recordingURL: URL, filePath: String) {
         do {
             try FileManager.default.removeItem(at: recordingURL)
         } catch {
@@ -465,9 +448,9 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         
         for i in 0..<recordingsList.count {
             
-            if recordingsList[i].fileURL == fileURL {
+            if recordingsList[i].filePath == filePath {
                 if recordingsList[i].isPlaying == true{
-                    stopPlaying(index: i, url: recordingsList[i].fileURL)
+                    stopPlaying(index: i)
                 }
                 recordingsList.remove(at: i)
                 
@@ -494,6 +477,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
+    func getFileURL(filePath: String) -> URL {
+        var rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
+        rawFolderURL.append(path: filePath)
+        return rawFolderURL
+    }
     
     
 }

@@ -39,6 +39,10 @@ struct RecordingView: View {
                 .listRowBackground(Color(.systemBackground))
 
             }
+            .onReceive(vm.recordingsList[index].$outputs){ outputs in
+                print("-- onReceive new update --")
+                print(outputs)
+            }
             .navigationBarItems(trailing: HStack{
                 ShareLink(item: "Google.com"){
                     Image(systemName: "square.and.arrow.up")
@@ -102,10 +106,11 @@ struct OutputView: View {
             }
             .animation(.easeInOut.speed(1.25))
         }
+    
         .onChange(of: output.content, perform: { value in
            // This block will be called whenever `output.content` changes.
            // Insert your function call here.
-           print("output.content changed to: \(value)")
+           //print("output.content changed to: \(value)")
            saveRecording()
        })
        
