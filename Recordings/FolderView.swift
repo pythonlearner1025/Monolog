@@ -27,7 +27,7 @@ enum FolderPageEnum: String, CaseIterable {
 struct FolderView: View {
     var folder: Folder
     @ObservedObject var vm: VoiceViewModel
-    @State var selection: FolderPageEnum = .action
+    @State var selection: FolderPageEnum = .normal
     @State private var isShowingSettings = false
     @State private var searchText = ""
     var formatter = DateComponentsFormatter()
@@ -72,81 +72,97 @@ struct FolderView: View {
                         if selection == .normal{
                             
                             VStack{
-                                List(vm.recordingsList[idx].outputs) {output in
+                                ForEach(vm.recordingsList[idx].outputs) {output in
                                     switch output.type {
-                                    case .Summary: Text("")
-                                    case .Action: Text("")
+                                    case .Summary: EmptyView()
+                                    case .Action: EmptyView()
                                     case .Transcript: Text(output.content).font(.body)
-                                    case .Title: Text("")
+                                    case .Title: EmptyView()
                                     }
+                                }.onAppear{
+                                    print(vm.recordingsList[idx].outputs)
                                 }
                                 
-//                               Slider(value: $vm.recordingsList[idx].currentTime, in: 0...vm.recordingsList[idx].totalTime)
-                                if(true){
-                                    Text("\(vm.recordingsList[idx].currentTime)")
-                                    Text("\(vm.recordingsList[idx].totalTime)")
+                                HStack {
+                                    Text(vm.recordingsList[idx].currentTime)
+                                            .font(.caption.monospacedDigit())
+
+                                        // this is a dynamic length progress bar
+                                        GeometryReader { gr in
+                                            Capsule()
+                                                .stroke(Color.black, lineWidth: 2)
+                                                .background(
+                                                    Capsule()
+                                                        .frame(width: gr.size.width * vm.recordingsList[idx].progress,
+                                                                  height: 8), alignment: .leading)
+                                        }
+                                        .frame( height: 8)
+
+                                        Text(vm.recordingsList[idx].totalTime)
+                                            .font(.caption.monospacedDigit())
                                 }
+                                .padding()
                                 
                                 HStack{
-//                                    Button(action: {
-//                                        vm.deleteRecording(recordingURL: getRecordingURL(fileURL:  vm.recordingsList[idx].fileURL), fileURL: vm.recordingsList[idx].fileURL)
-//                                    }) {
-//                                        Image(systemName:"x.circle")
-//                                            .font(.system(size:20))
-//                                    }
+
                                     Spacer()
-                                    
                                     
                                     Button(action: {
-                                        // TODO: Thread 1: Fatal error: Index out of range
-                                        print("-- idx before crash --")
-                                        print(idx)
+                                        vm.backwards15(index: idx, url: vm.recordingsList[idx].fileURL)
+                                    }){
+                                        Image(systemName: "gobackward.15")
+                                            .font(.title)
+                                            .imageScale(.medium)
+                                    }.buttonStyle(.borderless)
+                                    
+                                    Button(action: {
                                         if vm.recordingsList[idx].isPlaying == true {
-                                            vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
+                                            vm.stopPlaying(index: idx, url: vm.recordingsList[idx].fileURL)
                                         }else{
                                             vm.startPlaying(index: idx, url: vm.recordingsList[idx].fileURL)
-//                                            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
-//                                                if vm.recordingsList[idx].isPlaying{
-//                                                    vm.recordingsList[idx].currentTime = vm.audioPlayer.currentTime
-//                                                }
-//                                            }
-                                        }
-                                        
-                                    }
-                                           
-                                    ) {
+                                        }}) {
                                         Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
-                                            .font(.system(size:20))
-                                    }
+                                                .font(.title)
+                                                .imageScale(.medium)
+                                    }.buttonStyle(.borderless)
+                                    
+                                    Button(action: {
+                                        vm.forward15(index: idx, url: vm.recordingsList[idx].fileURL)
+                                    }){
+                                        Image(systemName: "goforward.15")
+                                            .font(.title)
+                                            .imageScale(.medium)
+                                    }.buttonStyle(.borderless)
+                                    
                                     Spacer()
-                                }   .onAppear(perform: {
+                                } .onAppear(perform: {
                                     print("// On appear play button //")
                                     print(vm.recordingsList[idx].fileURL)
                                 })
                             }
                         }
                         if selection == .action {
-                            List(vm.recordingsList[idx].outputs) {output in
+                            ForEach(vm.recordingsList[idx].outputs) {output in
                                 switch output.type {
-                                case .Summary: Text("")
+                                case .Summary: EmptyView()
                                 case .Action: Text(output.content).font(.body)
-                                case .Transcript: Text("")
-                                case .Title: Text("ERROR")
+                                case .Transcript: EmptyView()
+                                case .Title: EmptyView()
                                 }
                             }
                         }
                         
                         if selection == .summary {
-                            List(vm.recordingsList[idx].outputs) {output in
+                            ForEach(vm.recordingsList[idx].outputs) {output in
                                 switch output.type {
                                 case .Summary: Text(output.content).font(.body)
-                                case .Action: Text("")
-                                case .Transcript: Text("")
-                                case .Title: Text("ERROR")
+                                case .Action: EmptyView()
+                                case .Transcript: EmptyView()
+                                case .Title: EmptyView()
                                 }
                             }
                         }
-                    }.listRowSeparator(.hidden)
+                    }
                     
                     
                     

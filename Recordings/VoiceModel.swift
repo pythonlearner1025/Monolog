@@ -27,6 +27,7 @@ import Alamofire
 class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
     @Published var audioPlayer : AVAudioPlayer!
+    @Published var audioPlayerEnabled : Bool = false
     var indexOfPlayer = 0
     private var cancellables = Set<AnyCancellable>()
     let baseURL = "http://0.0.0.0:3000/api/v1/"
@@ -129,8 +130,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let folderURL = URL(fileURLWithPath: folderPath)
         let fileURL = audioRecorder.url
         do{audioPlayer = try AVAudioPlayer(contentsOf: fileURL)}
-        catch {print("error")}
-        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!)
+        catch {print("recording error")}
+        var recording = ObservableRecording(fileURL: fileURL, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
         print("recording struct to be saved:")
@@ -358,9 +359,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
 
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayerEnabled = true
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
             audioPlayer.play()
+            // self.audioPlayer.currentTime = recordingsList[index].progress
             
             let updatedRecording = recordingsList[index]
             updatedRecording.isPlaying = true
@@ -373,35 +376,80 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                             TimeInterval(self.audioPlayer.duration))!)
             
             Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
-                /*
                 if(self.recordingsList[index].isPlaying){
-                    self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-                    print(self.recordingsList[index].currentTime)
-                    self.recordingsList[index].test = self.recordingsList[index].test + 1
+                    let updatedRecording = self.recordingsList[index]
+                    
+                    updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+                    print(updatedRecording.currentTime)
+                    
+                    updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+                    //updatedRecording.test = self.recordingsList[index].test + 1
+//                    if(!self.audioPlayer.isPlaying || updatedRecording.progress == 1.0){
+//                        updatedRecording.isPlaying = false
+//                    }
+                    self.recordingsList[index] = updatedRecording
                     self.objectWillChange.send()
                 }
-                 */
+                if (!self.recordingsList[index].isPlaying && self.recordingsList[index].totalTime == self.recordingsList[index].currentTime) {
+                    self.recordingsList[index].progress = 0
+                    self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(0.0))!
+                }
+                self.objectWillChange.send()
+                 
             }
             
         } catch {
             print("Playing Failed")
+            audioPlayerEnabled = false
         }
         
         
     }
     
-    func stopPlaying(url : URL) {
+    func stopPlaying(index: Int, url : URL) {
         print("stopping playing")
+        let updatedRecording = recordingsList[index]
+        updatedRecording.isPlaying = false
+//        updatedRecording.currentTime = recordingsList[index].currentTime
+//        updatedRecording.progress = recordingsList[index].progress
+        recordingsList[index] = updatedRecording
         audioPlayer.stop()
-        
-        for i in 0..<recordingsList.count {
-            if recordingsList[i].fileURL == url {
-                let updatedRecording = recordingsList[i]
-                updatedRecording.isPlaying = false
-                recordingsList[i] = updatedRecording
+    }
+    
+    func forward15(index: Int, url : URL) {
+        startPlaying(index: index, url: url)
+        if(audioPlayerEnabled){
+            let increase = audioPlayer.currentTime + 15
+            if increase < audioPlayer.duration {
+                audioPlayer.currentTime = increase
+            } else {
+                audioPlayer.currentTime = self.audioPlayer.duration
             }
+            self.objectWillChange.send()
+            //stopPlaying(index: index, url: url)
+        }
+        else{
+            print("error: audio player not enabled")
         }
     }
+    
+    func backwards15(index: Int, url : URL) {
+        startPlaying(index: index, url: url)
+        if(audioPlayerEnabled){
+            let decrease = audioPlayer.currentTime - 15
+            if decrease > 0 {
+                audioPlayer.currentTime = decrease
+            } else {
+                audioPlayer.currentTime = 0
+            }
+            self.objectWillChange.send()
+            //stopPlaying(index: index, url: url)
+        }
+        else{
+            print("error: audio player not enabled")
+        }
+    }
+            
     
     func seekTo(time: TimeInterval){
         self.audioPlayer.currentTime = time
@@ -419,7 +467,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             
             if recordingsList[i].fileURL == fileURL {
                 if recordingsList[i].isPlaying == true{
-                    stopPlaying(url: recordingsList[i].fileURL)
+                    stopPlaying(index: i, url: recordingsList[i].fileURL)
                 }
                 recordingsList.remove(at: i)
                 

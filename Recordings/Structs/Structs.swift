@@ -13,12 +13,14 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     @Published var isPlaying: Bool
     @Published var title: String
     @Published var outputs: [Output]
+    @Published var progress: CGFloat = 0.0
+    @Published var duration: Double = 0.0
     @Published var currentTime: String
     @Published var totalTime: String
     @Published var test = 0
 
     enum CodingKeys: CodingKey {
-        case fileURL, createdAt, isPlaying, title, outputs, currentTime, totalTime
+        case fileURL, createdAt, isPlaying, title, outputs, currentTime, totalTime, progress, duration
     }
 
     required init(from decoder: Decoder) throws {
@@ -30,6 +32,8 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         outputs = try container.decode([Output].self, forKey: .outputs)
         currentTime = try container.decode(String.self, forKey: .currentTime)
         totalTime = try container.decode(String.self, forKey: .totalTime)
+        progress = try container.decode(CGFloat.self, forKey: .progress)
+        duration = try container.decode(Double.self, forKey: .duration)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -41,10 +45,13 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         try container.encode(outputs, forKey: .outputs)
         try container.encode(currentTime, forKey: .currentTime)
         try container.encode(totalTime, forKey: .totalTime)
+        try container.encode(progress, forKey: .progress)
+        try container.encode(duration, forKey: .duration)
+
     }
 
     // your initializer here
-    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: String){
+    init (fileURL: URL, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: String, duration: Double){
         self.fileURL = fileURL
         self.createdAt = createdAt
         self.isPlaying = isPlaying
@@ -52,6 +59,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         self.outputs = outputs
         self.currentTime = ""
         self.totalTime = totalTime
+        self.duration = duration
     }
     
     static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {
