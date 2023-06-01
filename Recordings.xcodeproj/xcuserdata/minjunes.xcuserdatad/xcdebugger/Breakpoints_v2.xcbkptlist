@@ -7,22 +7,6 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "7834354A-8BA5-4CCC-A20B-FD9FD4478C60"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "Recordings/FolderView.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "89"
-            endingLineNumber = "89"
-            landmarkName = "body"
-            landmarkType = "24">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
             uuid = "6BB833FA-63B2-4FBB-9C8F-C54639F24DD0"
             shouldBeEnabled = "No"
             ignoreCount = "0"
@@ -50,6 +34,38 @@
             endingLineNumber = "175"
             landmarkName = "stopRecording(folderPath:)"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "CA17F1BF-4066-49CF-95FC-FB94A2B3A97B - 4ab5e957908bd74b"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #3 (Recordings.Update) -&gt; () in closure #2 (Recordings.ObservableRecording) -&gt; () in Recordings.VoiceViewModel.stopRecording(folderPath: Swift.String) -&gt; ()"
+                  moduleName = "Recordings"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/minjunes/Recordings/Recordings/VoiceModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "175"
+                  endingLineNumber = "175"
+                  offsetFromSymbolStart = "932">
+               </Location>
+               <Location
+                  uuid = "CA17F1BF-4066-49CF-95FC-FB94A2B3A97B - 4ab5e957908bd74b"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #3 (Recordings.Update) -&gt; () in closure #2 (Recordings.ObservableRecording) -&gt; () in Recordings.VoiceViewModel.stopRecording(folderPath: Swift.String) -&gt; ()"
+                  moduleName = "Recordings"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/minjunes/Recordings/Recordings/VoiceModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "175"
+                  endingLineNumber = "175"
+                  offsetFromSymbolStart = "276">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

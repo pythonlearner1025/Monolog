@@ -355,22 +355,16 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         } catch {
             print("Playing failed in Device")
         }
-        
+
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
             audioPlayer.play()
             
-            recordingsList[index].isPlaying = true
-//            for i in 0..<recordingsList.count {
-//                if recordingsList[i].fileURL == url {
-//                    print("setting to true")
-//                    let updatedRecording = recordingsList[i]
-//                    updatedRecording.isPlaying = true
-//                    recordingsList[i] = updatedRecording
-//                }
-//            }
+            let updatedRecording = recordingsList[index]
+            updatedRecording.isPlaying = true
+            recordingsList[index] = updatedRecording
             print(self.formatter
                 .string(from:
                        TimeInterval(audioPlayer.duration))!)
@@ -379,12 +373,14 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                             TimeInterval(self.audioPlayer.duration))!)
             
             Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+                /*
                 if(self.recordingsList[index].isPlaying){
                     self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
                     print(self.recordingsList[index].currentTime)
                     self.recordingsList[index].test = self.recordingsList[index].test + 1
                     self.objectWillChange.send()
                 }
+                 */
             }
             
         } catch {

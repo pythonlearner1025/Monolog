@@ -34,7 +34,6 @@ struct RecordingView: View {
                             Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.top, 5)
                     }
-                    Divider()
                 }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color(.systemBackground))
