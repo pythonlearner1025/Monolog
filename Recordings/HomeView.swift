@@ -59,33 +59,33 @@ struct HomeView: View {
                             folders.remove(atOffsets: indexSet)
                         }
                         }
-                    }.navigationTitle("Folders")
-            .navigationBarItems(trailing:
-                EditButton()
-                ).toolbar {
-                    ToolbarItem(placement: .bottomBar){
-                        Button(action: {
-                            showAlert = true
-                        }) {
-                            Image(systemName: "folder.badge.plus")
-                        }
-                        .alert("New Folder", isPresented: $showAlert, actions: {
-                            TextField("New folder name", text: $newFolderName)
-                            Button("Create", action: {
-                                createFolder(title: newFolderName)
-                                newFolderName=""
-                            }
-                            )
-                            Button("Cancel", role: .cancel, action: {})
-                        })
                     }
+                    .navigationTitle("Folders")
+                    .navigationBarItems(trailing:
+                        EditButton()
+                        ).toolbar {
+                        ToolbarItem(placement: .bottomBar){
+                            Button(action: {
+                                showAlert = true
+                            }) {
+                                Image(systemName: "folder.badge.plus")
+                            }
+                            .alert("New Folder", isPresented: $showAlert, actions: {
+                                TextField("New folder name", text: $newFolderName)
+                                Button("Create", action: {
+                                    createFolder(title: newFolderName)
+                                    newFolderName=""
+                                }
+                                )
+                                Button("Cancel", role: .cancel, action: {})
+                            })
+                            }
+                        }
                 }
+                .onAppear(perform: loadFolders)
+                .listStyle(.automatic)
                 
             }
-            .onAppear(perform: loadFolders)
-            .listStyle(.automatic)
-                
-        }
         }
     
 

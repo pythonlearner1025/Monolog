@@ -64,8 +64,8 @@ struct FolderView: View {
                         Spacer()
                         NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
                             
-                        }.listRowSeparator(.hidden)
-                    }
+                        }
+                    }.listRowSeparator(.hidden)
                     
                     
                     VStack {
@@ -113,6 +113,7 @@ struct FolderView: View {
                                         Image(systemName: "gobackward.15")
                                             .font(.title)
                                             .imageScale(.small)
+                                            .foregroundColor(.primary)
                                     }.buttonStyle(.borderless)
                                     
                                     Button(action: {
@@ -124,6 +125,7 @@ struct FolderView: View {
                                         Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
                                                 .font(.title)
                                                 .imageScale(.medium)
+                                                .foregroundColor(.primary)
                                     }.buttonStyle(.borderless)
                                     
                                     Button(action: {
@@ -132,6 +134,7 @@ struct FolderView: View {
                                         Image(systemName: "goforward.15")
                                             .font(.title)
                                             .imageScale(.small)
+                                            .foregroundColor(.primary)
                                     }.buttonStyle(.borderless)
                                     
                                     Spacer()
