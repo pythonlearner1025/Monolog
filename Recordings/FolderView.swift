@@ -31,7 +31,6 @@ struct FolderView: View {
     @State private var isShowingSettings = false
     @State private var searchText = ""
     
-    
     init(folder: Folder) {
         self.folder = folder
         self.vm = VoiceViewModel(folderPath: folder.path)
@@ -96,7 +95,11 @@ struct FolderView: View {
                                     }
                                     Spacer()
                                     
+                                    
                                     Button(action: {
+                                        // TODO: Thread 1: Fatal error: Index out of range
+                                        print("-- idx before crash --")
+                                        print(idx)
                                         if vm.recordingsList[idx].isPlaying == true {
                                             vm.stopPlaying(url: vm.recordingsList[idx].fileURL)
                                         }else{

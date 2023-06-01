@@ -63,7 +63,9 @@ struct RecordingView: View {
             .listStyle(.plain)
            
         }
+        
     
+        // TODO: this causes crash
         func sortOutputs(_ outputs: [Output]) -> [Output] {
             return outputs.sorted { $0.type < $1.type }
         }

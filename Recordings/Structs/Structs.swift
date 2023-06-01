@@ -52,6 +52,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         self.currentTime = 0
         self.totalTime = totalTime
     }
+    
     static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {
            return lhs.fileURL == rhs.fileURL
                && lhs.createdAt == rhs.createdAt
@@ -95,7 +96,6 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
         return lhs.id == rhs.id
     }
 }
-
 
 enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
     case Title
