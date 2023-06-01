@@ -25,14 +25,21 @@ struct RecordingView: View {
                     let output = sortOutputs(vm.recordingsList[index].outputs)[idx]
                     switch  output.type {
                         case .Summary:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL)
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Action:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL)
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Transcript:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL)
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Title:
-                            Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.top, 5)
+                            if output.error {
+                                Text(output.content)
+                                    .onTapGesture{
+                                        self.vm.regenerateOutput(index: self.index, output: output)
+                                    }
+                            } else {
+                                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
+                                    .padding(.top, 5)
+                            }
                     }
                 }
                 .listRowSeparator(.hidden)
@@ -80,6 +87,9 @@ struct OutputView: View {
     var recording: ObservableRecording
     var recordingURL: URL
     @State private var isMinimized: Bool = false // Add this state variable
+    
+    var vm: VoiceViewModel // add this
+    var index: Int // add this
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -93,18 +103,33 @@ struct OutputView: View {
             .onTapGesture {
                 self.isMinimized.toggle()
             }
-
-            Group {
-               if !isMinimized {
-                   ZStack {
-                       TextEditor(text: $output.content)
-                           .font(.body)
-                    
-                       Text(output.content).opacity(0).padding(.all, 8)
+            if output.error {
+                Group {
+                   if !isMinimized {
+                       ZStack {
+                           Text(output.content)
+                               .onTapGesture{
+                                   // TODO: call regenerateOutput
+                                   print("on retry")
+                                   print(output.content)
+                                   vm.regenerateOutput(index: index, output: output)
+                               }
+                       }
                    }
-               }
+                }.animation(.easeInOut.speed(1.25))
+            } else {
+                Group {
+                   if !isMinimized {
+                       ZStack {
+                           TextEditor(text: $output.content)
+                               .font(.body)
+                        
+                           Text(output.content).opacity(0).padding(.all, 8)
+                       }
+                   }
+                }.animation(.easeInOut.speed(1.25))
             }
-            .animation(.easeInOut.speed(1.25))
+            
         }
     
         .onChange(of: output.content, perform: { value in

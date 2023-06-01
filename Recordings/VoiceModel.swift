@@ -10,19 +10,6 @@ import AVFoundation
 import Combine
 import Alamofire
 
-/*
- backend pseudocode
- 
- - have a constant of default outputs:
-    * summary
-    * actions
-    * TBD
- 
- - show loading screen until transcript is generated
- - once transcript is generated, begin streaming generation of outputs,
-    in parallel. Sync the JSON blob per every character streamed
- */
-
 
 class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
@@ -102,7 +89,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
 
-    //TODO: realtime update of recordingList...
     func stopRecording(){
         //print("stopped recording")
         audioRecorder.stop()
@@ -121,8 +107,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         var recording = ObservableRecording(filePath: fileURL.lastPathComponent, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
-        //print("recording struct to be saved:")
-        //print(recording)
+
         let recordingMetadataURL = folderURL.appendingPathComponent("\(fileURL.lastPathComponent).json")
            let encoder = JSONEncoder()
            encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
@@ -133,10 +118,19 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                print("An error occurred while saving the recording object: \(error)")
            }
         
-        generateTranscription(recording: recording).sink(receiveCompletion: { completion in
+        generateTranscription(recording: recording).sink(receiveCompletion: { [self] (completion) in
             switch completion {
             case .failure(let error):
                 print("An error occurred while generating transcript: \(error)")
+                self.addErrorOutput(type: .Transcript, content: "", outputs: &recording.outputs)
+                do {
+                    print("-- saving transcript error data --")
+                    print(recording)
+                    let updatedData = try encoder.encode(recording)
+                    try updatedData.write(to: recordingMetadataURL)
+                } catch {
+                    print("Error saving generate-transcript-error to recording: \(error)")
+                }
             case .finished:
                 break
             }
@@ -148,35 +142,79 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 let updatedData = try encoder.encode(recording)
                 try updatedData.write(to: recordingMetadataURL)
                 if let settings = UserDefaults.standard.settings(forKey: "Settings") {
-                    var futures = settings.outputs.map { outputType -> AnyPublisher<Update, Error> in
+                    var futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
                        self.generateOutput(transcript: recording.outputs[0].content, outputType: outputType, settings: settings)
                            .eraseToAnyPublisher()
                    }
                     
                     Publishers.Sequence(sequence: futures)
-                        .flatMap { $0 }
-                        .sink(receiveCompletion: self.handleReceiveCompletion, receiveValue: {update in
-                            // update entire recording whether it be title, or output stream.
-                            do {
-                                switch update.type {
-                                    case .Summary:
-                                        print("** update: summary **")
-                                        print(update)
-                                        self.updateOutput(type: .Summary, content: update.content, outputs: &recording.outputs)
-                                        break
-                                    case .Action:
-                                        print("** update: action **")
-                                        print(update)
-                                        self.updateOutput(type: .Action, content: update.content, outputs: &recording.outputs)
-                                        break
-                                    case .Title:
-                                        print("** update: Title **")
-                                        print(update)
-                                        recording.title = update.content
-                                        self.updateOutput(type: .Title, content: update.content, outputs: &recording.outputs)
-                                    case .Transcript:
-                                        print("** skipping transcript **")
+                        .flatMap { future in
+                            future.catch { error -> AnyPublisher<Update, Never> in
+                                switch error {
+                                case .failure(let error, let outputType, let transcript):
+                                    switch outputType {
+                                        case .Summary:
+                                            self.addErrorOutput(type: .Summary, content: "Error, tap to retry", outputs: &recording.outputs)
+                                        case .Action:
+                                            self.addErrorOutput(type: .Action, content:  "Error, tap to retry", outputs: &recording.outputs)
+                                        case .Title:
+                                            self.addErrorOutput(type: .Title, content:  "Error, tap to retry", outputs: &recording.outputs)
+                                        case .Transcript:
+                                            print("** skipping error transcript **")
+                                    }
+                                    do {
+                                        print("-- saving output error data --")
+                                        print(recording.outputs)
+                                        let updatedData = try encoder.encode(recording)
+                                        try updatedData.write(to: recordingMetadataURL)
+                                        self.refreshRecording(recording: recording)
+                                    }
+                                    catch {
+                                        print("Error saving output-generate-error to recording: \(error)")
+                                    }
+                                    // replace the error with an alternative output
+                                    return Just(Update(type: outputType, content: "")).eraseToAnyPublisher()
                                 }
+                            }
+                        }
+                        .sink(receiveCompletion: { _ in }, receiveValue: { update in
+                            // update entire recording whether it be title, or output stream.
+                            
+                            // TODO: for some reason, receiveValue is being called when update.content == "". If
+                            // update.content == "", treat as failure and don't add output.
+                            switch update.type {
+                                case .Summary:
+                                    print("** update: summary **")
+                                    print(update)
+                                    if update.content != "" {
+                                        self.addOutput(type: .Summary, content: update.content, outputs: &recording.outputs)
+                                    } else {
+                                        print("FAKE")
+                                    }
+                                    break
+                                case .Action:
+                                    print("** update: action **")
+                                    print(update)
+                                    if update.content != "" {
+                                        self.addOutput(type: .Summary, content: update.content, outputs: &recording.outputs)
+                                    } else {
+                                        print("FAKE")
+                                    }
+                                    break
+                                case .Title:
+                                    print("** update: Title **")
+                                    print(update)
+                                    if update.content != "" {
+                                        recording.title = update.content
+                                        self.addOutput(type: .Summary, content: update.content, outputs: &recording.outputs)
+                                    } else {
+                                        print("FAKE")
+                                    }
+                                case .Transcript:
+                                    print("** skipping transcript **")
+                                    break
+                            }
+                            do {
                                 let updatedData = try encoder.encode(recording)
                                 try updatedData.write(to: recordingMetadataURL)
                                 print("** after update **")
@@ -184,7 +222,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                                 self.refreshRecording(recording: recording)
                             }
                             catch {
-                                print("An error occurred while updating the recording object: \(error)")
+                                print("An error occurred while saving the recording object: \(error)")
                             }
                         })
                        .store(in: &self.cancellables)
@@ -196,7 +234,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }).store(in: &cancellables) // make sure `cancellables` is a property of the class so the subscription does not get deallocated
     }
     
-    func updateOutput(type: OutputType, content: String, outputs: inout [Output]) {
+    // TODO: add updateOutput function to be called when user re-generates output
+    
+    
+    func addOutput(type: OutputType, content: String, outputs: inout [Output]) {
         if let index = outputs.firstIndex(where: { $0.type == type }) {
             outputs[index].content = content
         } else {
@@ -204,17 +245,69 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             outputs.append(newOutput)
         }
     }
-
-    func handleReceiveCompletion(completion: Subscribers.Completion<Error>) {
-        switch completion {
-           case .failure(let error):
-               print("An error occurred while generating transcript: \(error)")
-           case .finished:
-               break
-           }
+    
+    func updateOutput(type: OutputType, content: String, outputs: inout [Output]) {
+        if let index = outputs.firstIndex(where: { $0.type == type }) {
+            outputs[index].content = content
+            outputs[index].error = false
+        }
     }
     
-    func generateOutput(transcript: String, outputType: OutputType, settings: Settings) -> Future<Update, Error> {
+    func addErrorOutput(type: OutputType, content: String, outputs: inout [Output]) {
+        if let index = outputs.firstIndex(where: { $0.type == type }) {
+            outputs[index].content = content
+        } else {
+            let newOutput = Output(type: type, content: content)
+            newOutput.error = true
+            outputs.append(newOutput)
+        }
+    }
+    
+    func getTranscript(outputs: [Output]) -> String {
+        if let index = outputs.firstIndex(where: {$0.type == .Transcript}) {
+            return outputs[index].content
+        } else {
+            return ""
+        }
+    }
+    
+    func regenerateTranscript(index: Int) {
+        //TODO: regenerate transcript
+    }
+    
+    func regenerateOutput(index: Int, output: Output) {
+        var recording = recordingsList[index]
+        let transcript = getTranscript(outputs: recording.outputs)
+        let recordingMetadataURL = getRecordingMetaURL(filePath: recording.filePath)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
+        if let settings = UserDefaults.standard.settings(forKey: "Settings") {
+            generateOutput(transcript: transcript, outputType: output.type, settings: settings).sink(
+                receiveCompletion: { completion in
+                    switch (completion) {
+                    case .failure(let error):
+                        print("failed to regenerate \(error)")
+                    case .finished:
+                        break
+                    }
+                },
+                receiveValue:{ update in
+                    self.updateOutput(type: output.type, content: update.content, outputs: &recording.outputs)
+                    do {
+                        let updatedData = try encoder.encode(recording)
+                        try updatedData.write(to: recordingMetadataURL)
+                        print("** recording after regenerated output **")
+                        print(recording)
+                        self.recordingsList[index] = recording
+                    } catch {
+                        print("error saving updated output")
+                    }
+                })
+                .store(in: &self.cancellables)
+        }
+    }
+
+    func generateOutput(transcript: String, outputType: OutputType, settings: Settings) -> Future<Update, OutputGenerationError> {
         return Future { promise in
             let url = self.baseURL + "generate_output"
             //print("ATTENTION HERE")
@@ -225,6 +318,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             ]
             
             AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+                .validate()
                 .responseJSON { response in
                     switch response.result {
                     case .success(let value):
@@ -234,7 +328,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                             promise(.success(update))
                         }
                     case .failure(let error):
-                        promise(.failure(error))
+                        promise(.failure(OutputGenerationError.failure(error: error, outputType: outputType, transcript: transcript)))
                     }
             }
         }
@@ -483,5 +577,9 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         return rawFolderURL
     }
     
-    
+    func getRecordingMetaURL(filePath: String) -> URL {
+        let folderURL = URL(fileURLWithPath: folderPath)
+        let recordingMetadataURL = folderURL.appendingPathComponent("\(filePath).json")
+        return recordingMetadataURL
+    }
 }

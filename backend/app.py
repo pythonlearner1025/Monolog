@@ -99,6 +99,7 @@ async def transcribe(file: UploadFile = File(...)):
 
 @app.post('/api/v1/generate_output')
 async def generate_output(load: OutputLoad):
+    #raise HTTPException(status_code=400, detail="Summary generation failed.")
     if load.type == 'Summary':
         gpt = CompletionAI(get_summary_out,load.transcript) 
         out: str = await gpt() 
@@ -110,6 +111,7 @@ async def generate_output(load: OutputLoad):
     elif load.type == 'Title':
         gpt = CompletionAI(get_title,load.transcript)
         out: str = await gpt()
+
     return {'out': out}
 
 if __name__ == "__main__":

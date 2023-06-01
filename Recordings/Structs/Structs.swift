@@ -120,7 +120,8 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
     var id = UUID()
     var type: OutputType
     @Published var content: String
-    
+    @Published var error: Bool = false
+
     init(type: OutputType, content: String) {
         self.type = type
         self.content = content
@@ -154,6 +155,7 @@ enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
     case Transcript
     case Summary
     case Action
+    
     
     static func < (lhs: OutputType, rhs: OutputType) -> Bool {
            switch (lhs, rhs) {
@@ -194,6 +196,10 @@ struct Settings: Encodable, Decodable {
 struct Update {
     var type: OutputType
     var content: String
+}
+
+enum OutputGenerationError: Error {
+    case failure(error: Error, outputType: OutputType, transcript: String)
 }
 
 /*
