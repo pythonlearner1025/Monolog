@@ -121,14 +121,16 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
     var type: OutputType
     @Published var content: String
     @Published var error: Bool = false
+    @Published var settings: OutputSettings
 
-    init(type: OutputType, content: String) {
+    init(type: OutputType, content: String, settings: OutputSettings) {
         self.type = type
         self.content = content
+        self.settings = settings
     }
     
     enum CodingKeys: CodingKey {
-        case id, type, content
+        case id, type, content, settings
     }
     
     required init(from decoder: Decoder) throws {
@@ -136,6 +138,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
         id = try container.decode(UUID.self, forKey: .id)
         type = try container.decode(OutputType.self, forKey: .type)
         content = try container.decode(String.self, forKey: .content)
+        settings = try container.decodeIfPresent(OutputSettings.self, forKey: .settings) ?? OutputSettings.defaultSettings
     }
     
     func encode(to encoder: Encoder) throws {
@@ -143,6 +146,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
         try container.encode(id, forKey: .id)
         try container.encode(type, forKey: .type)
         try container.encode(content, forKey: .content)
+        try container.encode(settings, forKey: .settings)
     }
     
     static func == (lhs: Output, rhs: Output) -> Bool{
@@ -155,6 +159,7 @@ enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
     case Transcript
     case Summary
     case Action
+    case Custom
     
     
     static func < (lhs: OutputType, rhs: OutputType) -> Bool {
@@ -193,9 +198,22 @@ struct Settings: Encodable, Decodable {
     var style: StyleType
 }
 
+struct OutputSettings: Encodable, Decodable {
+    var length: LengthType
+    var format: FormatType
+    var style: StyleType
+    var prompt: String
+    var name: String
+    
+    static var defaultSettings: OutputSettings {
+        return OutputSettings(length: .short, format: .bullet, style: .casual, prompt: "", name: "Default")
+    }
+}
+
 struct Update {
     var type: OutputType
     var content: String
+    var settings: OutputSettings
 }
 
 enum OutputGenerationError: Error {

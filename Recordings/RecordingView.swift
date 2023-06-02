@@ -30,11 +30,13 @@ struct RecordingView: View {
                             OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Transcript:
                             OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
+                        case .Custom:
+                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Title:
                             if output.error {
                                 Text(output.content)
                                     .onTapGesture{
-                                        self.vm.regenerateOutput(index: self.index, output: output)
+                                        self.vm.regenerateOutput(index: self.index, output: output, outputSettings: output.settings)
                                     }
                             } else {
                                 Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center)
@@ -112,7 +114,7 @@ struct OutputView: View {
                                    // TODO: call regenerateOutput
                                    print("on retry")
                                    print(output.content)
-                                   vm.regenerateOutput(index: index, output: output)
+                                   vm.regenerateOutput(index: index, output: output, outputSettings: output.settings)
                                }
                        }
                    }

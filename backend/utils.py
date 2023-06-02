@@ -21,10 +21,10 @@ def completion_with_backoff(**kwargs):
 
 # TODO: what if the transcript is too long? 
 class CompletionAI:
-    def __init__(self, system_fn, user_msg):
+    def __init__(self, system_fn, user_msg, **kwargs):
         self.user_msg = user_msg
         self.messages = []
-        self.messages.append({"role": "system", "content": system_fn(user_msg)})
+        self.messages.append({"role": "system", "content": system_fn(user_msg, **kwargs)})
         self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
         self.system_fn = system_fn
     

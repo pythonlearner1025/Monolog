@@ -63,6 +63,7 @@ class OutputType(str, Enum):
     Title = 'Title'
 
 class Settings(BaseModel):
+    name: str
     prompt: str
     length: Length
     style: Style
@@ -70,7 +71,7 @@ class Settings(BaseModel):
 
 class OutputLoad(BaseModel):
     type: OutputType
-    #settings: Settings
+    settings: Settings
     transcript: str
 
 @app.post('/api/v1/transcribe')
@@ -99,19 +100,20 @@ async def transcribe(file: UploadFile = File(...)):
 
 @app.post('/api/v1/generate_output')
 async def generate_output(load: OutputLoad):
-    #raise HTTPException(status_code=400, detail="Summary generation failed.")
     if load.type == 'Summary':
+        print(load.type)
         gpt = CompletionAI(get_summary_out,load.transcript) 
         out: str = await gpt() 
         out = out.replace('*', '-') 
     elif load.type == 'Action':
+        print(load.type)
         gpt = CompletionAI(get_action_out,load.transcript)
         out: str = await gpt()
         out = out.replace('*', '-') 
     elif load.type == 'Title':
+        print(load.type)
         gpt = CompletionAI(get_title,load.transcript)
         out: str = await gpt()
-
     return {'out': out}
 
 if __name__ == "__main__":

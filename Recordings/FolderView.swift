@@ -70,6 +70,7 @@ struct FolderView: View {
                                     case .Action: EmptyView()
                                     case .Transcript: Text(output.content).font(.body)
                                     case .Title: EmptyView()
+                                    case .Custom: EmptyView()
                                     }
                                 }.onAppear{
                                     //print(vm.recordingsList[idx].outputs)
@@ -142,6 +143,7 @@ struct FolderView: View {
                                 case .Action: Text(output.content).font(.body)
                                 case .Transcript: EmptyView()
                                 case .Title: EmptyView()
+                                case .Custom: EmptyView()
                                 }
                             }
                         }
@@ -153,6 +155,8 @@ struct FolderView: View {
                                 case .Action: EmptyView()
                                 case .Transcript: EmptyView()
                                 case .Title: EmptyView()
+                                case .Custom: EmptyView()
+
                                 }
                             }
                         }
