@@ -100,8 +100,10 @@ struct HomeView: View {
     
     func setup() {
         //default settings
-        let defaultSettings = Settings(outputs: [.Title, .Transcript, .Summary, .Action], length: .short, format: .bullet, style: .casual)
-        UserDefaults.standard.store(defaultSettings, forKey: "Settings")
+        let settings = Settings(outputs: [.Title, .Transcript, .Summary, .Action], length: .short, format: .bullet, tone: .casual)
+        let outputSettings = OutputSettings(length: .short, format: .bullet, tone: .casual, prompt: "", name: "")
+        UserDefaults.standard.storeSettings(settings, forKey: "Settings")
+        UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
         // default folders
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }

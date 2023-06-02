@@ -48,7 +48,7 @@ class Length(str, Enum):
     medium = 'medium'
     long = 'long'
 
-class Style(str, Enum):
+class Tone(str, Enum):
     casual = 'casual' 
     formal = 'formal'
 
@@ -66,7 +66,7 @@ class Settings(BaseModel):
     name: str
     prompt: str
     length: Length
-    style: Style
+    tone: Tone
     format: Format
 
 class OutputLoad(BaseModel):
@@ -102,17 +102,45 @@ async def transcribe(file: UploadFile = File(...)):
 async def generate_output(load: OutputLoad):
     if load.type == 'Summary':
         print(load.type)
-        gpt = CompletionAI(get_summary_out,load.transcript) 
+        gpt = CompletionAI(
+            get_summary_out,
+            load.transcript, 
+            length=load.settings.length, 
+            tone=load.settings.tone, 
+            format=load.settings.format
+            ) 
         out: str = await gpt() 
         out = out.replace('*', '-') 
     elif load.type == 'Action':
         print(load.type)
-        gpt = CompletionAI(get_action_out,load.transcript)
+        gpt = CompletionAI(
+            get_action_out,
+            load.transcript, 
+            length=load.settings.length, 
+            tone=load.settings.tone, 
+            format=load.settings.format
+            )
         out: str = await gpt()
         out = out.replace('*', '-') 
     elif load.type == 'Title':
         print(load.type)
-        gpt = CompletionAI(get_title,load.transcript)
+        gpt = CompletionAI(
+            get_title,
+            load.transcript 
+            )
+        out: str = await gpt()
+        out = out.replace('"', '') 
+        out = out.replace("'", '') 
+    else:
+        print(load.type)
+        gpt = CompletionAI(
+            get_custom_out, 
+            load.transcript, 
+            prompt=load.settings.prompt, 
+            length=load.settings.length, 
+            tone=load.settings.tone, 
+            format=load.settings.format
+            )
         out: str = await gpt()
     return {'out': out}
 

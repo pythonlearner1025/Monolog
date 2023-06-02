@@ -215,7 +215,7 @@ struct SettingsView: View {
     
     @State private var selectedFormat = FormatType.bullet
     @State private var selectedLength = LengthType.short
-    @State private var selectedStyle = StyleType.casual
+    @State private var selectedTone = ToneType.casual
     
     var body: some View {
         NavigationStack{
@@ -229,16 +229,16 @@ struct SettingsView: View {
                     .pickerStyle(SegmentedPickerStyle())
                 }
                 Section(header: Text("Format")) {
-                    Picker("Select Length", selection: $selectedLength) {
+                    Picker("Select Format", selection: $selectedFormat) {
                         ForEach(FormatType.allCases, id: \.self) { option in
                             Text(option.rawValue)
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
                 }
-                Section(header: Text("Style")) {
-                    Picker("Select Length", selection: $selectedLength) {
-                        ForEach(StyleType.allCases, id: \.self) { option in
+                Section(header: Text("Tone")) {
+                    Picker("Select Tone", selection: $selectedTone) {
+                        ForEach(ToneType.allCases, id: \.self) { option in
                             Text(option.rawValue)
                         }
                     }

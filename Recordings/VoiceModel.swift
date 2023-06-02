@@ -10,7 +10,6 @@ import AVFoundation
 import Combine
 import Alamofire
 
-
 class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
     @Published var audioPlayer : AVAudioPlayer!
@@ -117,13 +116,13 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
            } catch {
                print("An error occurred while saving the recording object: \(error)")
            }
-        
+        addLoadingOutput(type: .Transcript, settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
         generateTranscription(recording: recording).sink(receiveCompletion: { [self] (completion) in
             switch completion {
             case .failure(let error):
                 print("An error occurred while generating transcript: \(error)")
-                if let settings = UserDefaults.standard.settings(forKey: "Settings") {
-                    self.addErrorOutput(type: .Transcript, content: "Error, tap to retry", settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
+                if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
+                    self.updateErrorOutput(type: .Transcript, settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
                 }
                 do {
                     print("-- saving transcript error data --")
@@ -138,17 +137,24 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
         }, receiveValue: { update in
             print("* update: Transcript **")
-            self.addOutput(type: .Transcript, content: update.content, settings: update.settings, outputs: &recording.outputs)
+            self.updateOutput(type: .Transcript, content: update.content, settings: update.settings, outputs: &recording.outputs)
             do {
                 let updatedData = try encoder.encode(recording)
                 try updatedData.write(to: recordingMetadataURL)
             } catch {
                 print("An error occurred while updating the recording object: \(error)")
             }
-            if let settings = UserDefaults.standard.settings(forKey: "Settings") {
-                let outputSettings = OutputSettings(length: settings.length, format: settings.format, style: settings.style, prompt: "", name: "Default Output")
+            if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
+                let outputSettings = OutputSettings(length: settings.length, format: settings.format, tone: settings.tone, prompt: "", name: "Default Output")
                 print("== all settings outputs \(settings.outputs)==")
+
+                settings.outputs.forEach({ outputType in
+                    if outputType != .Transcript {
+                        self.addLoadingOutput(type: outputType, settings: outputSettings, outputs: &recording.outputs)
+                    }
+                })
                 var futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
+                  
                     self.generateOutput(transcript: recording.outputs[0].content, outputType: outputType, outputSettings: outputSettings)
                        .eraseToAnyPublisher()
                }
@@ -160,18 +166,18 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                             case .failure(let error, let outputType, let transcript):
                                 switch outputType {
                                     case .Summary:
-                                    self.addErrorOutput(type: .Summary, content: "Error, tap to retry", settings: outputSettings, outputs: &recording.outputs)
+                                    self.updateErrorOutput(type: .Summary, settings: outputSettings, outputs: &recording.outputs)
                                         break
                                     case .Action:
-                                    self.addErrorOutput(type: .Action, content:  "Error, tap to retry", settings: outputSettings, outputs: &recording.outputs)
+                                    self.updateErrorOutput(type: .Action, settings: outputSettings, outputs: &recording.outputs)
                                         break
                                     case .Title:
-                                        self.addErrorOutput(type: .Title, content:  "Error, tap to retry", settings: outputSettings, outputs: &recording.outputs)
+                                        self.updateErrorOutput(type: .Title, settings: outputSettings, outputs: &recording.outputs)
                                         break
                                     case .Transcript:
                                         break
                                     case .Custom:
-                                        self.addErrorOutput(type: .Custom, content:  "Error, tap to retry", settings: outputSettings, outputs: &recording.outputs)
+                                        self.updateErrorOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
                                         break
                                 }
                                 do {
@@ -200,27 +206,22 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                         switch update.type {
                             case .Summary:
                                 print("** update: summary **")
-                                self.addOutput(type: .Summary, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                                self.updateOutput(type: .Summary, content: update.content, settings: update.settings, outputs: &recording.outputs)
                                
                                 break
                             case .Action:
                                 print("** update: action **")
-                                self.addOutput(type: .Action, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                                self.updateOutput(type: .Action, content: update.content, settings: update.settings, outputs: &recording.outputs)
                               
                                 break
                             case .Title:
                                 print("** update: Title **")
                                 recording.title = update.content
-                                self.addOutput(type: .Title, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                                self.updateOutput(type: .Title, content: update.content, settings: update.settings, outputs: &recording.outputs)
                                 break
                             case .Transcript:
                                 break
                             case .Custom:
-                                print("** update: Custom **")
-
-                                recording.title = update.content
-                                self.addOutput(type: .Custom, content: update.content, settings: update.settings, outputs: &recording.outputs)
-                                
                                 break
                         }
                         do {
@@ -236,37 +237,36 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                    .store(in: &self.cancellables)
             }
 
-        }).store(in: &cancellables) // make sure `cancellables` is a property of the class so the subscription does not get deallocated
+        }).store(in: &self.cancellables)
     }
     
-    // TODO: add updateOutput function to be called when user re-generates output
-    
-    
-    func addOutput(type: OutputType, content: String, settings: OutputSettings, outputs: inout [Output]) {
-        if let index = outputs.firstIndex(where: { $0.type == type }) {
-            outputs[index].content = content
-        } else {
-            let newOutput = Output(type: type, content: content, settings: settings)
-            outputs.append(newOutput)
-        }
+    func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
+        let newOutput = Output(type: type, content: "Loading", settings: settings)
+        outputs.append(newOutput)
     }
     
-    func updateOutput(type: OutputType, content: String,  settings: OutputSettings, outputs: inout [Output]) {
+    func updateOutput(type: OutputType, content: String,  settings: OutputSettings, outputs: inout [Output]){
         if let index = outputs.firstIndex(where: { $0.type == type }) {
             outputs[index].content = content
             outputs[index].settings = settings
             outputs[index].error = false
+            outputs[index].loading = false
         }
     }
     
-    func addErrorOutput(type: OutputType, content: String, settings: OutputSettings, outputs: inout [Output]) {
+    func updateErrorOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
         if let index = outputs.firstIndex(where: { $0.type == type }) {
-            outputs[index].content = content
-        } else {
-            let newOutput = Output(type: type, content: content, settings: settings)
-            newOutput.error = true
-            outputs.append(newOutput)
+            outputs[index].content = "Error, tap to retry"
+            outputs[index].error = true
+            outputs[index].loading = false
         }
+    }
+    
+    func addErrorOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
+        let newOutput = Output(type: type, content: "Error, tap to retry", settings: settings)
+        newOutput.error = true
+        newOutput.loading = false
+        outputs.append(newOutput)
     }
     
     func getTranscript(outputs: [Output]) -> String {
@@ -297,7 +297,27 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 }
             },
             receiveValue:{ update in
-                self.updateOutput(type: output.type, content: update.content, settings: outputSettings, outputs: &recording.outputs)
+                switch update.type {
+                    case .Summary:
+                        print("** update: summary **")
+                        self.updateOutput(type: .Summary, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                       
+                        break
+                    case .Action:
+                        print("** update: action **")
+                        self.updateOutput(type: .Action, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                      
+                        break
+                    case .Title:
+                        print("** update: Title **")
+                        recording.title = update.content
+                        self.updateOutput(type: .Title, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                        break
+                    case .Transcript:
+                        break
+                    case .Custom:
+                        break
+                }
                 do {
                     let updatedData = try encoder.encode(recording)
                     try updatedData.write(to: recordingMetadataURL)
@@ -317,11 +337,15 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let recordingMetadataURL = getRecordingMetaURL(filePath: recording.filePath)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
+        
+        // TODO: add empty "loading" output to recordings.outputs,
+        // then update later
+        addLoadingOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
         generateOutput(transcript: transcript, outputType: .Custom, outputSettings: outputSettings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                     case .failure(let error):
-                        self.addErrorOutput(type: .Custom, content: "Error, tap to retry", settings: outputSettings, outputs: &recording.outputs)
+                        self.updateErrorOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
                         do {
                             print("-- saving custom output error data --")
                             let updatedData = try encoder.encode(recording)
@@ -338,7 +362,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 }
             },
             receiveValue:{ update in
-                self.addOutput(type: .Custom, content: update.content, settings: outputSettings, outputs: &recording.outputs)
+                self.updateOutput(type: .Custom, content: update.content, settings: outputSettings, outputs: &recording.outputs)
                 do {
                     let updatedData = try encoder.encode(recording)
                     try updatedData.write(to: recordingMetadataURL)
@@ -349,6 +373,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                     print("error saving updated output")
                 }
             })
+        .store(in: &self.cancellables)
     }
     
     func generateOutput(transcript: String, outputType: OutputType, outputSettings: OutputSettings) -> Future<Update, OutputGenerationError> {
@@ -371,20 +396,20 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                     .validate()
                     .responseJSON { response in
                         switch response.result {
-                        case .success(let value):
-                            if let JSON = value as? [String: Any] {
-                                let output = JSON["out"] as? String ?? ""
-                                let update = Update(type: outputType, content: output, settings: outputSettings)
-                                promise(.success(update))
-                            }
-                        case .failure(let error):
-                            print(error)
-                            promise(.failure(OutputGenerationError.failure(error: error, outputType: outputType, transcript: transcript)))
+                            case .success(let value):
+                                if let JSON = value as? [String: Any] {
+                                    let output = JSON["out"] as? String ?? ""
+                                    let update = Update(type: outputType, content: output, settings: outputSettings)
+                                    promise(.success(update))
+                                }
+                            case .failure(let error):
+                                print("AF failure \(error)")
+                                promise(.failure(OutputGenerationError.failure(error: error, outputType: outputType, transcript: transcript)))
                         }
                 }
 
             } catch {
-                print(error)
+                print("encoding error \(error)")
             }
         }
     }

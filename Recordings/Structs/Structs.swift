@@ -121,6 +121,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
     var type: OutputType
     @Published var content: String
     @Published var error: Bool = false
+    @Published var loading: Bool = true
     @Published var settings: OutputSettings
 
     init(type: OutputType, content: String, settings: OutputSettings) {
@@ -186,7 +187,7 @@ enum FormatType: String, Encodable, Decodable, CaseIterable {
     case paragraph
 }
 
-enum StyleType: String, Encodable, Decodable, CaseIterable {
+enum ToneType: String, Encodable, Decodable, CaseIterable {
     case casual
     case professional
 }
@@ -195,18 +196,18 @@ struct Settings: Encodable, Decodable {
     var outputs: [OutputType]
     var length: LengthType
     var format: FormatType
-    var style: StyleType
+    var tone: ToneType
 }
 
 struct OutputSettings: Encodable, Decodable {
     var length: LengthType
     var format: FormatType
-    var style: StyleType
+    var tone: ToneType
     var prompt: String
     var name: String
     
     static var defaultSettings: OutputSettings {
-        return OutputSettings(length: .short, format: .bullet, style: .casual, prompt: "", name: "Default")
+        return OutputSettings(length: .short, format: .bullet, tone: .casual, prompt: "", name: "Default")
     }
 }
 
