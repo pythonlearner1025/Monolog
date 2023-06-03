@@ -38,17 +38,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         self.folderPath = folderPath
         super.init()
         fetchAllRecording()
-//        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
-//            for i in 0...self.recordingsList.count {
-//                if(self.audioPlayerEnabled){
-//                    if(self.audioPlayerCurrentURL == self.getFileURL(filePath: self.recordingsList[i].filePath)){
-//                        let temp = self.recordingsList[i]
-//                        temp.isPlaying = self.audioPlayer.isPlaying
-//                        self.recordingsList[i] = temp
-//                    }
-//                }
-//            }
-//        }
     }
     
     func startRecording() {
@@ -119,7 +108,32 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         var recording = ObservableRecording(filePath: fileURL.lastPathComponent, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
-
+        generateAll(recording: recording, fileURL: fileURL)
+    }
+    
+    func saveImportedRecording(filePath: URL){
+        let fileManager = FileManager.default
+        let rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
+        let newFileURL = rawFolderURL.appendingPathComponent(filePath.lastPathComponent)
+        do {
+            try fileManager.copyItem(at: filePath, to: newFileURL)
+        } catch {
+            print("An error occurred while copying the file: \(error)")
+        }
+        
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: newFileURL)
+        } catch {
+            print("recording read error \(error)")
+        }
+        var recording = ObservableRecording(filePath: newFileURL.lastPathComponent, createdAt: getFileDate(for: newFileURL), isPlaying: false, title: "Untitled", outputs: [], totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
+        self.countSec = 0
+        recordingsList.insert(recording, at: 0)
+        generateAll(recording: recording, fileURL: newFileURL)
+    }
+    
+    func generateAll(recording: ObservableRecording, fileURL: URL) {
+        let folderURL = URL(fileURLWithPath: folderPath)
         let recordingMetadataURL = folderURL.appendingPathComponent("\(fileURL.lastPathComponent).json")
            let encoder = JSONEncoder()
            encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
@@ -252,6 +266,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
 
         }).store(in: &self.cancellables)
     }
+    
+    
     
     func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
         let newOutput = Output(type: type, content: "Loading", settings: settings)

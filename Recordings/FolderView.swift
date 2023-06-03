@@ -21,9 +21,9 @@ struct FolderView: View {
     @ObservedObject var vm: VoiceViewModel
     @State var selection: FolderPageEnum = .normal
     @State private var isShowingSettings = false
+    @State private var isShowingPicker = false
     @State private var searchText = ""
-    var formatter = DateComponentsFormatter()
-    
+
     init(folder: Folder) {
         self.folder = folder
         self.vm = VoiceViewModel(folderPath: folder.path)
@@ -51,8 +51,9 @@ struct FolderView: View {
                         HStack{
                             VStack(alignment:.leading) {
                                 Text("\(vm.recordingsList[idx].title)").font(.headline)
-                                Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
-                            }
+                                Text("\(formatter.string(from: vm.recordingsList[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
+
+                            }.padding(.bottom, 10)
                             Spacer()
                             NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
                                 
@@ -81,17 +82,6 @@ struct FolderView: View {
                                             .font(.caption.monospacedDigit())
                                         
                                         Slider(value: $vm.recordingsList[idx].absProgress, in: 0...vm.recordingsList[idx].duration).accentColor(Color.primary)
-                                        // this is a dynamic length progress bar
-//                                        GeometryReader { gr in
-//                                            Capsule()
-//                                                .stroke(Color.black, lineWidth: 2)
-//                                                .background(
-//                                                    Capsule()
-//                                                        .frame(width: gr.size.width * vm.recordingsList[idx].progress,
-//                                                               height: 8), alignment: .leading)
-//                                        }
-//                                        .frame( height: 8)
-                                        
                                         Text(vm.recordingsList[idx].totalTime)
                                             .font(.caption.monospacedDigit())
                                     }
@@ -185,10 +175,13 @@ struct FolderView: View {
             }.sheet(isPresented: $isShowingSettings){
                 SettingsView()
             }.navigationTitle("\(folder.name)")
-            .navigationBarItems(trailing: HStack{
-                ShareLink(item: "Google.com"){
-                    Image(systemName: "square.and.arrow.up")
-                }
+                .navigationBarItems(trailing: HStack{
+                    // TODO: import audio
+                    Button(action: {
+                        isShowingPicker = true
+                    }) {
+                        Image(systemName: "square.and.arrow.up") // This is a system symbol for uploading.
+                    }
                 Button(action: {isShowingSettings.toggle()}){
                     Image(systemName: "gearshape")
                 }
@@ -215,7 +208,22 @@ struct FolderView: View {
         .onReceive(vm.$recordingsList) { updatedList in
             //print("** LIST UPDATE IN FOLDER VIEW **.")
             //print(vm.recordingsList)
-        }.listStyle(.plain)
+        }
+        .listStyle(.plain)
+        .fileImporter(isPresented: $isShowingPicker, allowedContentTypes: [.audio]) {(res) in
+            do {
+                let fileURL = try res.get()
+                
+                // Begin accessing a security-scoped resource.
+                if fileURL.startAccessingSecurityScopedResource() {
+                    vm.saveImportedRecording(filePath: fileURL)
+                    // Don't forget to stop accessing the security scoped resource when you're done.
+                    fileURL.stopAccessingSecurityScopedResource()
+                }
+            } catch {
+                print("error reading file")
+            }
+        }
         
         
     }
@@ -224,6 +232,12 @@ struct FolderView: View {
         let folderURL = URL(fileURLWithPath: folder.path)
         return folderURL.appendingPathComponent("\(filePath).json")
     }
+    
+    private let formatter: DateFormatter = {
+         let formatter = DateFormatter()
+         formatter.dateFormat = "EEEE, MMMM d, yyyy"
+         return formatter
+     }()
     
     private var filteredItems: [ObservableRecording] {
         if searchText.isEmpty {
@@ -236,6 +250,8 @@ struct FolderView: View {
             }
         }
     }
+    
+    
 }
 
 

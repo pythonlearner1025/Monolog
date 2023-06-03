@@ -10,7 +10,9 @@ import Foundation
 
 struct RecordingView: View {
     @ObservedObject var vm: VoiceViewModel
-    @State private var showingSheet = false
+    @State private var isShowingSettings = false
+    @State private var isShowingCustomOutput = false
+    @State private var isShowingExport = false
     @State private var selectedLength = ""
     @State private var selectedTone = ""
     @State private var selectedFormat = ""
@@ -22,6 +24,17 @@ struct RecordingView: View {
         NavigationStack{
             if !vm.recordingsList[index].outputs.contains(where: {$0.type == .Title}) {
                 Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+            } else {
+                if let title = vm.recordingsList[index].outputs.first(where: {$0.type == .Title}) {
+                    if title.error {
+                        Text(title.content)
+                            .onTapGesture{
+                                self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
+                            }
+                    } else {
+                        Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+                    }
+                }
             }
             List{
                 ForEach(sortOutputs(vm.recordingsList[index].outputs).indices, id: \.self) { idx in
@@ -37,14 +50,7 @@ struct RecordingView: View {
                         case .Custom:
                             OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Title:
-                            if output.error {
-                                Text(output.content)
-                                    .onTapGesture{
-                                        self.vm.regenerateOutput(index: self.index, output: output, outputSettings: output.settings)
-                                    }
-                            } else {
-                                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
-                            }
+                            EmptyView()
                         }
                     }
                     .listRowSeparator(.hidden)
@@ -64,10 +70,12 @@ struct RecordingView: View {
                 print(outputs)
             }
             .navigationBarItems(trailing: HStack{
-                ShareLink(item: "Google.com"){
+                Button(action: {
+                    isShowingExport = true
+                }) {
                     Image(systemName: "square.and.arrow.up")
-                    }
-                Button(action: {}){
+                }
+                Button(action: {isShowingSettings.toggle()}){
                     Image(systemName: "gearshape")
                     }
                 EditButton()
@@ -78,19 +86,23 @@ struct RecordingView: View {
                     Image(systemName: "plus.circle")
                         .font(.system(size: 50, weight: .thin))
                         .onTapGesture {
-                            showingSheet.toggle()
-                        }.sheet(isPresented: $showingSheet){
-                            CustomOutputSheet(vm: vm, index: index)
+                            isShowingCustomOutput.toggle()
                         }
                 }
             }
             .listStyle(.plain)
-           
+            .sheet(isPresented: $isShowingCustomOutput){
+                CustomOutputSheet(vm: vm, index: index)
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
+            // TODO: implement fileExporter. fileExporter should show two options:
+            // 1) option to export transcript + all outputs converted as txt file
+            // 2) option to export recording file
            
         }
-        
     
-        // TODO: this causes crash
         func sortOutputs(_ outputs: [Output]) -> [Output] {
             return outputs.sorted { $0.type < $1.type }
         }
