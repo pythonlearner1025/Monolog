@@ -166,7 +166,7 @@ struct FolderView: View {
                 indexSet.sorted(by: >).forEach{ i in
                     vm.stopPlaying(index: i)
                     let tempFilePath = vm.recordingsList[i].filePath
-                    vm.deleteRecording(recordingURL: vm.getFileURL(filePath: tempFilePath), filePath: tempFilePath)
+                    vm.deleteRecording(recordingURL: vm.getAudioURL(filePath: tempFilePath), filePath: tempFilePath)
                 }
                 vm.recordingsList.remove(atOffsets: indexSet)
                 
@@ -179,7 +179,7 @@ struct FolderView: View {
                     Button(action: {
                         isShowingPicker = true
                     }) {
-                        Image(systemName: "square.and.arrow.up") // This is a system symbol for uploading.
+                        Image(systemName: "square.and.arrow.down") // This is a system symbol for uploading.
                     }
                 Button(action: {isShowingSettings.toggle()}){
                     Image(systemName: "gearshape")

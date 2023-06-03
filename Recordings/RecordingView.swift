@@ -7,12 +7,11 @@
 import SwiftUI
 import Foundation
 
-
 struct RecordingView: View {
     @ObservedObject var vm: VoiceViewModel
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
-    @State private var isShowingExport = false
+    @State private var activeSheet: ActiveSheet?
     @State private var selectedLength = ""
     @State private var selectedTone = ""
     @State private var selectedFormat = ""
@@ -64,49 +63,92 @@ struct RecordingView: View {
                     }
                 }
             }
-           
+            
             .onReceive(vm.recordingsList[index].$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
             }
             .navigationBarItems(trailing: HStack{
-                Button(action: {
-                    isShowingExport = true
-                }) {
-                    Image(systemName: "square.and.arrow.up")
+                Menu {
+                    Button(action: {
+                        let transcript = vm.recordingsList[index].outputs.first { $0.type == .Transcript }?.content ?? ""
+                        let filename = "\(vm.recordingsList[index].title).txt"
+                        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                        let fileURL = tempDirectoryURL.appendingPathComponent(filename)
+
+                        do {
+                           try transcript.write(to: fileURL, atomically: true, encoding: .utf8)
+                        } catch {
+                           print("Failed to create file")
+                           print("\(error)")
+                        }
+                       
+                        activeSheet = .exportText(fileURL)
+                    }) {
+                        Label("Export Transcript", systemImage: "doc.text")
+                    }
+                    
+                    Button(action: {
+                        let originalURL = vm.getAudioURL(filePath: vm.recordingsList[index].filePath)
+                        let filename = "\(vm.recordingsList[index].title).m4a"
+                        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                        let newURL = tempDirectoryURL.appendingPathComponent(filename)
+                        
+                        do {
+                            let fileManager = FileManager.default
+                            if fileManager.fileExists(atPath: originalURL.path) {
+                                try fileManager.copyItem(at: originalURL, to: newURL)
+                            }
+                        } catch {
+                            print("Failed to rename file")
+                            print("\(error)")
+                        }
+                        
+                        activeSheet = .exportAudio(newURL)
+                    }) {
+                        Label("Export Audio", systemImage: "waveform")
+                    }
                 }
+            label: {
+                Image(systemName: "square.and.arrow.up")
+            }
                 Button(action: {isShowingSettings.toggle()}){
                     Image(systemName: "gearshape")
-                    }
-                EditButton()
-                })
-            }
-            .toolbar {
-                ToolbarItem(placement: .bottomBar){
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 50, weight: .thin))
-                        .onTapGesture {
-                            isShowingCustomOutput.toggle()
-                        }
                 }
-            }
-            .listStyle(.plain)
-            .sheet(isPresented: $isShowingCustomOutput){
-                CustomOutputSheet(vm: vm, index: index)
-            }
-            .sheet(isPresented: $isShowingSettings) {
-                SettingsView()
-            }
-            // TODO: implement fileExporter. fileExporter should show two options:
-            // 1) option to export transcript + all outputs converted as txt file
-            // 2) option to export recording file
-           
+                EditButton()
+            })
         }
-    
-        func sortOutputs(_ outputs: [Output]) -> [Output] {
-            return outputs.sorted { $0.type < $1.type }
+        .toolbar {
+            ToolbarItem(placement: .bottomBar){
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 50, weight: .thin))
+                    .onTapGesture {
+                        isShowingCustomOutput.toggle()
+                    }
+            }
+        }
+        .listStyle(.plain)
+        .sheet(isPresented: $isShowingCustomOutput){
+            CustomOutputSheet(vm: vm, index: index)
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
+        }
+        .sheet(item: $activeSheet) {item in
+            switch item {
+                case .exportText(let url):
+                    ShareSheet(items: [url])
+                case .exportAudio(let url):
+                    ShareSheet(items: [url])
+            }
         }
     }
+    
+    func sortOutputs(_ outputs: [Output]) -> [Output] {
+        return outputs.sorted { $0.type < $1.type }
+    }
+    
+}
 
 // TODO: save on disk changes to text
 struct OutputView: View {

@@ -460,7 +460,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
 
             do {
-                let fileData = try Data(contentsOf: self.getFileURL(filePath: recording.filePath))
+                let fileData = try Data(contentsOf: self.getAudioURL(filePath: recording.filePath))
                 data.append(fileData)
             } catch {
                 print("Failed to read file data: \(error)")
@@ -538,7 +538,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         print("start playing")
         
         
-        let url = getFileURL(filePath: filePath)
+        let url = getAudioURL(filePath: filePath)
         let playSession = AVAudioSession.sharedInstance()
         
         do {
@@ -618,7 +618,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func forward15(index: Int, filePath : String) {
-        if(audioPlayerCurrentURL != getFileURL(filePath: filePath) || !audioPlayerEnabled){
+        if(audioPlayerCurrentURL != getAudioURL(filePath: filePath) || !audioPlayerEnabled){
             startPlaying(index: index, filePath: filePath)
         }
         if(audioPlayerEnabled){
@@ -648,7 +648,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func backwards15(index: Int, filePath : String) {
-        if(audioPlayerCurrentURL != getFileURL(filePath: filePath) || !audioPlayerEnabled){
+        if(audioPlayerCurrentURL != getAudioURL(filePath: filePath) || !audioPlayerEnabled){
             startPlaying(index: index, filePath: filePath)
         }
         if(audioPlayerEnabled){
@@ -733,7 +733,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    func getFileURL(filePath: String) -> URL {
+    func getAudioURL(filePath: String) -> URL {
         var rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
         rawFolderURL.append(path: filePath)
         return rawFolderURL
