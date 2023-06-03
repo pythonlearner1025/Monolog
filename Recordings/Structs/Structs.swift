@@ -58,12 +58,13 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     @Published var outputs: [Output]
     @Published var progress: CGFloat = 0.0
     @Published var duration: Double = 0.0
+    @Published var absProgress: Double = 0.0
     @Published var currentTime: String
     @Published var totalTime: String
     @Published var test = 0
 
     enum CodingKeys: CodingKey {
-        case filePath, createdAt, isPlaying, title, outputs, currentTime, totalTime, progress, duration
+        case filePath, createdAt, isPlaying, title, outputs, currentTime, totalTime, progress, duration, absProgress
     }
 
     required init(from decoder: Decoder) throws {
@@ -77,6 +78,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         totalTime = try container.decode(String.self, forKey: .totalTime)
         progress = try container.decode(CGFloat.self, forKey: .progress)
         duration = try container.decode(Double.self, forKey: .duration)
+        absProgress = try container.decode(Double.self, forKey: .absProgress)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -90,7 +92,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         try container.encode(totalTime, forKey: .totalTime)
         try container.encode(progress, forKey: .progress)
         try container.encode(duration, forKey: .duration)
-
+        try container.encode(absProgress, forKey: .absProgress)
     }
 
     // your initializer here
@@ -103,6 +105,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         self.currentTime = "00:00"
         self.totalTime = totalTime
         self.duration = duration
+        self.absProgress = 0.0
     }
     
     static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {

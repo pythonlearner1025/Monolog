@@ -13,23 +13,26 @@ import SwiftUI
 
 struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
-
-    init() {
-        if isFirstLaunch {
-            setup()
-            isFirstLaunch = false
-        }
-    }
-
+    //var isFirstLaunch = true
+    @State private var showAllFirst = true
     @State private var folders: [Folder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
     private var section = ["Defaults", "User Created"]
     @State private var searchText = ""
     
+    init() {
+        if isFirstLaunch {
+            setup()
+            loadFolders()
+            print(folders.count)
+            isFirstLaunch = false
+        }
+    }
+    
     var body: some View {
         if isFirstLaunch {
-            
+            FolderView(folder: folders[0])
         }
         
         else{

@@ -38,6 +38,17 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         self.folderPath = folderPath
         super.init()
         fetchAllRecording()
+//        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+//            for i in 0...self.recordingsList.count {
+//                if(self.audioPlayerEnabled){
+//                    if(self.audioPlayerCurrentURL == self.getFileURL(filePath: self.recordingsList[i].filePath)){
+//                        let temp = self.recordingsList[i]
+//                        temp.isPlaying = self.audioPlayer.isPlaying
+//                        self.recordingsList[i] = temp
+//                    }
+//                }
+//            }
+//        }
     }
     
     func startRecording() {
@@ -536,7 +547,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             audioPlayerEnabled = true
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
-            audioPlayer.currentTime = recordingsList[index].progress
+            audioPlayer.currentTime = recordingsList[index].absProgress
             audioPlayer.play()
   
         let updatedRecording = recordingsList[index]
@@ -548,8 +559,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         print(self.formatter
             .string(from:
                         TimeInterval(self.audioPlayer.duration))!)
-        
-        // TODO: glitch in play forward by 15 seconds.
             Timer.scheduledTimer(withTimeInterval: 0.1, repeats: audioPlayer.isPlaying){ _ in
             if(self.recordingsList[index].isPlaying){
                 let updatedRecording = self.recordingsList[index]
@@ -557,12 +566,18 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
                 print(updatedRecording.currentTime)
                 updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+                updatedRecording.absProgress = self.audioPlayer.currentTime
                 self.recordingsList[index] = updatedRecording
                 self.objectWillChange.send()
-            }
-            if (!self.recordingsList[index].isPlaying && self.recordingsList[index].totalTime == self.recordingsList[index].currentTime) {
-                self.recordingsList[index].progress = 0
-                self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(0.0))!
+                
+                if (self.audioPlayer.currentTime >= self.audioPlayer.duration - 0.11) {
+                    print("reached")
+                    updatedRecording.absProgress = 0.0
+                    self.recordingsList[index].progress = 0
+                    self.recordingsList[index].isPlaying = false
+                    self.recordingsList[index].currentTime = self.formatter.string(from: TimeInterval(0.0))!
+                }
+                
             }
             self.objectWillChange.send()
              
@@ -571,6 +586,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         } catch {
             print("Audioplayer failed: \(error)")
         }
+
     }
     
     func stopPlaying(index: Int) {
@@ -597,13 +613,15 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             if increase < audioPlayer.duration {
                 audioPlayer.currentTime = increase
             } else {
-                audioPlayer.currentTime = audioPlayer.duration
+                stopPlaying(index: index)
+                audioPlayer.currentTime = 0
             }
             let updatedRecording = self.recordingsList[index]
             
             updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
             print(updatedRecording.currentTime)
             updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+            updatedRecording.absProgress = self.audioPlayer.currentTime
             updatedRecording.isPlaying = audioPlayer.isPlaying
             self.recordingsList[index] = updatedRecording
             self.objectWillChange.send()
@@ -629,6 +647,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
             print(updatedRecording.currentTime)
             updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+            updatedRecording.absProgress = self.audioPlayer.currentTime
             self.recordingsList[index] = updatedRecording
             self.objectWillChange.send()
         }
@@ -638,7 +657,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
             
     
-    func seekTo(time: TimeInterval){
+    func seekTo(time: TimeInterval, index: Int){
         self.audioPlayer.currentTime = time
     }
     

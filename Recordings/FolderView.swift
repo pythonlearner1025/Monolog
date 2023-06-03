@@ -46,7 +46,7 @@ struct FolderView: View {
                     .listRowBackground(Color(.secondarySystemBackground))
                     
                 }
-                ForEach(vm.recordingsList.indices, id: \.self) { idx in
+                ForEach(filteredItems.indices, id: \.self) { idx in
                     VStack{
                         HStack{
                             VStack(alignment:.leading) {
@@ -204,7 +204,7 @@ struct FolderView: View {
                                 }
                             }
                     }
-                }
+                }.searchable(text: $searchText)
         }
         .onChange(of: vm.recordingsList.count) { newCount in
             print("** #FILES: \(newCount) **")
@@ -222,6 +222,18 @@ struct FolderView: View {
         let folderURL = URL(fileURLWithPath: folder.path)
         return folderURL.appendingPathComponent("\(filePath).json")
     }
+    
+    private var filteredItems: [ObservableRecording] {
+        if searchText.isEmpty {
+            return vm.recordingsList
+        }
+        else{
+            return vm.recordingsList.filter {item in
+                item.title.localizedCaseInsensitiveContains(searchText) ||
+                item.totalTime.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
 }
 
 
@@ -236,6 +248,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack{
             Form {
+                Text("Select the defualt settings that will be used to generate custom outputs from your recordings")
                 Section(header: Text("Length")) {
                     Picker("Select Length", selection: $selectedLength) {
                         ForEach(LengthType.allCases, id: \.self) { option in
