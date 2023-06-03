@@ -80,7 +80,6 @@ struct FolderView: View {
                                     HStack {
                                         Text(vm.recordingsList[idx].currentTime)
                                             .font(.caption.monospacedDigit())
-                                        
                                         Slider(value: $vm.recordingsList[idx].absProgress, in: 0...vm.recordingsList[idx].duration).accentColor(Color.primary)
                                         Text(vm.recordingsList[idx].totalTime)
                                             .font(.caption.monospacedDigit())
