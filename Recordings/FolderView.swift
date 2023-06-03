@@ -80,16 +80,17 @@ struct FolderView: View {
                                         Text(vm.recordingsList[idx].currentTime)
                                             .font(.caption.monospacedDigit())
                                         
+                                        Slider(value: $vm.recordingsList[idx].absProgress, in: 0...vm.recordingsList[idx].duration).accentColor(Color.primary)
                                         // this is a dynamic length progress bar
-                                        GeometryReader { gr in
-                                            Capsule()
-                                                .stroke(Color.black, lineWidth: 2)
-                                                .background(
-                                                    Capsule()
-                                                        .frame(width: gr.size.width * vm.recordingsList[idx].progress,
-                                                               height: 8), alignment: .leading)
-                                        }
-                                        .frame( height: 8)
+//                                        GeometryReader { gr in
+//                                            Capsule()
+//                                                .stroke(Color.black, lineWidth: 2)
+//                                                .background(
+//                                                    Capsule()
+//                                                        .frame(width: gr.size.width * vm.recordingsList[idx].progress,
+//                                                               height: 8), alignment: .leading)
+//                                        }
+//                                        .frame( height: 8)
                                         
                                         Text(vm.recordingsList[idx].totalTime)
                                             .font(.caption.monospacedDigit())
