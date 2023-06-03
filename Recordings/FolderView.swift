@@ -161,7 +161,8 @@ struct FolderView: View {
                                 }
                             }
                         }
-                    }.onAppear{
+                    }
+                    .onAppear{
                         for index in vm.recordingsList.indices { 
                             let updatedRecording = vm.recordingsList[index]
                             vm.recordingsList[index] = updatedRecording
@@ -171,40 +172,40 @@ struct FolderView: View {
                     
                     
                     
-                }.onDelete{indexSet in
-                    indexSet.sorted(by: >).forEach{ i in
-                        vm.stopPlaying(index: i)
-                        let tempFilePath = vm.recordingsList[i].filePath
-                        vm.deleteRecording(recordingURL: vm.getFileURL(filePath: tempFilePath), filePath: tempFilePath)
-                    }
-                    vm.recordingsList.remove(atOffsets: indexSet)
-                    
+            }.onDelete{indexSet in
+                indexSet.sorted(by: >).forEach{ i in
+                    vm.stopPlaying(index: i)
+                    let tempFilePath = vm.recordingsList[i].filePath
+                    vm.deleteRecording(recordingURL: vm.getFileURL(filePath: tempFilePath), filePath: tempFilePath)
                 }
+                vm.recordingsList.remove(atOffsets: indexSet)
+                
+            }
             }.sheet(isPresented: $isShowingSettings){
                 SettingsView()
             }.navigationTitle("\(folder.name)")
-                .navigationBarItems(trailing: HStack{
-//                    ShareLink(item: "Google.com"){
-//                        Image(systemName: "square.and.arrow.up")
-//                    }
-                    Button(action: {isShowingSettings.toggle()}){
-                        Image(systemName: "gearshape")
-                    }
-                    EditButton()
-                }).toolbar{
-                    ToolbarItem(placement: .bottomBar){
-                        Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
-                            .foregroundColor(.red)
-                            .font(.system(size: 50, weight: .thin))
-                            .onTapGesture {
-                                if vm.isRecording == true {
-                                    vm.stopRecording()
-                                } else {
-                                    vm.startRecording()
-                                }
+            .navigationBarItems(trailing: HStack{
+                ShareLink(item: "Google.com"){
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Button(action: {isShowingSettings.toggle()}){
+                    Image(systemName: "gearshape")
+                }
+                EditButton()
+            }).toolbar{
+                ToolbarItem(placement: .bottomBar){
+                    Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
+                        .foregroundColor(.red)
+                        .font(.system(size: 50, weight: .thin))
+                        .onTapGesture {
+                            if vm.isRecording == true {
+                                vm.stopRecording()
+                            } else {
+                                vm.startRecording()
                             }
-                    }
-                }.searchable(text: $searchText)
+                        }
+                }
+            }.searchable(text: $searchText)
         }
         .onChange(of: vm.recordingsList.count) { newCount in
             print("** #FILES: \(newCount) **")

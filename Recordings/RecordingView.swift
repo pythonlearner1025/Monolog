@@ -23,10 +23,11 @@ struct RecordingView: View {
             if !vm.recordingsList[index].outputs.contains(where: {$0.type == .Title}) {
                 Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
             }
-            List(sortOutputs(vm.recordingsList[index].outputs).indices, id: \.self) { idx in
-                VStack(alignment: .leading){
-                    let output = sortOutputs(vm.recordingsList[index].outputs)[idx]
-                    switch  output.type {
+            List{
+                ForEach(sortOutputs(vm.recordingsList[index].outputs).indices, id: \.self) { idx in
+                    VStack(alignment: .leading){
+                        let output = sortOutputs(vm.recordingsList[index].outputs)[idx]
+                        switch  output.type {
                         case .Summary:
                             OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                         case .Action:
@@ -44,12 +45,20 @@ struct RecordingView: View {
                             } else {
                                 Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
                             }
+                        }
+                    }
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color(.systemBackground))
+                    
+                }
+                .onDelete{indexSet in
+                    indexSet.sorted(by: >).forEach{i in
+                        let output = sortOutputs(vm.recordingsList[index].outputs)[i]
+                        vm.deleteOutput(index: index, output: output)
                     }
                 }
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color(.systemBackground))
-
             }
+           
             .onReceive(vm.recordingsList[index].$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
@@ -57,11 +66,12 @@ struct RecordingView: View {
             .navigationBarItems(trailing: HStack{
                 ShareLink(item: "Google.com"){
                     Image(systemName: "square.and.arrow.up")
-                }
+                    }
                 Button(action: {}){
                     Image(systemName: "gearshape")
-                }
-            })
+                    }
+                EditButton()
+                })
             }
             .toolbar {
                 ToolbarItem(placement: .bottomBar){

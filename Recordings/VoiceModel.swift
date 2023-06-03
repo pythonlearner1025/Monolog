@@ -661,7 +661,25 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         self.audioPlayer.currentTime = time
     }
     
- 
+    func deleteOutput(index: Int, output: Output) {
+        var updatedRecording = recordingsList[index]
+        if let idxToDelete = updatedRecording.outputs.firstIndex(where: {$0.id == output.id}) {
+            updatedRecording.outputs.remove(at: idxToDelete)
+            recordingsList[index] = updatedRecording
+            let recordingMetadataURL = getRecordingMetaURL(filePath: updatedRecording.filePath)
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
+            do {
+                let updatedData = try encoder.encode(updatedRecording)
+                try updatedData.write(to: recordingMetadataURL)
+                print("** recording after regenerated output **")
+            } catch {
+                print("error saving updated output")
+            }
+        }
+    }
+    
+    // TODO: move recording & recordingMetadata to "Recently Deleted" folder
     func deleteRecording(recordingURL: URL, filePath: String) {
         for i in 0..<recordingsList.count {
             
