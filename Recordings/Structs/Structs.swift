@@ -100,7 +100,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         self.isPlaying = isPlaying
         self.title = title
         self.outputs = outputs
-        self.currentTime = ""
+        self.currentTime = "00:00"
         self.totalTime = totalTime
         self.duration = duration
     }

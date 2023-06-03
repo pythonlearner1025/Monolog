@@ -65,20 +65,29 @@ struct HomeView: View {
                         EditButton()
                         ).toolbar {
                         ToolbarItem(placement: .bottomBar){
-                            Button(action: {
-                                showAlert = true
-                            }) {
-                                Image(systemName: "folder.badge.plus")
-                            }
-                            .alert("New Folder", isPresented: $showAlert, actions: {
-                                TextField("New folder name", text: $newFolderName)
-                                Button("Create", action: {
-                                    createFolder(title: newFolderName)
-                                    newFolderName=""
+
+                                Button(action: {
+                                    
+                                }) {
+                                    Text("")
                                 }
-                                )
-                                Button("Cancel", role: .cancel, action: {})
-                            })
+                        }
+                        ToolbarItem(placement: .bottomBar){
+
+                                Button(action: {
+                                    showAlert = true
+                                }) {
+                                    Image(systemName: "folder.badge.plus")
+                                }
+                                .alert("New Folder", isPresented: $showAlert, actions: {
+                                    TextField("New folder name", text: $newFolderName)
+                                    Button("Create", action: {
+                                        createFolder(title: newFolderName)
+                                        newFolderName=""
+                                    }
+                                    )
+                                    Button("Cancel", role: .cancel, action: {})
+                                })
                             }
                         }
                 }

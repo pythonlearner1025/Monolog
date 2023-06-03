@@ -47,39 +47,39 @@ struct FolderView: View {
                     
                 }
                 ForEach(vm.recordingsList.indices, id: \.self) { idx in
-                    
-                    HStack{
-                        VStack(alignment:.leading) {
-                            Text("\(vm.recordingsList[idx].title)").font(.headline)
-                            Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
-                        }
-                        Spacer()
-                        NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
-                            
-                        }
-                    }.listRowSeparator(.hidden)
-                    
-                    
-                    VStack {
-                        if selection == .normal{
-                            
-                            VStack{
-                                ForEach(vm.recordingsList[idx].outputs) {output in
-                                    switch output.type {
-                                    case .Summary: EmptyView()
-                                    case .Action: EmptyView()
-                                    case .Transcript: Text(output.content).font(.body)
-                                    case .Title: EmptyView()
-                                    case .Custom: EmptyView()
-                                    }
-                                }.onAppear{
-                                    //print(vm.recordingsList[idx].outputs)
-                                }
+                    VStack{
+                        HStack{
+                            VStack(alignment:.leading) {
+                                Text("\(vm.recordingsList[idx].title)").font(.headline)
+                                Text("\(vm.recordingsList[idx].createdAt)").font(.caption)
+                            }
+                            Spacer()
+                            NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
                                 
-                                HStack {
-                                    Text(vm.recordingsList[idx].currentTime)
+                            }
+                        }.listRowSeparator(.hidden)
+                        
+                        
+                        VStack {
+                            if selection == .normal{
+                                
+                                VStack{
+                                    ForEach(vm.recordingsList[idx].outputs) {output in
+                                        switch output.type {
+                                        case .Summary: EmptyView()
+                                        case .Action: EmptyView()
+                                        case .Transcript: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+                                        case .Title: EmptyView()
+                                        case .Custom: EmptyView()
+                                        }
+                                    }.onAppear{
+                                        //print(vm.recordingsList[idx].outputs)
+                                    }
+                                    
+                                    HStack {
+                                        Text(vm.recordingsList[idx].currentTime)
                                             .font(.caption.monospacedDigit())
-
+                                        
                                         // this is a dynamic length progress bar
                                         GeometryReader { gr in
                                             Capsule()
@@ -87,94 +87,110 @@ struct FolderView: View {
                                                 .background(
                                                     Capsule()
                                                         .frame(width: gr.size.width * vm.recordingsList[idx].progress,
-                                                                  height: 8), alignment: .leading)
+                                                               height: 8), alignment: .leading)
                                         }
                                         .frame( height: 8)
-
+                                        
                                         Text(vm.recordingsList[idx].totalTime)
                                             .font(.caption.monospacedDigit())
-                                }
-                                .padding()
-                                
-                                HStack{
-
-                                    Spacer()
+                                    }
+                                    .padding()
                                     
-                                    Button(action: {
-                                        vm.backwards15(index: idx, filePath: vm.recordingsList[idx].filePath)
-                                    }){
-                                        Image(systemName: "gobackward.15")
-                                            .font(.title)
-                                            .imageScale(.small)
-                                            .foregroundColor(.primary)
-                                    }.buttonStyle(.borderless)
-                                    
-                                    Button(action: {
-                                        if vm.recordingsList[idx].isPlaying == true {
-                                            vm.stopPlaying(index: idx)
-                                        }else{
-                                            vm.startPlaying(index: idx, filePath: vm.recordingsList[idx].filePath)
-                                        }}) {
-                                        Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
+                                    HStack{
+                                        
+                                        Spacer()
+                                        
+                                        Button(action: {
+                                            vm.backwards15(index: idx, filePath: vm.recordingsList[idx].filePath)
+                                        }){
+                                            Image(systemName: "gobackward.15")
                                                 .font(.title)
-                                                .imageScale(.medium)
+                                                .imageScale(.small)
                                                 .foregroundColor(.primary)
-                                    }.buttonStyle(.borderless)
-                                    
-                                    Button(action: {
-                                        vm.forward15(index: idx, filePath: vm.recordingsList[idx].filePath)
-                                    }){
-                                        Image(systemName: "goforward.15")
-                                            .font(.title)
-                                            .imageScale(.small)
-                                            .foregroundColor(.primary)
-                                    }.buttonStyle(.borderless)
-                                    
-                                    Spacer()
-                                } .onAppear(perform: {
-                                  
-                                })
+                                        }.buttonStyle(.borderless)
+                                        
+                                        Button(action: {
+                                            if vm.recordingsList[idx].isPlaying == true {
+                                                vm.stopPlaying(index: idx)
+                                            }else{
+                                                vm.startPlaying(index: idx, filePath: vm.recordingsList[idx].filePath)
+                                            }}) {
+                                                Image(systemName: vm.recordingsList[idx].isPlaying ? "stop.fill" : "play.fill")
+                                                    .font(.title)
+                                                    .imageScale(.medium)
+                                                    .foregroundColor(.primary)
+                                            }.buttonStyle(.borderless)
+                                        
+                                        Button(action: {
+                                            vm.forward15(index: idx, filePath: vm.recordingsList[idx].filePath)
+                                        }){
+                                            Image(systemName: "goforward.15")
+                                                .font(.title)
+                                                .imageScale(.small)
+                                                .foregroundColor(.primary)
+                                        }.buttonStyle(.borderless)
+                                        
+                                        Spacer()
+                                    } .onAppear(perform: {
+                                        
+                                    })
+                                }
                             }
-                        }
-                        if selection == .action {
-                            ForEach(vm.recordingsList[idx].outputs) {output in
-                                switch output.type {
-                                case .Summary: EmptyView()
-                                case .Action: Text(output.content).font(.body)
-                                case .Transcript: EmptyView()
-                                case .Title: EmptyView()
-                                case .Custom: EmptyView()
+                            if selection == .action {
+                                ForEach(vm.recordingsList[idx].outputs) {output in
+                                    switch output.type {
+                                    case .Summary: EmptyView()
+                                    case .Action: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+                                    case .Transcript: EmptyView()
+                                    case .Title: EmptyView()
+                                    case .Custom: EmptyView()
+                                    }
+                                }
+                            }
+                            
+                            if selection == .summary {
+                                ForEach(vm.recordingsList[idx].outputs) {output in
+                                    switch output.type {
+                                    case .Summary: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+                                    case .Action: EmptyView()
+                                    case .Transcript: EmptyView()
+                                    case .Title: EmptyView()
+                                    case .Custom: EmptyView()
+                                        
+                                    }
                                 }
                             }
                         }
-                        
-                        if selection == .summary {
-                            ForEach(vm.recordingsList[idx].outputs) {output in
-                                switch output.type {
-                                case .Summary: Text(output.content).font(.body)
-                                case .Action: EmptyView()
-                                case .Transcript: EmptyView()
-                                case .Title: EmptyView()
-                                case .Custom: EmptyView()
-
-                                }
-                            }
+                    }.onAppear{
+                        for index in vm.recordingsList.indices { 
+                            let updatedRecording = vm.recordingsList[index]
+                            vm.recordingsList[index] = updatedRecording
+                            print(vm.recordingsList[index].currentTime)
                         }
                     }
                     
                     
+                    
+                }.onDelete{indexSet in
+                    indexSet.sorted(by: >).forEach{ i in
+                        vm.stopPlaying(index: i)
+                        let tempFilePath = vm.recordingsList[i].filePath
+                        vm.deleteRecording(recordingURL: vm.getFileURL(filePath: tempFilePath), filePath: tempFilePath)
+                    }
+                    vm.recordingsList.remove(atOffsets: indexSet)
                     
                 }
             }.sheet(isPresented: $isShowingSettings){
                 SettingsView()
             }.navigationTitle("\(folder.name)")
                 .navigationBarItems(trailing: HStack{
-                    ShareLink(item: "Google.com"){
-                        Image(systemName: "square.and.arrow.up")
-                    }
+//                    ShareLink(item: "Google.com"){
+//                        Image(systemName: "square.and.arrow.up")
+//                    }
                     Button(action: {isShowingSettings.toggle()}){
                         Image(systemName: "gearshape")
                     }
+                    EditButton()
                 }).toolbar{
                     ToolbarItem(placement: .bottomBar){
                         Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")

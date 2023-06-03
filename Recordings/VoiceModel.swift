@@ -14,6 +14,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
     @Published var audioPlayer : AVAudioPlayer!
     @Published var audioPlayerEnabled : Bool = false
+    var audioPlayerCurrentURL : URL!
+    var audioPlayerCurrentIndex : Int!
     var indexOfPlayer = 0
     private var cancellables = Set<AnyCancellable>()
     let baseURL = "http://0.0.0.0:3000/api/v1/"
@@ -525,15 +527,17 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             } else {
                 print("File not found")
             }
+            if(audioPlayerEnabled){
+                stopPlaying(index: audioPlayerCurrentIndex)
+            }
             audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayerCurrentURL = audioPlayer.url
+            audioPlayerCurrentIndex = index
             audioPlayerEnabled = true
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
+            audioPlayer.currentTime = recordingsList[index].progress
             audioPlayer.play()
-        } catch {
-            print("Audioplayer failed: \(error)")
-        }
-
   
         let updatedRecording = recordingsList[index]
         updatedRecording.isPlaying = true
@@ -546,7 +550,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                         TimeInterval(self.audioPlayer.duration))!)
         
         // TODO: glitch in play forward by 15 seconds.
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true){ _ in
+            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: audioPlayer.isPlaying){ _ in
             if(self.recordingsList[index].isPlaying){
                 let updatedRecording = self.recordingsList[index]
                 
@@ -563,28 +567,46 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             self.objectWillChange.send()
              
         }
+            
+        } catch {
+            print("Audioplayer failed: \(error)")
+        }
     }
     
     func stopPlaying(index: Int) {
-        print("stopping playing")
-        let updatedRecording = recordingsList[index]
-        updatedRecording.isPlaying = false
-        recordingsList[index] = updatedRecording
-        audioPlayer.stop()
+        if(audioPlayerEnabled){
+            print("stopping playing")
+            print("\(audioPlayer.currentTime)")
+            let updatedRecording = recordingsList[index]
+            updatedRecording.isPlaying = false
+            recordingsList[index] = updatedRecording
+            audioPlayer.pause()
+            self.objectWillChange.send()
+        }
     }
     
     func forward15(index: Int, filePath : String) {
-        startPlaying(index: index, filePath: filePath)
+        if(audioPlayerCurrentURL != getFileURL(filePath: filePath) || !audioPlayerEnabled){
+            startPlaying(index: index, filePath: filePath)
+        }
         if(audioPlayerEnabled){
+            if(!recordingsList[index].isPlaying){
+                audioPlayer.pause()
+            }
             let increase = audioPlayer.currentTime + 15
             if increase < audioPlayer.duration {
                 audioPlayer.currentTime = increase
             } else {
-                let updatedRecording = recordingsList[index]
                 audioPlayer.currentTime = audioPlayer.duration
             }
+            let updatedRecording = self.recordingsList[index]
+            
+            updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+            print(updatedRecording.currentTime)
+            updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+            updatedRecording.isPlaying = audioPlayer.isPlaying
+            self.recordingsList[index] = updatedRecording
             self.objectWillChange.send()
-            //stopPlaying(index: index, url: url)
         }
         else{
             print("error: audio player not enabled")
@@ -592,7 +614,9 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func backwards15(index: Int, filePath : String) {
-        startPlaying(index: index, filePath: filePath)
+        if(audioPlayerCurrentURL != getFileURL(filePath: filePath) || !audioPlayerEnabled){
+            startPlaying(index: index, filePath: filePath)
+        }
         if(audioPlayerEnabled){
             let decrease = audioPlayer.currentTime - 15
             if decrease > 0 {
@@ -600,8 +624,13 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             } else {
                 audioPlayer.currentTime = 0
             }
+            let updatedRecording = self.recordingsList[index]
+            
+            updatedRecording.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+            print(updatedRecording.currentTime)
+            updatedRecording.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+            self.recordingsList[index] = updatedRecording
             self.objectWillChange.send()
-            //stopPlaying(index: index, url: url)
         }
         else{
             print("error: audio player not enabled")
@@ -615,12 +644,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     
  
     func deleteRecording(recordingURL: URL, filePath: String) {
-        do {
-            try FileManager.default.removeItem(at: recordingURL)
-        } catch {
-            print("Can't delete")
-        }
-        
         for i in 0..<recordingsList.count {
             
             if recordingsList[i].filePath == filePath {
@@ -631,6 +654,12 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 
                 break
             }
+        }
+        
+        do {
+            try FileManager.default.removeItem(at: recordingURL)
+        } catch {
+            print("Can't delete")
         }
     }
     
