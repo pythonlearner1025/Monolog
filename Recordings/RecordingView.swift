@@ -120,13 +120,21 @@ struct RecordingView: View {
         }
         .toolbar {
             ToolbarItem(placement: .bottomBar){
-                Image(systemName: "plus.circle")
+                Image(systemName: "circle")
                     .font(.system(size: 50, weight: .thin))
+                    .overlay(
+                        Image(systemName: "sparkles")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 35, height: 35)
+                            .foregroundColor(.primary), alignment: .center
+                    )
                     .onTapGesture {
                         isShowingCustomOutput.toggle()
                     }
             }
         }
+
         .listStyle(.plain)
         .sheet(isPresented: $isShowingCustomOutput){
             CustomOutputSheet(vm: vm, index: index)
