@@ -63,6 +63,7 @@ struct HomeView: View {
                         }
                         }
                     }
+                .onAppear(perform: loadFolders)
                     .navigationTitle("Folders")
                     .navigationBarItems(trailing:
                         EditButton()
@@ -94,7 +95,7 @@ struct HomeView: View {
                             }
                         }
                 }
-                .onAppear(perform: loadFolders)
+             
                 .listStyle(.automatic)
                 
             }
@@ -122,10 +123,14 @@ struct HomeView: View {
         let allFilesFolderPath = applicationSupportDirectory.appendingPathComponent("All")
         let deletedFilesFolderPath =
             applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        let deletedAudioFolderPath = deletedFilesFolderPath.appendingPathComponent("raw")
+        
+        // create "raw" folder in deletedFilesFolder
         do {
             try fileManager.createDirectory(at: allFilesFolderPath, withIntermediateDirectories: true, attributes: nil)
             try fileManager.createDirectory(at: deletedFilesFolderPath,
                                             withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: deletedAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
         } catch {
             print("An error occurred while creating the 'All' directory: \(error)")
         }
@@ -143,6 +148,7 @@ struct HomeView: View {
                do {
                    let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
                    let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
+                   print("loaded folder \(url)")
                    return Folder(name: folderName, path: folderPath, count: itemCount)
                } catch {
                    print("An error occurred while counting items in \(folderName): \(error)")
@@ -154,6 +160,7 @@ struct HomeView: View {
        }
     }
     
+    // TODO: check this works
     func deleteFolder(targetFolder: Folder) {
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }

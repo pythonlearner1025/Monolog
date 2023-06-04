@@ -158,11 +158,13 @@ struct RecordingView: View {
     
 }
 
-// TODO: save on disk changes to text
 struct OutputView: View {
     @ObservedObject var output: Output
     var recording: ObservableRecording
     var recordingURL: URL
+    @Binding var isMinimized: Bool
+    
+    // TODO: "remember" whether it was minimized or not when deleting. 
     @State private var isMinimized: Bool = false // Add this state variable
     
     var vm: VoiceViewModel // add this
@@ -183,14 +185,29 @@ struct OutputView: View {
             if output.error {
                 Group {
                    if !isMinimized {
-                       ZStack {
-                           Text(output.content)
-                               .onTapGesture{
-                                   // TODO: call regenerateOutput
-                                   print("on retry")
-                                   print(output.content)
-                                   vm.regenerateOutput(index: index, output: output, outputSettings: output.settings)
-                               }
+                       HStack{
+                           // TODO: show error sign
+                           Image(systemName: "exclamationmark.arrow.circlepath")
+                           ZStack {
+                               Text(output.content)
+                           }
+                       }.onTapGesture{
+                           print("on retry")
+                           print(output.content)
+                           vm.regenerateOutput(index: index, output: output, outputSettings: output.settings)
+                       }
+                       
+                   }
+                }.animation(.easeInOut.speed(1.25))
+                // TODO: why, in recently deleted, is output.loading = true when it should be false with content update??
+            } else if output.loading && output.content == "Loading" {
+                Group {
+                   if !isMinimized {
+                       HStack{
+                           ProgressView().scaleEffect(0.8, anchor: .center) // Scale effect to make spinner a bit larger
+                           ZStack {
+                               Text(output.content)
+                           }
                        }
                    }
                 }.animation(.easeInOut.speed(1.25))
@@ -200,7 +217,6 @@ struct OutputView: View {
                        ZStack {
                            TextEditor(text: $output.content)
                                .font(.body)
-                        
                            Text(output.content).opacity(0).padding(.all, 8)
                        }
                    }
@@ -208,7 +224,6 @@ struct OutputView: View {
             }
             
         }
-    
         .onChange(of: output.content, perform: { value in
            // This block will be called whenever `output.content` changes.
            // Insert your function call here.

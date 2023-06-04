@@ -575,7 +575,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         print(self.formatter
             .string(from:
                         TimeInterval(self.audioPlayer.duration))!)
-            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: audioPlayer.isPlaying){ _ in
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: audioPlayer.isPlaying){ _ in
             if(self.recordingsList[index].isPlaying){
                 let updatedRecording = self.recordingsList[index]
                 
@@ -595,7 +595,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 }
                 
             }
-            self.objectWillChange.send()
+                self.objectWillChange.send()
              
         }
             
@@ -696,23 +696,39 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     // TODO: move recording & recordingMetadata to "Recently Deleted" folder
-    func deleteRecording(recordingURL: URL, filePath: String) {
-        for i in 0..<recordingsList.count {
-            
-            if recordingsList[i].filePath == filePath {
-                if recordingsList[i].isPlaying == true{
-                    stopPlaying(index: i)
-                }
-                recordingsList.remove(at: i)
-                
-                break
+    func deleteRecording(audioPath: String) {
+        let oldAudioURL = getAudioURL(filePath: audioPath)
+        let oldMetaURL = getRecordingMetaURL(filePath: audioPath)
+        let fileManager = FileManager.default
+        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        if (recentlyDeletedFolder.lastPathComponent == URL(filePath: folderPath).lastPathComponent) {
+            print("Deleting permanently")
+            do {
+                try fileManager.removeItem(at: oldAudioURL)
+            } catch {
+                print("can't delete audio \(error)")
             }
+            
+            do {
+                try fileManager.removeItem(at: oldMetaURL)
+            } catch {
+                print("can't delete meta \(error)")
+            }
+            return
         }
-        
+        let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(URL(filePath: audioPath).lastPathComponent)")
+        let newMetaURL = recentlyDeletedFolder.appendingPathComponent(oldMetaURL.lastPathComponent)
         do {
-            try FileManager.default.removeItem(at: recordingURL)
+            try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
         } catch {
-            print("Can't delete")
+            print("can't move audio\(error)")
+        }
+                                                                    
+        do {
+            try fileManager.moveItem(at: oldMetaURL, to: newMetaURL)
+        } catch {
+            print("can't move meta\(error)")
         }
     }
     

@@ -165,11 +165,9 @@ struct FolderView: View {
             }.onDelete{indexSet in
                 indexSet.sorted(by: >).forEach{ i in
                     vm.stopPlaying(index: i)
-                    let tempFilePath = vm.recordingsList[i].filePath
-                    vm.deleteRecording(recordingURL: vm.getAudioURL(filePath: tempFilePath), filePath: tempFilePath)
+                    vm.deleteRecording(audioPath: vm.recordingsList[i].filePath)
                 }
                 vm.recordingsList.remove(atOffsets: indexSet)
-                
             }
             }.sheet(isPresented: $isShowingSettings){
                 SettingsView()
