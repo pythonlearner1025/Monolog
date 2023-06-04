@@ -174,31 +174,19 @@ struct FolderView: View {
             }.sheet(isPresented: $isShowingSettings){
                 SettingsView()
             }.navigationTitle("\(folder.name)")
-                .navigationBarItems(trailing: HStack{
-                    // TODO: import audio
-                    Button(action: {
-                        isShowingPicker = true
-                    }) {
-                        Image(systemName: "square.and.arrow.down") // This is a system symbol for uploading.
-                    }
-                Button(action: {isShowingSettings.toggle()}){
-                    Image(systemName: "gearshape")
+            .navigationBarItems(trailing: HStack{
+                // TODO: import audio
+                Button(action: {
+                    isShowingPicker = true
+                }) {
+                    Image(systemName: "square.and.arrow.down") // This is a system symbol for uploading.
                 }
-                EditButton()
-            }).toolbar{
-                ToolbarItem(placement: .bottomBar){
-                    Image(systemName: vm.isRecording ? "stop.circle.fill" : "mic.circle")
-                        .foregroundColor(.red)
-                        .font(.system(size: 50, weight: .thin))
-                        .onTapGesture {
-                            if vm.isRecording == true {
-                                vm.stopRecording()
-                            } else {
-                                vm.startRecording()
-                            }
-                        }
-                }
-            }.searchable(text: $searchText)
+            Button(action: {isShowingSettings.toggle()}){
+                Image(systemName: "gearshape")
+            }
+            EditButton()
+        })
+        .searchable(text: $searchText)
         }
         .onChange(of: vm.recordingsList.count) { newCount in
             print("** #FILES: \(newCount) **")
@@ -224,7 +212,23 @@ struct FolderView: View {
             }
         }
         
-        
+        HStack {
+                Spacer()
+                   // Add your CameraButtonView here instead of the toolbar item
+               CameraButtonView(action: { isRecording in
+                   print(isRecording)
+                   if isRecording == true {
+                       vm.stopRecording()
+                   } else {
+                       vm.startRecording()
+                   }
+               })
+                Spacer()
+           }
+           //.padding() // For padding around the toolbar items
+           .background(Color(.secondarySystemBackground)) // Background color of the toolbar
+           .edgesIgnoringSafeArea(.bottom) // Makes the toolbar span the full width of the screen
+           .padding(.top, -10)
     }
 
     func getRecordingURL(filePath: String) -> URL {
