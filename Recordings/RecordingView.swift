@@ -21,21 +21,25 @@ struct RecordingView: View {
     var recordingURL: URL
     var body: some View {
         NavigationStack{
-            if !vm.recordingsList[index].outputs.contains(where: {$0.type == .Title}) {
-                Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
-            } else {
-                if let title = vm.recordingsList[index].outputs.first(where: {$0.type == .Title}) {
-                    if title.error {
-                        Text(title.content)
-                            .onTapGesture{
-                                self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
-                            }
-                    } else {
-                        Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+            List{
+                if !vm.recordingsList[index].outputs.contains(where: {$0.type == .Title}) {
+                    Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color(.systemBackground))
+                } else {
+                    if let title = vm.recordingsList[index].outputs.first(where: {$0.type == .Title}) {
+                        if title.error {
+                            Text(title.content)
+                                .onTapGesture{
+                                    self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
+                                }
+                        } else {
+                            Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color(.systemBackground))
+                        }
                     }
                 }
-            }
-            List{
                 ForEach(sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
                     let output = sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
                     VStack(alignment: .leading){

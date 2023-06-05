@@ -18,7 +18,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     var audioPlayerCurrentIndex : Int!
     var indexOfPlayer = 0
     private var cancellables = Set<AnyCancellable>()
-    let baseURL = "http://0.0.0.0:3000/api/v1/"
+    let baseURL = "https://turing-api.com/api/v1/"
     let folderPath: String
 
     @Published var isRecording : Bool = false
