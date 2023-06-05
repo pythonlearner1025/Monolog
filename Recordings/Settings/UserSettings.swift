@@ -32,7 +32,7 @@ extension UserDefaults {
             let data = try JSONEncoder().encode(settings)
             set(data, forKey: key)
         } catch {
-            print("Failed to store settings: \(error)")
+            print("Failed to store output settings: \(error)")
         }
     }
     
@@ -41,7 +41,7 @@ extension UserDefaults {
         do {
             return try JSONDecoder().decode(OutputSettings.self, from: data)
         } catch {
-            print("Failed to decode settings: \(error)")
+            print("Failed to decode outputsettings: \(error)")
             return nil
         }
     }

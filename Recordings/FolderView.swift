@@ -170,7 +170,9 @@ struct FolderView: View {
                 vm.recordingsList.remove(atOffsets: indexSet)
             }
             }.sheet(isPresented: $isShowingSettings){
-                SettingsView()
+                if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                    SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
+                }
             }.navigationTitle("\(folder.name)")
             .navigationBarItems(trailing: HStack{
                 // TODO: import audio
@@ -255,14 +257,12 @@ struct FolderView: View {
     
 }
 
-
-
 struct SettingsView: View {
-    @Environment(\.presentationMode) var presentationMode1
-    
-    @State private var selectedFormat = FormatType.bullet
-    @State private var selectedLength = LengthType.short
-    @State private var selectedTone = ToneType.casual
+    @Environment(\.presentationMode) var presentationMode
+    @State var selectedFormat: FormatType
+    @State var selectedLength: LengthType
+    @State var selectedTone: ToneType
+
     
     var body: some View {
         NavigationStack{
@@ -293,17 +293,25 @@ struct SettingsView: View {
                     .pickerStyle(SegmentedPickerStyle())
                 }
                 Button("Save") {
-                    // Perform submission logic here
+                    if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                        let outputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: savedOutputSettings.name, prompt: savedOutputSettings.prompt)
+                        UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
+                        presentationMode.wrappedValue.dismiss()
+                    } else {
+                        print("err")
+                        presentationMode.wrappedValue.dismiss()
+                    }
                 }
             }
             .navigationBarTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        presentationMode1.wrappedValue.dismiss()
+                        presentationMode.wrappedValue.dismiss()
                     }
                 }
             }
         }
+
     }
 }

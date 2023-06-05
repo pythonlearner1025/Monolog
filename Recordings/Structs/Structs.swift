@@ -33,11 +33,11 @@ struct OutputSettings: Encodable, Decodable {
     var length: LengthType
     var format: FormatType
     var tone: ToneType
-    var prompt: String
     var name: String
+    var prompt: String
     
     static var defaultSettings: OutputSettings {
-        return OutputSettings(length: .short, format: .bullet, tone: .casual, prompt: "", name: "Default")
+        return OutputSettings(length: .short, format: .bullet, tone: .casual, name: "Default", prompt: "")
     }
 }
 

@@ -36,33 +36,31 @@ struct RecordingView: View {
                 }
             }
             List{
-                ForEach(sortOutputs(vm.recordingsList[index].outputs).indices, id: \.self) { idx in
+                ForEach(sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
+                    let output = sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
                     VStack(alignment: .leading){
-                        let output = sortOutputs(vm.recordingsList[index].outputs)[idx]
-                        switch  output.type {
-                        case .Summary:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                        case .Action:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                        case .Transcript:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                        case .Custom:
-                            OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                        case .Title:
-                            EmptyView()
-                        }
+                        OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
                     }
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color(.systemBackground))
-                    
                 }
                 .onDelete{indexSet in
                     indexSet.sorted(by: >).forEach{i in
-                        let output = sortOutputs(vm.recordingsList[index].outputs)[i]
+                        let output = sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript}[i]
                         vm.deleteOutput(index: index, output: output)
                     }
                 }
+                if vm.recordingsList[index].outputs.contains(where: {$0.type == .Transcript}) {
+                    let output = vm.recordingsList[index].outputs.first(where: { $0.type == .Transcript})
+                    VStack(alignment: .leading){
+                        OutputView(output: output!, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
+                    }
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color(.systemBackground))
+
+                }
             }
+            
             
             .onReceive(vm.recordingsList[index].$outputs){ outputs in
                 print("-- onReceive new update --")
@@ -117,6 +115,7 @@ struct RecordingView: View {
                 }
                 EditButton()
             })
+            
         }
         .toolbar {
             ToolbarItem(placement: .bottomBar){
@@ -140,7 +139,9 @@ struct RecordingView: View {
             CustomOutputSheet(vm: vm, index: index)
         }
         .sheet(isPresented: $isShowingSettings) {
-            SettingsView()
+            if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
+            }
         }
         .sheet(item: $activeSheet) {item in
             switch item {
@@ -162,14 +163,28 @@ struct OutputView: View {
     @ObservedObject var output: Output
     var recording: ObservableRecording
     var recordingURL: URL
-    @Binding var isMinimized: Bool
-    
-    // TODO: "remember" whether it was minimized or not when deleting. 
     @State private var isMinimized: Bool = false // Add this state variable
-    
     var vm: VoiceViewModel // add this
     var index: Int // add this
+    @ObservedObject var cache = OutputCache<String, Bool>()
 
+    
+    init(output: Output, recording: ObservableRecording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
+           self.output = output
+           self.recording = recording
+           self.recordingURL = recordingURL
+           self.vm = vm
+           self.index = index
+           var key = "\(recordingURL.lastPathComponent)_\(output.type.rawValue)"
+
+           if let cachedValue = cache.value(forKey: key) {
+               self.isMinimized = cachedValue
+           } else {
+               cache.insert(false, forKey: key)
+               self.isMinimized = false
+           }
+       }
+    
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
@@ -181,6 +196,8 @@ struct OutputView: View {
             .frame(height: 40)
             .onTapGesture {
                 self.isMinimized.toggle()
+                var key = "\(recordingURL.lastPathComponent)_\(output.type.rawValue)"
+                cache.insert(isMinimized, forKey: key)
             }
             if output.error {
                 Group {
@@ -250,10 +267,7 @@ struct OutputView: View {
 // TODO: save user's last options
 struct CustomOutputSheet: View {
     @Environment(\.presentationMode) var presentationMode
-    @State private var selectedLength: LengthType = LengthType.short
-    @State private var selectedFormat: FormatType = FormatType.bullet
-    @State private var selectedTone: ToneType = ToneType.casual
-    @State private var customInput: String = ""
+    @State private var customPrompt: String = ""
     @State private var customName: String = ""
     
     var vm: VoiceViewModel // add this
@@ -261,68 +275,42 @@ struct CustomOutputSheet: View {
 
     var body: some View{
         NavigationStack {
-                Form {
-                    Section(header: Text("Length")) {
-                        Picker("Select Length", selection: $selectedLength) {
-                            ForEach(LengthType.allCases, id: \.self) { option in
-                                Text(option.rawValue)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                    
-                    Section(header: Text("Tone")) {
-                        Picker("Select Format", selection: $selectedFormat) {
-                            ForEach(FormatType.allCases, id: \.self) { option in
-                                Text(option.rawValue)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                    
-                    Section(header: Text("Format")) {
-                        Picker("Select Tone", selection: $selectedTone) {
-                            ForEach(ToneType.allCases, id: \.self) { option in
-                                Text(option.rawValue)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                    }
-                    
-                    Section(header: Text("Custom Name")) {
-                        TextEditor(text: $customName)
-                            .frame(height: 20)
-                    }
-                    
-                    Section(header: Text("Custom Prompt")) {
-                        TextEditor(text: $customInput)
-                            .frame(height: 100)
-                    }
-                    
-                    Button("Submit") {
-                        // Perform submission logic here
-                        let currentOutputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, prompt: customInput, name: customName)
+            Form {
+                Section(header: Text("Custom Name")) {
+                    TextEditor(text: $customName)
+                        .frame(height: 20)
+                }
+                
+                Section(header: Text("Custom Prompt")) {
+                    TextEditor(text: $customPrompt)
+                        .frame(height: 100)
+                }
+                
+                Button("Submit") {
+                    if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                        let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone ,name: customName,  prompt: customPrompt)
                         vm.generateCustomOutput(index: index, outputSettings: currentOutputSettings)
                         UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
                         presentationMode.wrappedValue.dismiss()
+                    } else {
+                        print("err")
+                        presentationMode.wrappedValue.dismiss()
                     }
                 }
-                .navigationBarTitle("Custom Output")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            presentationMode.wrappedValue.dismiss()
-                        }
+            }
+            .navigationBarTitle("Custom Output")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
                     }
                 }
-            
+            }
         }
         .onAppear {
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings"){
-                self.selectedLength = outputSettings.length
-                self.selectedTone = outputSettings.tone
-                self.selectedFormat = outputSettings.format
-                self.customInput = outputSettings.prompt
+         
+                self.customPrompt = outputSettings.prompt
                 self.customName = outputSettings.name
             }
         }

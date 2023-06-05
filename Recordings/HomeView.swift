@@ -6,10 +6,7 @@
 //
 // view of all folders
 
-
 import SwiftUI
-
-
 
 struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
@@ -114,7 +111,7 @@ struct HomeView: View {
     func setup() {
         //default settings
         let settings = Settings(outputs: [.Title, .Transcript, .Summary, .Action], length: .short, format: .bullet, tone: .casual)
-        let outputSettings = OutputSettings(length: .short, format: .bullet, tone: .casual, prompt: "", name: "")
+        let outputSettings = OutputSettings(length: .short, format: .bullet, tone: .casual,name: "", prompt: "")
         UserDefaults.standard.storeSettings(settings, forKey: "Settings")
         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
         // default folders

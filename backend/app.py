@@ -63,16 +63,16 @@ class OutputType(str, Enum):
     Title = 'Title'
 
 class Settings(BaseModel):
+    length: Length
+    format: Format
+    tone: Tone
     name: str
     prompt: str
-    length: Length
-    tone: Tone
-    format: Format
 
 class OutputLoad(BaseModel):
     type: OutputType
-    settings: Settings
     transcript: str
+    settings: Settings
 
 @app.get('/')
 def get():

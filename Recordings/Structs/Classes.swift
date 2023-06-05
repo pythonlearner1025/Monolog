@@ -157,3 +157,46 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
         return lhs.id == rhs.id
     }
 }
+
+
+class OutputCache<Key: Hashable, Value>: ObservableObject {
+    private let wrappedCache = NSCache<WrappedKey, Entry>()
+
+    func insert(_ value: Value, forKey key: Key) {
+        let entry = Entry(value: value)
+        wrappedCache.setObject(entry, forKey: WrappedKey(key))
+    }
+
+    func value(forKey key: Key) -> Value? {
+        let entry = wrappedCache.object(forKey: WrappedKey(key))
+        return entry?.value
+    }
+
+    private class WrappedKey: NSCopying {
+        let key: Key
+
+        init(_ key: Key) {
+            self.key = key
+        }
+
+        func copy(with zone: NSZone? = nil) -> Any {
+            return self
+        }
+
+        static func == (lhs: WrappedKey, rhs: WrappedKey) -> Bool {
+            return lhs.key == rhs.key
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(key)
+        }
+    }
+
+    private class Entry {
+        let value: Value
+        
+        init(value: Value) {
+            self.value = value
+        }
+    }
+}

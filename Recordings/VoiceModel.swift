@@ -172,7 +172,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 print("An error occurred while updating the recording object: \(error)")
             }
             if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
-                let outputSettings = OutputSettings(length: settings.length, format: settings.format, tone: settings.tone, prompt: "", name: "Default Output")
+                let outputSettings = OutputSettings(length: settings.length, format: settings.format, tone: settings.tone,  name: "Default Output", prompt: "")
                 print("== all settings outputs \(settings.outputs)==")
 
                 settings.outputs.forEach({ outputType in
@@ -415,6 +415,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             do {
                 let encodedSettings = try encoder.encode(outputSettings)
                 let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
+                print("settings dict \(settingsDictionary)")
                 let parameters: [String: Any] = [
                     "type": outputType.rawValue,
                     "transcript": transcript,
