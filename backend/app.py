@@ -74,6 +74,10 @@ class OutputLoad(BaseModel):
     settings: Settings
     transcript: str
 
+@app.get('/')
+def get():
+    return {"res": "success"}
+
 @app.post('/api/v1/transcribe')
 async def transcribe(file: UploadFile = File(...)):
     if file.size >= 25000000:
