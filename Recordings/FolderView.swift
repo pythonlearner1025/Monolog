@@ -15,7 +15,6 @@ enum FolderPageEnum: String, CaseIterable {
     case action = "Action Items"
 }
 
-
 struct FolderView: View {
     var folder: Folder
     @ObservedObject var vm: VoiceViewModel
@@ -253,8 +252,6 @@ struct FolderView: View {
             }
         }
     }
-    
-    
 }
 
 struct SettingsView: View {
@@ -267,7 +264,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack{
             Form {
-                Text("Select the defualt settings that will be used to generate custom outputs from your recordings")
                 Section(header: Text("Length")) {
                     Picker("Select Length", selection: $selectedLength) {
                         ForEach(LengthType.allCases, id: \.self) { option in
@@ -279,7 +275,11 @@ struct SettingsView: View {
                 Section(header: Text("Format")) {
                     Picker("Select Format", selection: $selectedFormat) {
                         ForEach(FormatType.allCases, id: \.self) { option in
-                            Text(option.rawValue)
+                            if option.rawValue == "bullet" {
+                                Text("bullet point")
+                            } else {
+                                Text(option.rawValue)
+                            }
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
@@ -303,7 +303,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .navigationBarTitle("Settings")
+            .navigationBarTitle("Text Style")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

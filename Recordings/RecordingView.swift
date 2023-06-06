@@ -23,7 +23,7 @@ struct RecordingView: View {
         NavigationStack{
             List{
                 if !vm.recordingsList[index].outputs.contains(where: {$0.type == .Title}) {
-                    Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+                    Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color(.systemBackground))
                 } else {
@@ -34,7 +34,7 @@ struct RecordingView: View {
                                     self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
                                 }
                         } else {
-                            Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -60)
+                            Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color(.systemBackground))
                         }
@@ -61,7 +61,6 @@ struct RecordingView: View {
                     }
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color(.systemBackground))
-
                 }
             }
             
@@ -114,28 +113,15 @@ struct RecordingView: View {
             label: {
                 Image(systemName: "square.and.arrow.up")
             }
-                Button(action: {isShowingSettings.toggle()}){
-                    Image(systemName: "gearshape")
+                Button(action: {
+                    isShowingCustomOutput.toggle()
+                }) {
+                    Image(systemName: "sparkles")
                 }
+                
                 EditButton()
             })
             
-        }
-        .toolbar {
-            ToolbarItem(placement: .bottomBar){
-                Image(systemName: "circle")
-                    .font(.system(size: 50, weight: .thin))
-                    .overlay(
-                        Image(systemName: "sparkles")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 35, height: 35)
-                            .foregroundColor(.primary), alignment: .center
-                    )
-                    .onTapGesture {
-                        isShowingCustomOutput.toggle()
-                    }
-            }
         }
 
         .listStyle(.plain)
@@ -246,9 +232,6 @@ struct OutputView: View {
             
         }
         .onChange(of: output.content, perform: { value in
-           // This block will be called whenever `output.content` changes.
-           // Insert your function call here.
-           //print("output.content changed to: \(value)")
            saveRecording()
        })
        
@@ -268,7 +251,6 @@ struct OutputView: View {
     
 }
 
-// TODO: save user's last options
 struct CustomOutputSheet: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var customPrompt: String = ""
@@ -280,17 +262,20 @@ struct CustomOutputSheet: View {
     var body: some View{
         NavigationStack {
             Form {
-                Section(header: Text("Custom Name")) {
+                Section(header: Text("Create a new transformation of your transcript").textCase(nil)){
+                    
+                }
+                
+                Section(header: Text("Transform Name")) {
                     TextEditor(text: $customName)
-                        .frame(height: 20)
                 }
                 
-                Section(header: Text("Custom Prompt")) {
+                Section(header: Text("Transform Prompt")) {
                     TextEditor(text: $customPrompt)
-                        .frame(height: 100)
+                        .frame(height: 120)
                 }
                 
-                Button("Submit") {
+                Button("Generate") {
                     if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
                         let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone ,name: customName,  prompt: customPrompt)
                         vm.generateCustomOutput(index: index, outputSettings: currentOutputSettings)
@@ -302,7 +287,7 @@ struct CustomOutputSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Custom Output")
+            .navigationBarTitle("Transform")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

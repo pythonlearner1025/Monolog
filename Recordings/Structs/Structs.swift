@@ -47,6 +47,22 @@ struct Update {
     var settings: OutputSettings
 }
 
+struct CustomOutputView: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(lineWidth: 2)
+                .foregroundColor(.blue)
+                .frame(width: 50, height: 50)
+            Image(systemName: "sparkles")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+                .foregroundColor(.blue)
+        }
+    }
+}
+
 struct CameraButtonView: View {
 
     @State var recording = false
