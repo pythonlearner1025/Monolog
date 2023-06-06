@@ -143,14 +143,13 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
            } catch {
                print("An error occurred while saving the recording object: \(error)")
            }
-        addLoadingOutput(type: .Transcript, settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
+        let transcript_out = addLoadingOutput(type: .Transcript, settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
+        //refreshRecording(recording: recording)
         generateTranscription(recording: recording).sink(receiveCompletion: { [self] (completion) in
             switch completion {
             case .failure(let error):
                 print("An error occurred while generating transcript: \(error)")
-                if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
-                    self.updateErrorOutput(type: .Transcript, settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
-                }
+                self.updateErrorOutput(transcript_out.id.uuidString, settings: OutputSettings.defaultSettings, outputs: &recording.outputs)
                 do {
                     print("-- saving transcript error data --")
                     print(recording)
@@ -164,7 +163,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
         }, receiveValue: { update in
             print("* update: Transcript **")
-            self.updateOutput(type: .Transcript, content: update.content, settings: update.settings, outputs: &recording.outputs)
+            self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
             do {
                 let updatedData = try encoder.encode(recording)
                 try updatedData.write(to: recordingMetadataURL)
@@ -180,7 +179,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                         self.addLoadingOutput(type: outputType, settings: outputSettings, outputs: &recording.outputs)
                     }
                 })
-                var futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
+                let futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
                   
                     self.generateOutput(transcript: recording.outputs[0].content, outputType: outputType, outputSettings: outputSettings)
                        .eraseToAnyPublisher()
@@ -190,21 +189,30 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                     .flatMap { future in
                         future.catch { error -> AnyPublisher<Update, Never> in
                             switch error {
-                            case .failure(let error, let outputType, let transcript):
+                            case .failure(_, let outputType, _):
                                 switch outputType {
                                     case .Summary:
-                                    self.updateErrorOutput(type: .Summary, settings: outputSettings, outputs: &recording.outputs)
+                                        let out_idx = recording.outputs.firstIndex(where: {$0.type == .Summary})
+                                        let out = recording.outputs[out_idx!]
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs)
                                         break
                                     case .Action:
-                                    self.updateErrorOutput(type: .Action, settings: outputSettings, outputs: &recording.outputs)
+                                        let out_idx = recording.outputs.firstIndex(where: {$0.type == .Action})
+                                        let out = recording.outputs[out_idx!]
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs)
                                         break
                                     case .Title:
-                                        self.updateErrorOutput(type: .Title, settings: outputSettings, outputs: &recording.outputs)
-                                        break
+                                        recording.title = "Error, tap to retry"
+                                        let out_idx = recording.outputs.firstIndex(where: {$0.type == .Title})
+                                        let out = recording.outputs[out_idx!]
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs)
+                                            break
                                     case .Transcript:
                                         break
                                     case .Custom:
-                                        self.updateErrorOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
+                                        let out_idx = recording.outputs.firstIndex(where: {$0.type == .Custom})
+                                        let out = recording.outputs[out_idx!]
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs)
                                         break
                                 }
                                 do {
@@ -233,18 +241,23 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                         switch update.type {
                             case .Summary:
                                 print("** update: summary **")
-                                self.updateOutput(type: .Summary, content: update.content, settings: update.settings, outputs: &recording.outputs)
-                               
-                                break
+                            let out_idx = recording.outputs.firstIndex(where: {$0.type == .Summary})
+                            let out = recording.outputs[out_idx!]
+                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                           
+                            break
                             case .Action:
                                 print("** update: action **")
-                                self.updateOutput(type: .Action, content: update.content, settings: update.settings, outputs: &recording.outputs)
-                              
+                            let out_idx = recording.outputs.firstIndex(where: {$0.type == .Action})
+                            let out = recording.outputs[out_idx!]
+                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
                                 break
                             case .Title:
                                 print("** update: Title **")
-                                recording.title = update.content
-                                self.updateOutput(type: .Title, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                            recording.title = update.content
+                            let out_idx = recording.outputs.firstIndex(where: {$0.type == .Title})
+                            let out = recording.outputs[out_idx!]
+                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
                                 break
                             case .Transcript:
                                 break
@@ -268,14 +281,14 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     
-    
-    func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
+    func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) -> Output {
         let newOutput = Output(type: type, content: "Loading", settings: settings)
         outputs.append(newOutput)
+        return newOutput
     }
     
-    func updateOutput(type: OutputType, content: String,  settings: OutputSettings, outputs: inout [Output]){
-        if let index = outputs.firstIndex(where: { $0.type == type }) {
+    func updateOutput(_ id: String, content: String,  settings: OutputSettings, outputs: inout [Output]){
+        if let index = outputs.firstIndex(where: { $0.id.uuidString == id }) {
             outputs[index].content = content
             outputs[index].settings = settings
             outputs[index].error = false
@@ -283,19 +296,20 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    func updateErrorOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
-        if let index = outputs.firstIndex(where: { $0.type == type }) {
+    func updateErrorOutput(_ id: String, settings: OutputSettings, outputs: inout [Output]) {
+        if let index = outputs.firstIndex(where: { $0.id.uuidString == id }) {
             outputs[index].content = "Error, tap to retry"
             outputs[index].error = true
             outputs[index].loading = false
         }
     }
     
-    func addErrorOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) {
+    func addErrorOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) -> Output {
         let newOutput = Output(type: type, content: "Error, tap to retry", settings: settings)
         newOutput.error = true
         newOutput.loading = false
         outputs.append(newOutput)
+        return newOutput
     }
     
     func getTranscript(outputs: [Output]) -> String {
@@ -311,11 +325,12 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func regenerateOutput(index: Int, output: Output, outputSettings: OutputSettings) {
-        var recording = recordingsList[index]
+        let recording = recordingsList[index]
         let transcript = getTranscript(outputs: recording.outputs)
         let recordingMetadataURL = getRecordingMetaURL(filePath: recording.filePath)
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
+        encoder.dateEncodingStrategy = .iso8601
+
         generateOutput(transcript: transcript, outputType: output.type, outputSettings: outputSettings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
@@ -329,18 +344,18 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 switch update.type {
                     case .Summary:
                         print("** update: summary **")
-                        self.updateOutput(type: .Summary, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
                        
                         break
                     case .Action:
                         print("** update: action **")
-                        self.updateOutput(type: .Action, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
                       
                         break
                     case .Title:
                         print("** update: Title **")
                         recording.title = update.content
-                        self.updateOutput(type: .Title, content: update.content, settings: update.settings, outputs: &recording.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs)
                         break
                     case .Transcript:
                         break
@@ -361,20 +376,18 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func generateCustomOutput(index: Int, outputSettings: OutputSettings) {
-        var recording = recordingsList[index]
+        let recording = recordingsList[index]
         let transcript = getTranscript(outputs: recording.outputs)
         let recordingMetadataURL = getRecordingMetaURL(filePath: recording.filePath)
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
-        
-        // TODO: add empty "loading" output to recordings.outputs,
-        // then update later
-        addLoadingOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
+        encoder.dateEncodingStrategy = .iso8601
+        let custom_out = addLoadingOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
+        //recordingsList[index] = recording
         generateOutput(transcript: transcript, outputType: .Custom, outputSettings: outputSettings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
-                    case .failure(let error):
-                        self.updateErrorOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs)
+                    case .failure(_):
+                    self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: &recording.outputs)
                         do {
                             print("-- saving custom output error data --")
                             let updatedData = try encoder.encode(recording)
@@ -391,11 +404,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 }
             },
             receiveValue:{ update in
-                self.updateOutput(type: .Custom, content: update.content, settings: outputSettings, outputs: &recording.outputs)
+                self.updateOutput(custom_out.id.uuidString, content: update.content, settings: outputSettings, outputs: &recording.outputs)
                 do {
                     let updatedData = try encoder.encode(recording)
                     try updatedData.write(to: recordingMetadataURL)
-                    print("** recording after regenerated output **")
+                    print("** recording after custom output **")
                     print(recording)
                     self.recordingsList[index] = recording
                 } catch {
@@ -415,7 +428,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             do {
                 let encodedSettings = try encoder.encode(outputSettings)
                 let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
-                print("settings dict \(settingsDictionary)")
+                print("settings dict \(settingsDictionary!)")
                 let parameters: [String: Any] = [
                     "type": outputType.rawValue,
                     "transcript": transcript,
@@ -505,6 +518,13 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let filePath = recording.filePath
         if let index = recordingsList.firstIndex(where: { $0.filePath == filePath }) {
             recordingsList[index] = recording
+        }
+    }
+    
+    func refreshRecordingOutputs(recording: ObservableRecording, outputs: [Output]) {
+        let filePath = recording.filePath
+        if let index = recordingsList.firstIndex(where: { $0.filePath == filePath }) {
+            recordingsList[index].outputs = outputs
         }
     }
 
@@ -679,7 +699,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func deleteOutput(index: Int, output: Output) {
-        var updatedRecording = recordingsList[index]
+        let updatedRecording = recordingsList[index]
         if let idxToDelete = updatedRecording.outputs.firstIndex(where: {$0.id == output.id}) {
             updatedRecording.outputs.remove(at: idxToDelete)
             recordingsList[index] = updatedRecording

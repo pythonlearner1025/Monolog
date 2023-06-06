@@ -43,4 +43,5 @@ server {
 - ```bash $ sudo systemctl restart nginx
 - attempt to certify the domain: ```bash $ sudo certbot --nginx -d turing-api.com``` 
 
-https://chat.openai.com/share/ed4e93cb-108a-453b-833b-7c7ef91922b3
+## Appendix: GPT4 Chat Log
+- https://chat.openai.com/share/ed4e93cb-108a-453b-833b-7c7ef91922b3

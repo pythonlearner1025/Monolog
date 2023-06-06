@@ -63,8 +63,6 @@ struct RecordingView: View {
                     .listRowBackground(Color(.systemBackground))
                 }
             }
-            
-            
             .onReceive(vm.recordingsList[index].$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
@@ -160,26 +158,30 @@ struct OutputView: View {
 
     
     init(output: Output, recording: ObservableRecording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
-           self.output = output
-           self.recording = recording
-           self.recordingURL = recordingURL
-           self.vm = vm
-           self.index = index
-           var key = "\(recordingURL.lastPathComponent)_\(output.type.rawValue)"
+        print("== On OutputView Init ==")
+        print(output.type)
+       self.output = output
+       self.recording = recording
+       self.recordingURL = recordingURL
+       self.vm = vm
+       self.index = index
+       var key = "\(recordingURL.lastPathComponent)_\(output.type.rawValue)"
 
-           if let cachedValue = cache.value(forKey: key) {
-               self.isMinimized = cachedValue
-           } else {
-               cache.insert(false, forKey: key)
-               self.isMinimized = false
-           }
+       if let cachedValue = cache.value(forKey: key) {
+           self.isMinimized = cachedValue
+       } else {
+           cache.insert(false, forKey: key)
+           self.isMinimized = false
        }
+    }
     
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
                 Image(systemName: isMinimized ? "chevron.forward" : "chevron.down")
-                Text(output.type != .Custom ? output.type.rawValue : output.settings.name).font(.headline).padding(.vertical)
+                Text(output.type != .Custom ? output.type.rawValue : getCustomOutputName(output))
+                    .font(.headline)
+                    .padding(.vertical)
                     .padding(.top, 5)
             }
             .padding(.vertical)
@@ -205,7 +207,7 @@ struct OutputView: View {
                        }
                        
                    }
-                }.animation(.easeInOut.speed(1.25))
+                }.animation(.easeInOut.speed(1.4))
                 // TODO: why, in recently deleted, is output.loading = true when it should be false with content update??
             } else if output.loading && output.content == "Loading" {
                 Group {
@@ -217,7 +219,7 @@ struct OutputView: View {
                            }
                        }
                    }
-                }.animation(.easeInOut.speed(1.25))
+                }.animation(.easeInOut.speed(1.4))
             } else {
                 Group {
                    if !isMinimized {
@@ -227,7 +229,7 @@ struct OutputView: View {
                            Text(output.content).opacity(0).padding(.all, 8)
                        }
                    }
-                }.animation(.easeInOut.speed(1.25))
+                }.animation(.easeInOut.speed(1.4))
             }
             
         }
@@ -246,6 +248,17 @@ struct OutputView: View {
             print("saved changes to disk")
         } catch {
             print("An error occurred while saving the recording object: \(error)")
+        }
+    }
+    
+    private func getCustomOutputName(_ output: Output) -> String{
+        let outputs = recording.outputs
+        let dupes = recording.outputs.filter{ $0.settings.name == output.settings.name}
+        let pos = dupes.firstIndex(where: {$0.id.uuidString == output.id.uuidString})
+        if pos == 0 {
+            return output.settings.name
+        } else {
+            return "\(output.settings.name)(\(pos!.description))"
         }
     }
     

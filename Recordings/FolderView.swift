@@ -54,7 +54,7 @@ struct FolderView: View {
 
                             }.padding(.bottom, 10)
                             Spacer()
-                            NavigationLink(destination: RecordingView(vm: vm, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
+                            NavigationLink(destination: RecordingView(vm: vm, outputs: vm.recordingsList[idx].outputs index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
                                 
                             }
                         }.listRowSeparator(.hidden)

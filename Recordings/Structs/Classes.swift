@@ -55,7 +55,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     @Published var createdAt: Date
     @Published var isPlaying: Bool
     @Published var title: String
-    @Published var outputs: [Output]
+    @Published var outputs: Outputs
     @Published var progress: CGFloat = 0.0
     @Published var duration: Double = 0.0
     @Published var absProgress: Double = 0.0
@@ -73,7 +73,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         isPlaying = try container.decode(Bool.self, forKey: .isPlaying)
         title = try container.decode(String.self, forKey: .title)
-        outputs = try container.decode([Output].self, forKey: .outputs)
+        outputs = try container.decode(Outputs.self, forKey: .outputs)
         currentTime = try container.decode(String.self, forKey: .currentTime)
         totalTime = try container.decode(String.self, forKey: .totalTime)
         progress = try container.decode(CGFloat.self, forKey: .progress)
@@ -96,7 +96,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     }
 
     // your initializer here
-    init (filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: [Output], totalTime: String, duration: Double){
+    init (filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: Outputs, totalTime: String, duration: Double){
         self.filePath = filePath
         self.createdAt = createdAt
         self.isPlaying = isPlaying
@@ -113,11 +113,49 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
                && lhs.createdAt == rhs.createdAt
                && lhs.isPlaying == rhs.isPlaying
                && lhs.title == rhs.title
-               && lhs.outputs == rhs.outputs
                && lhs.currentTime == rhs.currentTime
                && lhs.totalTime == rhs.totalTime
        }
 }
+
+class Outputs: ObservableObject, Codable {
+    @Published var outputs = [Output]()
+
+    // Add a new output
+    func addOutput(_ output: Output) {
+        outputs.append(output)
+    }
+
+    // Remove an output
+    func removeOutput(_ output: Output) {
+        if let index = outputs.firstIndex(of: output) {
+            outputs.remove(at: index)
+        }
+    }
+    // Remove an output at a specific index
+    func removeOutput(at index: Int) {
+        outputs.remove(at: index)
+    }
+    
+    enum CodingKeys: CodingKey {
+           case outputs
+   }
+   
+   init(outputs: [Output] = []) {
+       self.outputs = outputs
+   }
+
+   required init(from decoder: Decoder) throws {
+       let container = try decoder.container(keyedBy: CodingKeys.self)
+       outputs = try container.decode([Output].self, forKey: .outputs)
+   }
+   
+   func encode(to encoder: Encoder) throws {
+       var container = encoder.container(keyedBy: CodingKeys.self)
+       try container.encode(outputs, forKey: .outputs)
+   }
+}
+*/
 
 class Output: ObservableObject, Codable, Identifiable, Equatable {
     var id = UUID()
