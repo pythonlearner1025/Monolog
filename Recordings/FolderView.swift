@@ -54,7 +54,7 @@ struct FolderView: View {
 
                             }.padding(.bottom, 10)
                             Spacer()
-                            NavigationLink(destination: RecordingView(vm: vm, outputs: vm.recordingsList[idx].outputs index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
+                            NavigationLink(destination: RecordingView(vm: vm, os: vm.recordingsList[idx].outputs, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
                                 
                             }
                         }.listRowSeparator(.hidden)
@@ -64,7 +64,7 @@ struct FolderView: View {
                             if selection == .normal{
                                 
                                 VStack{
-                                    ForEach(vm.recordingsList[idx].outputs) {output in
+                                    ForEach(vm.recordingsList[idx].outputs.outputs) {output in
                                         switch output.type {
                                         case .Summary: EmptyView()
                                         case .Action: EmptyView()
@@ -126,7 +126,7 @@ struct FolderView: View {
                                 }
                             }
                             if selection == .action {
-                                ForEach(vm.recordingsList[idx].outputs) {output in
+                                ForEach(vm.recordingsList[idx].outputs.outputs) {output in
                                     switch output.type {
                                     case .Summary: EmptyView()
                                     case .Action: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
@@ -138,7 +138,7 @@ struct FolderView: View {
                             }
                             
                             if selection == .summary {
-                                ForEach(vm.recordingsList[idx].outputs) {output in
+                                ForEach(vm.recordingsList[idx].outputs.outputs) {output in
                                     switch output.type {
                                     case .Summary: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
                                     case .Action: EmptyView()

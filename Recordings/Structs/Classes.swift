@@ -120,22 +120,6 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
 
 class Outputs: ObservableObject, Codable {
     @Published var outputs = [Output]()
-
-    // Add a new output
-    func addOutput(_ output: Output) {
-        outputs.append(output)
-    }
-
-    // Remove an output
-    func removeOutput(_ output: Output) {
-        if let index = outputs.firstIndex(of: output) {
-            outputs.remove(at: index)
-        }
-    }
-    // Remove an output at a specific index
-    func removeOutput(at index: Int) {
-        outputs.remove(at: index)
-    }
     
     enum CodingKeys: CodingKey {
            case outputs
@@ -155,7 +139,7 @@ class Outputs: ObservableObject, Codable {
        try container.encode(outputs, forKey: .outputs)
    }
 }
-*/
+
 
 class Output: ObservableObject, Codable, Identifiable, Equatable {
     var id = UUID()

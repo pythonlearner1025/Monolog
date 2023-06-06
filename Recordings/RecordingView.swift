@@ -7,8 +7,48 @@
 import SwiftUI
 import Foundation
 
+struct TitleView: View {
+    @ObservedObject var vm: VoiceViewModel
+    @ObservedObject var os: Outputs
+    var index: Int
+    
+    var body: some View {
+        if !os.outputs.contains(where: {$0.type == .Title}) {
+            Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
+
+        } else {
+            if let title = os.outputs.first(where: {$0.type == .Title}) {
+                if title.error {
+                    Text(title.content)
+                        .onTapGesture{
+                            self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
+                        }
+                } else {
+                    Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
+ 
+                }
+            }
+        }
+    }
+}
+
+struct TranscriptView: View {
+    @ObservedObject var vm: VoiceViewModel
+    @ObservedObject var os: Outputs
+    var index: Int
+    var recordingURL: URL
+    
+    var body: some View {
+        if os.outputs.contains(where: {$0.type == .Transcript}) {
+            let output = os.outputs.first(where: { $0.type == .Transcript})
+            OutputView(output: output!, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
+        }
+    }
+}
+
 struct RecordingView: View {
     @ObservedObject var vm: VoiceViewModel
+    @ObservedObject var os: Outputs
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
@@ -16,61 +56,54 @@ struct RecordingView: View {
     @State private var selectedTone = ""
     @State private var selectedFormat = ""
     @State private var customInput = ""
-    
+    @State private var lastViewedOutputIndex: Int?
+    @State private var showDelete: Bool = false
+
     var index: Int
     var recordingURL: URL
     var body: some View {
         NavigationStack{
             List{
-                if !vm.recordingsList[index].outputs.contains(where: {$0.type == .Title}) {
-                    Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color(.systemBackground))
-                } else {
-                    if let title = vm.recordingsList[index].outputs.first(where: {$0.type == .Title}) {
-                        if title.error {
-                            Text(title.content)
-                                .onTapGesture{
-                                    self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
+                TitleView(vm: vm, os: os, index: index)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color(.systemBackground))
+                ForEach(sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
+                    let output = sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
+                    HStack{
+                        if showDelete {
+                            VStack{
+                                Button(action: {
+                                    vm.deleteOutput(index: index, output: output)
+                                }) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 20))
                                 }
-                        } else {
-                            Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color(.systemBackground))
+                                .padding(.top, 10)
+                                Spacer()
+                            }
+                           
                         }
-                    }
-                }
-                ForEach(sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
-                    let output = sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
-                    VStack(alignment: .leading){
                         OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
+                            .id(idx) // Assigning unique id for each OutputView
+                            .onAppear { lastViewedOutputIndex = idx } // Updating last viewed index
+                        
                     }
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color(.systemBackground))
                 }
-                .onDelete{indexSet in
-                    indexSet.sorted(by: >).forEach{i in
-                        let output = sortOutputs(vm.recordingsList[index].outputs).filter { $0.type != .Title && $0.type != .Transcript}[i]
-                        vm.deleteOutput(index: index, output: output)
-                    }
-                }
-                if vm.recordingsList[index].outputs.contains(where: {$0.type == .Transcript}) {
-                    let output = vm.recordingsList[index].outputs.first(where: { $0.type == .Transcript})
-                    VStack(alignment: .leading){
-                        OutputView(output: output!, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                    }
+                TranscriptView(vm: vm, os: os, index: index, recordingURL: recordingURL)
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color(.systemBackground))
                 }
             }
-            .onReceive(vm.recordingsList[index].$outputs){ outputs in
+            .onReceive(os.$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
             }
             .navigationBarItems(trailing: HStack{
                 Menu {
                     Button(action: {
-                        let transcript = vm.recordingsList[index].outputs.first { $0.type == .Transcript }?.content ?? ""
+                        let transcript = os.outputs.first { $0.type == .Transcript }?.content ?? ""
                         let filename = "\(vm.recordingsList[index].title).txt"
                         let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
                         let fileURL = tempDirectoryURL.appendingPathComponent(filename)
@@ -117,10 +150,13 @@ struct RecordingView: View {
                     Image(systemName: "sparkles")
                 }
                 
-                EditButton()
+                Button(action: {
+                    showDelete.toggle()
+                }){
+                    Text("Edit")
+                }
             })
             
-        }
 
         .listStyle(.plain)
         .sheet(isPresented: $isShowingCustomOutput){
@@ -147,6 +183,9 @@ struct RecordingView: View {
     
 }
 
+
+
+// TODO: fix scroll: https://chat.openai.com/c/d546fbf7-689f-4c59-af45-312d9116ed12
 struct OutputView: View {
     @ObservedObject var output: Output
     var recording: ObservableRecording
@@ -156,7 +195,6 @@ struct OutputView: View {
     var index: Int // add this
     @ObservedObject var cache = OutputCache<String, Bool>()
 
-    
     init(output: Output, recording: ObservableRecording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
         print("== On OutputView Init ==")
         print(output.type)
@@ -228,15 +266,16 @@ struct OutputView: View {
                                .font(.body)
                            Text(output.content).opacity(0).padding(.all, 8)
                        }
+              
                    }
-                }.animation(.easeInOut.speed(1.4))
+                }
+                .animation(.easeInOut.speed(1.4), value: isMinimized)
+                .onChange(of: output.content, perform: { value in
+                   saveRecording()
+                })
             }
-            
         }
-        .onChange(of: output.content, perform: { value in
-           saveRecording()
-       })
-       
+    
     }
     
     private func saveRecording() {
@@ -252,8 +291,8 @@ struct OutputView: View {
     }
     
     private func getCustomOutputName(_ output: Output) -> String{
-        let outputs = recording.outputs
-        let dupes = recording.outputs.filter{ $0.settings.name == output.settings.name}
+        let outputs = recording.outputs.outputs
+        let dupes = outputs.filter{ $0.settings.name == output.settings.name}
         let pos = dupes.firstIndex(where: {$0.id.uuidString == output.id.uuidString})
         if pos == 0 {
             return output.settings.name
