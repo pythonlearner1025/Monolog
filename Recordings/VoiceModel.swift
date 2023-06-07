@@ -98,14 +98,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         blinkingCount!.invalidate()
         
         // write Recordings to localStorage as well.
-        let fileManager = FileManager.default
-        let folderURL = URL(fileURLWithPath: folderPath)
         let fileURL = audioRecorder.url
-        print("-- saving at this loc --")
-        print(fileURL)
         do{audioPlayer = try AVAudioPlayer(contentsOf: fileURL)}
         catch {print("recording error")}
-        var recording = ObservableRecording(filePath: fileURL.lastPathComponent, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: Outputs(), totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
+        let recording = ObservableRecording(filePath: fileURL.lastPathComponent, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: Outputs(), totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
         generateAll(recording: recording, fileURL: fileURL)
@@ -114,7 +110,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     func saveImportedRecording(filePath: URL){
         let fileManager = FileManager.default
         let rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
-        let newFileURL = rawFolderURL.appendingPathComponent(filePath.lastPathComponent)
+        let date = Date()
+        let newFileURL = rawFolderURL.appendingPathComponent("Recording: \(date.toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
         do {
             try fileManager.copyItem(at: filePath, to: newFileURL)
         } catch {
@@ -126,7 +123,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         } catch {
             print("recording read error \(error)")
         }
-        var recording = ObservableRecording(filePath: newFileURL.lastPathComponent, createdAt: getFileDate(for: newFileURL), isPlaying: false, title: "Untitled", outputs: Outputs(), totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
+        let recording = ObservableRecording(filePath: newFileURL.lastPathComponent, createdAt: date, isPlaying: false, title: "Untitled", outputs: Outputs(), totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
         generateAll(recording: recording, fileURL: newFileURL)
@@ -143,7 +140,12 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
            } catch {
                print("An error occurred while saving the recording object: \(error)")
            }
-        let transcript_out = addLoadingOutput(type: .Transcript, settings: OutputSettings.defaultSettings, outputs: &recording.outputs.outputs)
+        var transcript_out = Output(type: .Transcript, content: "Loading", settings: OutputSettings.defaultSettings)
+        if !recording.outputs.outputs.contains(where: {$0.type == .Transcript}) {
+            recording.outputs.outputs.append(transcript_out)
+        } else {
+            transcript_out = recording.outputs.outputs.first(where: {$0.type == .Transcript})!
+        }
         //refreshRecording(recording: recording)
         generateTranscription(recording: recording).sink(receiveCompletion: { [self] (completion) in
             switch completion {
@@ -280,7 +282,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }).store(in: &self.cancellables)
     }
     
-    
     func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) -> Output {
         let newOutput = Output(type: type, content: "Loading", settings: settings)
         outputs.append(newOutput)
@@ -326,6 +327,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     
     func regenerateOutput(index: Int, output: Output, outputSettings: OutputSettings) {
         let recording = recordingsList[index]
+        if output.type == .Transcript {
+            print("== regen transcript and all ==")
+            generateAll(recording: recording, fileURL: getAudioURL(filePath:recording.filePath))
+            return
+        }
         let transcript = getTranscript(outputs: recording.outputs.outputs)
         let recordingMetadataURL = getRecordingMetaURL(filePath: recording.filePath)
         let encoder = JSONEncoder()
@@ -493,6 +499,12 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                     promise(.failure(error!))
                     return
                 }
+                
+                if let dataString = String(data: data, encoding: .utf8) {
+                       print("Data received: \(dataString)")
+                   } else {
+                       print("Unable to convert data to text")
+                   }
 
                 do {
                     let decoder = JSONDecoder()
@@ -716,13 +728,14 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    // TODO: move recording & recordingMetadata to "Recently Deleted" folder
     func deleteRecording(audioPath: String) {
+        cancellables.removeAll()
         let oldAudioURL = getAudioURL(filePath: audioPath)
         let oldMetaURL = getRecordingMetaURL(filePath: audioPath)
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
         let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        // if curr folder == recently deleted, perma delete
         if (recentlyDeletedFolder.lastPathComponent == URL(filePath: folderPath).lastPathComponent) {
             print("Deleting permanently")
             do {
@@ -738,8 +751,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
             }
             return
         }
+        // move to recently deleted
         let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(URL(filePath: audioPath).lastPathComponent)")
         let newMetaURL = recentlyDeletedFolder.appendingPathComponent(oldMetaURL.lastPathComponent)
+        
         do {
             try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
         } catch {

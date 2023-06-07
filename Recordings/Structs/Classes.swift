@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-class Folder: ObservableObject, Codable, Equatable, Hashable {
+class RecordingFolder: ObservableObject, Codable, Equatable, Hashable {
     @Published var name: String
     @Published var path: String
     @Published var count: Int
@@ -37,7 +37,7 @@ class Folder: ObservableObject, Codable, Equatable, Hashable {
         self.count = count
     }
     
-    static func == (lhs: Folder, rhs: Folder) -> Bool {
+    static func == (lhs: RecordingFolder, rhs: RecordingFolder) -> Bool {
         return lhs.name == rhs.name
             && lhs.path == rhs.path
             && lhs.count == rhs.count

@@ -12,11 +12,10 @@ struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     //var isFirstLaunch = true
     @State private var showAllFirst = true
-    @State private var folders: [Folder] = []
+    @State private var folders: [RecordingFolder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
     private var section = ["Defaults", "User Created"]
-    @State private var searchText = ""
     
     init() {
         if isFirstLaunch {
@@ -41,17 +40,25 @@ struct HomeView: View {
                                 NavigationLink(destination: FolderView(folder: folders[folderi])) {
                                     FolderInnerView(folder: folders[folderi])
                                 }
+                                .onAppear(perform: {
+                                    loadFolder(folders[folderi], idx: folderi)
+                                })
+                                .deleteDisabled(true)
                             }
                         }
                     }
                     Section(header: Text("My Folders")){
-                        ForEach(searchResults, id: \.self) { folder in
-                            if folder.name != "All" && folder.name != "Recently Deleted" {
-                                NavigationLink(destination: FolderView(folder: folder)) {
-                                    FolderInnerView(folder: folder)
-                                }
-.deleteDisabled(folder.name == "All" || folder.name == "Recently Deleted")
-                                }
+                        ForEach(folders.indices, id: \.self) { folderi in
+                            if folders[folderi].name != "All" && folders[folderi].name != "Recently Deleted" {
+                                NavigationLink(destination: FolderView(folder: folders[folderi])) {
+                                    FolderInnerView(folder: folders[folderi])
+                                    }
+                                .onAppear(perform: {
+                                    loadFolder(folders[folderi], idx: folderi)
+                                })
+                                .deleteDisabled(false)
+                            }
+                               
                         }.onDelete{ indexSet in
                             indexSet.sorted(by: >).forEach{ i in
                                 deleteFolder(targetFolder: folders[i])
@@ -60,7 +67,7 @@ struct HomeView: View {
                         }
                         }
                     }
-                .onAppear(perform: loadFolders)
+                
                     .navigationTitle("Folders")
                     .navigationBarItems(trailing:
                         EditButton()
@@ -92,22 +99,13 @@ struct HomeView: View {
                             }
                         }
                 }
-             
+                .onAppear(perform: loadFolders)
                 .listStyle(.automatic)
                 
             }
         }
     
 
-    var searchResults: [Folder]{
-        if searchText.isEmpty{
-            return folders
-        }
-        else{
-            return folders.filter{$0.name.contains(searchText)}
-        }
-    }
-    
     func setup() {
         //default settings
         let settings = Settings(outputs: [.Title, .Transcript, .Summary, .Action], length: .short, format: .bullet, tone: .casual)
@@ -139,14 +137,14 @@ struct HomeView: View {
         
         do {
            let folderURLs = try fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
-           folders = folderURLs.compactMap { url -> Folder? in
+           folders = folderURLs.compactMap { url -> RecordingFolder? in
                let folderName = url.lastPathComponent
                let folderPath = url.path
                do {
                    let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
                    let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
                    print("loaded folder \(url)")
-                   return Folder(name: folderName, path: folderPath, count: itemCount)
+                   return RecordingFolder(name: folderName, path: folderPath, count: itemCount)
                } catch {
                    print("An error occurred while counting items in \(folderName): \(error)")
                    return nil
@@ -157,8 +155,21 @@ struct HomeView: View {
        }
     }
     
+    func loadFolder(_ folder: RecordingFolder, idx: Int) {
+        let fileManager = FileManager.default
+        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        
+        do {
+            let folderContents = try fileManager.contentsOfDirectory(atPath: folder.path)
+            let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
+            folders[idx] = RecordingFolder(name: folder.name, path: folder.path, count: itemCount)
+        } catch {
+            print("error loading folder \(error)")
+        }
+    }
+    
     // TODO: check this works
-    func deleteFolder(targetFolder: Folder) {
+    func deleteFolder(targetFolder: RecordingFolder) {
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
 
@@ -169,10 +180,17 @@ struct HomeView: View {
             let targetFolderContents = try fileManager.contentsOfDirectory(atPath: targetFolder.path)
             
             // Move each item to the 'Recently Deleted' folder
+
             for item in targetFolderContents {
                 let itemPath = URL(fileURLWithPath: targetFolder.path).appendingPathComponent(item)
                 let newLocation = recentlyDeletedFolderPath.appendingPathComponent(item)
-                try fileManager.moveItem(at: itemPath, to: newLocation)
+                
+                // Check if the file already exists at the new location
+                if !fileManager.fileExists(atPath: newLocation.path) {
+                    try fileManager.moveItem(at: itemPath, to: newLocation)
+                } else {
+                    print("Item already exists at \(newLocation), not moving it.")
+                }
             }
 
             // Delete the target folder
@@ -193,19 +211,23 @@ struct HomeView: View {
             print("An error occurred while creating the 'All' directory: \(error)")
         }
         // Create a new Folder instance and add it to the 'folders' array
-        let newFolder = Folder(name: title, path: newFolderPath.path, count: 0)
+        let newFolder = RecordingFolder(name: title, path: newFolderPath.path, count: 0)
         folders.append(newFolder)
     }
 
 }
 
 struct FolderInnerView: View {
-    @ObservedObject var folder: Folder
+    @ObservedObject var folder: RecordingFolder
     
     var body: some View {
         VStack(alignment: .leading) {
             HStack{
-                Image(systemName: "folder")
+                if folder.name == "Recently Deleted" {
+                    Image(systemName: "trash")
+                } else {
+                    Image(systemName: "folder")
+                }
                 Text(folder.name)
             }.font(.body)
             Text("\(folder.count) items")
