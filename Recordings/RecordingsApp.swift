@@ -7,11 +7,16 @@
 
 import SwiftUI
 
+
 @main
 struct RecordingsApp: App {
+    @StateObject var folderNavigationModel = FolderNavigationModel()
+
+
     var body: some Scene {
         WindowGroup {
             HomeView()
+               .environmentObject(folderNavigationModel)
         }
     }
 }

@@ -10,6 +10,10 @@ import SwiftUI
 import Combine
 import UIKit
 
+class FolderNavigationModel: ObservableObject {
+    @Published var presentedItems = NavigationPath()
+}
+
 class KeyboardResponder: ObservableObject {
     @Published var currentHeight: CGFloat = 0
 
@@ -33,13 +37,14 @@ class KeyboardResponder: ObservableObject {
             .assign(to: \.currentHeight, on: self)
     }
 }
-class RecordingFolder: ObservableObject, Codable, Equatable, Hashable {
+class RecordingFolder: ObservableObject, Codable, Equatable, Hashable, Identifiable {
+    @Published var id: UUID = UUID()
     @Published var name: String
     @Published var path: String
     @Published var count: Int
     
     enum CodingKeys: CodingKey {
-        case name, path, count
+        case name, path, count, id
     }
     
     required init(from decoder: Decoder) throws {
@@ -47,6 +52,7 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable {
         name = try container.decode(String.self, forKey: .name)
         path = try container.decode(String.self, forKey: .path)
         count = try container.decode(Int.self, forKey: .count)
+        id = try container.decode(UUID.self, forKey: .id)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -63,12 +69,11 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable {
     }
     
     static func == (lhs: RecordingFolder, rhs: RecordingFolder) -> Bool {
-        return lhs.name == rhs.name
-            && lhs.path == rhs.path
-            && lhs.count == rhs.count
+        return lhs.id == rhs.id
     }
     
     func hash(into hasher: inout Hasher) {
+            hasher.combine(id)
             hasher.combine(name)
             hasher.combine(path)
             hasher.combine(count)
@@ -80,7 +85,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
     @Published var createdAt: Date
     @Published var isPlaying: Bool
     @Published var title: String
-    @Published var outputs: Outputs
+    @Published var text: Outputs
     @Published var progress: CGFloat = 0.0
     @Published var duration: Double = 0.0
     @Published var absProgress: Double = 0.0
@@ -131,6 +136,7 @@ class ObservableRecording: ObservableObject, Codable, Equatable {
         self.totalTime = totalTime
         self.duration = duration
         self.absProgress = 0.0
+        self.vm = VoiceViewModel(filePath: filePath)
     }
     
     static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {

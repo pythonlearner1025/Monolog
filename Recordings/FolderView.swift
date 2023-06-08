@@ -9,24 +9,32 @@
 import SwiftUI
 import AVFoundation
 
+// TODO: create raw  folder
+
+// send filePath to player:
+/*
+ let filePath = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
+ //print("Recording will be saved at: \(fileName)")
+ */
+
 struct FolderView: View {
-    var folder: RecordingFolder
-    @ObservedObject var vm: VoiceViewModel
     @ObservedObject private var keyboardResponder = KeyboardResponder()
     @State var selection: FolderPageEnum = .normal
     @State private var isShowingSettings = false
     @State private var isShowingPicker = false
     @State private var searchText = ""
     @State private var formHasAppeared = false
-
-
+    private var audio: VoiceViewModel
+    
+    var folder: RecordingFolder
+    @State var recordings: [ObservableRecording]
     init(folder: RecordingFolder) {
         self.folder = folder
-        self.vm = VoiceViewModel(folderPath: folder.path)
-    }
+        self.recordings = self.fetchAllRecording()
+        self.audio = VoiceViewModel(folderPath: folder.path)
+   }
     
     var body: some View {
-        NavigationStack{
             List{
                 VStack{
                     Picker(selection: $selection, label: Text("")){
@@ -43,18 +51,18 @@ struct FolderView: View {
                     VStack (alignment: .leading){
                         HStack{
                             VStack(alignment:.leading) {
-                                Text("\(vm.recordingsList[idx].title)").font(.headline)
-                                Text("\(formatter.string(from: vm.recordingsList[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
+                                Text("\(recordings[idx].title)").font(.headline)
+                                Text("\(formatter.string(from: recordings.[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
 
                             }.padding(.bottom, 10)
                             Spacer()
-                            NavigationLink(destination: RecordingView(vm: vm, os: vm.recordingsList[idx].outputs, index: idx, recordingURL: getRecordingURL(filePath: vm.recordingsList[idx].filePath))) {
+                            NavigationLink(value: idx){
                                 
                             }
                         }
                         VStack (alignment: .leading) {
                             if selection == .normal{
-                                ForEach(vm.recordingsList[idx].outputs.outputs) {output in
+                                ForEach(recordings.text.outputs) {output in
                                     switch output.type {
                                     case .Summary: EmptyView()
                                     case .Action: EmptyView()
@@ -65,7 +73,7 @@ struct FolderView: View {
                                 }
                             }
                             if selection == .action {
-                                ForEach(vm.recordingsList[idx].outputs.outputs) {output in
+                                ForEach(recordings.text.outputs) {output in
                                     switch output.type {
                                     case .Summary: EmptyView()
                                     case .Action: OutputPreview(output: output)
@@ -76,7 +84,7 @@ struct FolderView: View {
                                 }
                             }
                             if selection == .summary {
-                                ForEach(vm.recordingsList[idx].outputs.outputs) {output in
+                                ForEach(recordings.text.outputs) {output in
                                     switch output.type {
                                     case .Summary: OutputPreview(output: output)
                                     case .Action: EmptyView()
@@ -91,10 +99,10 @@ struct FolderView: View {
                     }
                     .id(UUID())
                     HStack {
-                        Text(vm.recordingsList[idx].currentTime)
+                        Text(recordings.currentTime)
                             .font(.caption.monospacedDigit())
-                        Slider(value: $vm.recordingsList[idx].absProgress, in: 0...vm.recordingsList[idx].duration).accentColor(Color.primary)
-                        Text(vm.recordingsList[idx].totalTime)
+                        Slider(value: recordings.absProgress, in: 0...recordings[idx].duration).accentColor(Color.primary)
+                        Text(recordings[idx].totalTime)
                             .font(.caption.monospacedDigit())
                     }
                     .padding()
@@ -103,15 +111,19 @@ struct FolderView: View {
                 }
                 .onDelete{indexSet in
                     indexSet.sorted(by: >).forEach{ i in
-                        vm.stopPlaying(index: i)
-                        vm.deleteRecording(audioPath: vm.recordingsList[i].filePath)
+                        audio.deleteRecording()
+                        audio.stopPlaying()
+                        recordings[i].isPlaying = false
+                        deleteRecording(audioPath: recordings[i].filePath)
                     }
-                    vm.recordingsList.remove(atOffsets: indexSet)
+                    recordings.remove(atOffsets: indexSet)
                 }
                 .listRowSeparator(.hidden)
-                //.searchable(text: $searchText)
-
             }
+            .navigationDestination(for: Int.self){ idx in
+                RecordingView(vm: vm, os: recordings.outputs, index: idx, recordingURL: getRecordingURL(filePath: recordings.filePath))
+            }
+          
             .onAppear { formHasAppeared = true }
             .if(formHasAppeared) { view in
                 view.searchable(text: $searchText)
@@ -134,33 +146,28 @@ struct FolderView: View {
                 }
                 EditButton()
             })
-        }
-        .onChange(of: vm.recordingsList.count) { newCount in
-            print("** #FILES: \(newCount) **")
-            folder.count = newCount
-        }
-        .listStyle(.plain)
-        .fileImporter(isPresented: $isShowingPicker, allowedContentTypes: [.audio]) {(res) in
-            do {
-                let fileURL = try res.get()
-                if fileURL.startAccessingSecurityScopedResource() {
-                    vm.saveImportedRecording(filePath: fileURL)
-                    fileURL.stopAccessingSecurityScopedResource()
+            .listStyle(.plain)
+            .fileImporter(isPresented: $isShowingPicker, allowedContentTypes: [.audio]) {(res) in
+                do {
+                    let fileURL = try res.get()
+                    if fileURL.startAccessingSecurityScopedResource() {
+                        audio.saveImportedRecording($recordings, filePath: fileURL)
+                        fileURL.stopAccessingSecurityScopedResource()
+                    }
+                } catch {
+                    print("error reading file")
                 }
-            } catch {
-                print("error reading file")
             }
-        }
     
-        if (folder.name != "Recently Deleted" && keyboardResponder.currentHeight == 0) {
-            HStack {
+            if (folder.name != "Recently Deleted" && keyboardResponder.currentHeight == 0) {
+                HStack {
                     Spacer()
                    CameraButtonView(action: { isRecording in
                        print(isRecording)
                        if isRecording == true {
-                           vm.stopRecording()
+                           audio.stopRecording(&recordings)
                        } else {
-                           vm.startRecording()
+                           audio.startRecording()
                        }
                    })
                     Spacer()
@@ -168,7 +175,7 @@ struct FolderView: View {
                .background(Color(.secondarySystemBackground)) // Background color of the toolbar
                .edgesIgnoringSafeArea(.bottom)
                .padding(.top, -10)
-        }
+            }
     }
 
     func getRecordingURL(filePath: String) -> URL {
@@ -183,14 +190,81 @@ struct FolderView: View {
      }()
     
     private var filteredItems: [ObservableRecording] {
+        print("filtered items")
         if searchText.isEmpty {
-            return vm.recordingsList
+            return recordings
         }
         else{
-            return vm.recordingsList.filter {item in
+            return recordings.filter {item in
                 item.title.localizedCaseInsensitiveContains(searchText)
                 // TODO: search through all output.content text
             }
+        }
+    }
+    
+    func fetchAllRecording() -> [ObservableRecording]{
+        let fileManager = FileManager.default
+        let folderURL = URL(fileURLWithPath: folder.path)
+        let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601 // match the encoding strategy
+        var res: [ObservableRecording] = []
+        for i in directoryContents {
+            if (i.lastPathComponent == "raw") {
+                continue
+            }
+            else {
+                let jsonURL = folderURL.appendingPathComponent("\(i.lastPathComponent)")
+                do {
+                    let data = try Data(contentsOf: jsonURL)
+                    let recording = try decoder.decode(ObservableRecording.self, from: data)
+                    res.append(recording)
+                } catch {
+                    print("An error occurred while decoding the recording object: \(error)")
+                }
+            }
+        }
+
+        res.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
+        return res
+    }
+    
+    private func deleteRecording(audioPath: String) {
+        let oldAudioURL = getAudioURL(filePath: audioPath)
+        let oldMetaURL = getRecordingMetaURL(filePath: audioPath)
+        let fileManager = FileManager.default
+        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        // if curr folder == recently deleted, perma delete
+        if (recentlyDeletedFolder.lastPathComponent == URL(filePath: folderPath).lastPathComponent) {
+            print("Deleting permanently")
+            do {
+                try fileManager.removeItem(at: oldAudioURL)
+            } catch {
+                print("can't delete audio \(error)")
+            }
+            
+            do {
+                try fileManager.removeItem(at: oldMetaURL)
+            } catch {
+                print("can't delete meta \(error)")
+            }
+            return
+        }
+        // move to recently deleted
+        let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(URL(filePath: audioPath).lastPathComponent)")
+        let newMetaURL = recentlyDeletedFolder.appendingPathComponent(oldMetaURL.lastPathComponent)
+        
+        do {
+            try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
+        } catch {
+            print("can't move audio\(error)")
+        }
+                                                                    
+        do {
+            try fileManager.moveItem(at: oldMetaURL, to: newMetaURL)
+        } catch {
+            print("can't move meta\(error)")
         }
     }
 }
@@ -227,17 +301,6 @@ struct AudioControlView: View {
     var body: some View {
         HStack{
             Spacer()
-            /*
-            Button(action: {
-                vm.backwards15(index: idx, filePath: vm.recordingsList[idx].filePath)
-            }){
-                Image(systemName: "gobackward.15")
-                    .font(.title)
-                    .imageScale(.small)
-                    .foregroundColor(.primary)
-                    .padding(.trailing, 20)
-            }.buttonStyle(.borderless)
-            */
             Button(action: {
                 if vm.recordingsList[idx].isPlaying == true {
                     vm.stopPlaying(index: idx)
@@ -249,18 +312,6 @@ struct AudioControlView: View {
                         .imageScale(.large)
                         .foregroundColor(.primary)
                 }.buttonStyle(.borderless)
-            /*
-
-            Button(action: {
-                vm.forward15(index: idx, filePath: vm.recordingsList[idx].filePath)
-            }){
-                Image(systemName: "goforward.15")
-                    .font(.title)
-                    .imageScale(.small)
-                    .foregroundColor(.primary)
-                    .padding(.leading, 20)
-            }.buttonStyle(.borderless)
-             */
             Spacer()
         }
     }

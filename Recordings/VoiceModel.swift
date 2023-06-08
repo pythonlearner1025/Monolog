@@ -10,7 +10,7 @@ import AVFoundation
 import Combine
 import Alamofire
 
-class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
+class VoiceViewModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
     var audioRecorder : AVAudioRecorder!
     @Published var audioPlayer : AVAudioPlayer!
     @Published var audioPlayerEnabled : Bool = false
@@ -20,9 +20,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     private var cancellables = Set<AnyCancellable>()
     let baseURL = "https://turing-api.com/api/v1/"
     let folderPath: String
-
+    
     @Published var isRecording : Bool = false
-    @Published var recordingsList: [ObservableRecording] = []
     @Published var countSec = 0
     @Published var timerCount : Timer?
     @Published var blinkingCount : Timer?
@@ -37,34 +36,41 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.folderPath = folderPath
         super.init()
-        fetchAllRecording()
     }
     
     func startRecording() {
+        
         let fileManager = FileManager.default
         let rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
-        
-        // Create the raw folder if it doesn't exist
+       
+       // Create the raw folder if it doesn't exist
         if !fileManager.fileExists(atPath: rawFolderURL.path) {
-            do {
-                try fileManager.createDirectory(at: rawFolderURL, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-                print("An error occurred while creating the raw folder: \(error)")
-                return
-            }
-        }
-        
-        //print("Beginning recording")
+           do {
+               try fileManager.createDirectory(at: rawFolderURL, withIntermediateDirectories: true, attributes: nil)
+           } catch {
+               print("An error occurred while creating the raw folder: \(error)")
+               return
+           }
+       }
+       
+       //print("Beginning recording")
         let recordingSession = AVAudioSession.sharedInstance()
+        do {
+           try recordingSession.setCategory(.playAndRecord, mode: .default)
+           try recordingSession.setActive(true)
+        } catch {
+           print("Cannot setup the Recording")
+        }
+       
+        let filePath = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
+        
+         let recordingSession = AVAudioSession.sharedInstance()
         do {
             try recordingSession.setCategory(.playAndRecord, mode: .default)
             try recordingSession.setActive(true)
         } catch {
             print("Cannot setup the Recording")
         }
-        
-        let filePath = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
-        //print("Recording will be saved at: \(fileName)")
 
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -90,7 +96,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
 
-    func stopRecording(){
+    func stopRecording(_ recordings: inout [ObservableRecording]) {
         //print("stopped recording")
         audioRecorder.stop()
         isRecording = false
@@ -103,11 +109,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         catch {print("recording error")}
         let recording = ObservableRecording(filePath: fileURL.lastPathComponent, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: Outputs(), totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
-        recordingsList.insert(recording, at: 0)
-        generateAll(recording: recording, fileURL: fileURL)
+        recordings.insert(recording, at: 0)
+        generateAll(recording: &recording, fileURL: fileURL)
     }
     
-    func saveImportedRecording(filePath: URL){
+    func saveImportedRecording(_ recording: inout [ObservableRecording], filePath: URL){
         let fileManager = FileManager.default
         let rawFolderURL = URL(fileURLWithPath: folderPath).appendingPathComponent("raw")
         let date = Date()
@@ -126,10 +132,10 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let recording = ObservableRecording(filePath: newFileURL.lastPathComponent, createdAt: date, isPlaying: false, title: "Untitled", outputs: Outputs(), totalTime: self.formatter.string(from: TimeInterval(self.audioPlayer.duration))!, duration: self.audioPlayer.duration)
         self.countSec = 0
         recordingsList.insert(recording, at: 0)
-        generateAll(recording: recording, fileURL: newFileURL)
+        generateAll(recording: &recording, fileURL: newFileURL)
     }
     
-    func generateAll(recording: ObservableRecording, fileURL: URL) {
+    func generateAll(recording: inout ObservableRecording, fileURL: URL) {
         let folderURL = URL(fileURLWithPath: folderPath)
         let recordingMetadataURL = folderURL.appendingPathComponent("\(fileURL.lastPathComponent).json")
            let encoder = JSONEncoder()
@@ -540,32 +546,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
 
-    func fetchAllRecording(){
-        let fileManager = FileManager.default
-        let folderURL = URL(fileURLWithPath: folderPath)
-        let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601 // match the encoding strategy
-
-        for i in directoryContents {
-            if (i.lastPathComponent == "raw") {
-                continue
-            }
-            else {
-                let jsonURL = folderURL.appendingPathComponent("\(i.lastPathComponent)")
-                do {
-                    let data = try Data(contentsOf: jsonURL)
-                    let recording = try decoder.decode(ObservableRecording.self, from: data)
-                    recordingsList.append(recording)
-                } catch {
-                    print("An error occurred while decoding the recording object: \(error)")
-                }
-            }
-        }
-
-        recordingsList.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
-    }
-
     // TODO: major changes to start / stop playing
     func startPlaying(index: Int, filePath: String) {
         print("start playing")
@@ -638,15 +618,11 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
 
     }
     
-    func stopPlaying(index: Int) {
+    func stopPlaying() {
         if(audioPlayerEnabled){
             print("stopping playing")
             print("\(audioPlayer.currentTime)")
-            let updatedRecording = recordingsList[index]
-            updatedRecording.isPlaying = false
-            recordingsList[index] = updatedRecording
             audioPlayer.pause()
-            self.objectWillChange.send()
         }
     }
     
@@ -728,44 +704,8 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         }
     }
     
-    func deleteRecording(audioPath: String) {
+    func deleteRecording() {
         cancellables.removeAll()
-        let oldAudioURL = getAudioURL(filePath: audioPath)
-        let oldMetaURL = getRecordingMetaURL(filePath: audioPath)
-        let fileManager = FileManager.default
-        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
-        let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
-        // if curr folder == recently deleted, perma delete
-        if (recentlyDeletedFolder.lastPathComponent == URL(filePath: folderPath).lastPathComponent) {
-            print("Deleting permanently")
-            do {
-                try fileManager.removeItem(at: oldAudioURL)
-            } catch {
-                print("can't delete audio \(error)")
-            }
-            
-            do {
-                try fileManager.removeItem(at: oldMetaURL)
-            } catch {
-                print("can't delete meta \(error)")
-            }
-            return
-        }
-        // move to recently deleted
-        let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(URL(filePath: audioPath).lastPathComponent)")
-        let newMetaURL = recentlyDeletedFolder.appendingPathComponent(oldMetaURL.lastPathComponent)
-        
-        do {
-            try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
-        } catch {
-            print("can't move audio\(error)")
-        }
-                                                                    
-        do {
-            try fileManager.moveItem(at: oldMetaURL, to: newMetaURL)
-        } catch {
-            print("can't move meta\(error)")
-        }
     }
     
     func blinkColor() {

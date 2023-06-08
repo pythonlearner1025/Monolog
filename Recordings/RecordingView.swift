@@ -9,7 +9,6 @@ import Foundation
 import UIKit
 
 struct RecordingView: View {
-    @ObservedObject var vm: VoiceViewModel
     @ObservedObject var os: Outputs
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
@@ -19,136 +18,132 @@ struct RecordingView: View {
     @State private var selectedFormat = ""
     @State private var customInput = ""
     @State private var showDelete: Bool = false
-    @State private var lastViewedOutputIndex: Int?
     @ObservedObject private var keyboardResponder = KeyboardResponder()
     var index: Int
     var recordingURL: URL
     
     var body: some View {
-        NavigationStack{
-            List{
-                TitleView(vm: vm, os: os, index: index)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color(.systemBackground))
-                ForEach(sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
-                    let output = sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
-                    HStack{
-                        Group{
-                            if showDelete {
-                                VStack{
-                                    Button(action: {
-                                        vm.deleteOutput(index: index, output: output)
-                                    }) {
-                                        ZStack{
-                                            Image(systemName:"minus.circle")
-                                                .font(.system(size: 25))
-                                                .foregroundColor(.white)
-                                            Image(systemName: "minus.circle.fill")
-                                                .font(.system(size: 25))
-                                                .foregroundColor(.red)
-                                        }
+        List{
+            TitleView(vm: vm, os: os, index: index)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color(.systemBackground))
+            ForEach(sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
+                let output = sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
+                HStack{
+                    Group{
+                        if showDelete {
+                            VStack{
+                                Button(action: {
+                                    vm.deleteOutput(index: index, output: output)
+                                }) {
+                                    ZStack{
+                                        Image(systemName:"minus.circle")
+                                            .font(.system(size: 25))
+                                            .foregroundColor(.white)
+                                        Image(systemName: "minus.circle.fill")
+                                            .font(.system(size: 25))
+                                            .foregroundColor(.red)
                                     }
-                                    .padding(.top, 10)
-                                    Spacer()
                                 }
+                                .padding(.top, 10)
+                                Spacer()
                             }
                         }
-                        OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                            .id(idx) // Assigning unique id for each OutputView
-                            .onAppear { lastViewedOutputIndex = idx } //
                     }
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color(.systemBackground))
+                    OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
+                        .id(UUID()) // Assigning unique id for each OutputView
                 }
-                
-                TranscriptView(vm: vm, os: os, index: index, recordingURL: recordingURL)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color(.systemBackground))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color(.systemBackground))
+            }
+            
+            TranscriptView(vm: vm, os: os, index: index, recordingURL: recordingURL)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color(.systemBackground))
+        }
+            .navigationBarItems(trailing:
+            HStack{
+                Menu {
+                    Button(action: {
+                        let transcript = os.outputs.first { $0.type == .Transcript }?.content ?? ""
+                        let filename = "\(vm.recordingsList[index].title).txt"
+                        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                        let fileURL = tempDirectoryURL.appendingPathComponent(filename)
+                        do {
+                            try transcript.write(to: fileURL, atomically: true, encoding: .utf8)
+                        } catch {
+                            print("Failed to create file")
+                            print("\(error)")
+                        }
+                        activeSheet = .exportText(fileURL)
+                    }) {
+                        Label("Export Transcript", systemImage: "doc.text")
+                    }
+                    Button(action: {
+                        let originalURL = vm.getAudioURL(filePath: vm.recordingsList[index].filePath)
+                        let filename = "\(vm.recordingsList[index].title).m4a"
+                        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+                        let newURL = tempDirectoryURL.appendingPathComponent(filename)
+                        
+                        do {
+                            let fileManager = FileManager.default
+                            if fileManager.fileExists(atPath: originalURL.path) {
+                                try fileManager.copyItem(at: originalURL, to: newURL)
+                            }
+                        } catch {
+                            print("Failed to rename file")
+                            print("\(error)")
+                        }
+                        activeSheet = .exportAudio(newURL)
+                    }) {
+                        Label("Export Audio", systemImage: "waveform")
+                    }
                 }
+            label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+                Button(action: {
+                    isShowingCustomOutput.toggle()
+                }) {
+                    Image(systemName: "sparkles")
+                }
+                Button(action: {
+                    showDelete.toggle()
+                }){
+                    Text("Edit")
+                }
+                if keyboardResponder.currentHeight != 0 {
+                    Button(action: hideKeyboard) {
+                        Text("Done")
+                    }.onAppear(perform:{
+                        //print(keyboardResponder.currentHeight)
+                    })
+                }
+            })
+            .listStyle(.plain)
+            .sheet(isPresented: $isShowingCustomOutput){
+                CustomOutputSheet(vm: vm, index: index)
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                    SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
+                }
+            }
+            .sheet(item: $activeSheet) {item in
+                switch item {
+                    case .exportText(let url):
+                        ShareSheet(items: [url])
+                    case .exportAudio(let url):
+                        ShareSheet(items: [url])
+                }
+            }
+            .onReceive(keyboardResponder.$currentHeight){ height in
+                print(height)
             }
             .onReceive(os.$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
             }
-            .navigationBarItems(trailing:
-                HStack{
-                    Menu {
-                        Button(action: {
-                            let transcript = os.outputs.first { $0.type == .Transcript }?.content ?? ""
-                            let filename = "\(vm.recordingsList[index].title).txt"
-                            let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-                            let fileURL = tempDirectoryURL.appendingPathComponent(filename)
-                            do {
-                               try transcript.write(to: fileURL, atomically: true, encoding: .utf8)
-                            } catch {
-                               print("Failed to create file")
-                               print("\(error)")
-                            }
-                            activeSheet = .exportText(fileURL)
-                        }) {
-                            Label("Export Transcript", systemImage: "doc.text")
-                        }
-                        Button(action: {
-                            let originalURL = vm.getAudioURL(filePath: vm.recordingsList[index].filePath)
-                            let filename = "\(vm.recordingsList[index].title).m4a"
-                            let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-                            let newURL = tempDirectoryURL.appendingPathComponent(filename)
-                            
-                            do {
-                                let fileManager = FileManager.default
-                                if fileManager.fileExists(atPath: originalURL.path) {
-                                    try fileManager.copyItem(at: originalURL, to: newURL)
-                                }
-                            } catch {
-                                print("Failed to rename file")
-                                print("\(error)")
-                            }
-                            activeSheet = .exportAudio(newURL)
-                        }) {
-                            Label("Export Audio", systemImage: "waveform")
-                        }
-                    }
-                label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                    Button(action: {
-                        isShowingCustomOutput.toggle()
-                    }) {
-                        Image(systemName: "sparkles")
-                    }
-                    Button(action: {
-                        showDelete.toggle()
-                    }){
-                        Text("Edit")
-                    }
-                    if keyboardResponder.currentHeight != 0 {
-                        Button(action: hideKeyboard) {
-                            Text("Done")
-                        }.onAppear(perform:{
-                            //print(keyboardResponder.currentHeight)
-                        })
-                    }
-                })
-        .listStyle(.plain)
-        .sheet(isPresented: $isShowingCustomOutput){
-            CustomOutputSheet(vm: vm, index: index)
-        }
-        .sheet(isPresented: $isShowingSettings) {
-            if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
-            }
-        }
-        .sheet(item: $activeSheet) {item in
-            switch item {
-                case .exportText(let url):
-                    ShareSheet(items: [url])
-                case .exportAudio(let url):
-                    ShareSheet(items: [url])
-            }
-        }
-        .onReceive(keyboardResponder.$currentHeight){ height in
-            print(height)
-        }
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
@@ -172,7 +167,6 @@ struct OutputView: View {
 
     init(output: Output, recording: ObservableRecording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
         print("== On OutputView Init ==")
-        print(output.type)
        self.output = output
        self.recording = recording
        self.recordingURL = recordingURL
@@ -224,7 +218,7 @@ struct OutputView: View {
                 Group {
                    if !isMinimized {
                        HStack{
-                           ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5) // Scale effect to make spinner a bit larger
+                           ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
                            ZStack {
                                Text(output.content)
                                    .foregroundColor(.gray)
@@ -238,7 +232,6 @@ struct OutputView: View {
                        ZStack {
                            TextEditor(text: $output.content)
                                .font(.body)
-                               
                            Text(output.content).opacity(0).padding(.all, 8)
                        }
                    }
@@ -249,7 +242,6 @@ struct OutputView: View {
                 })
             }
         }
-    
     }
     
     private func saveRecording() {
