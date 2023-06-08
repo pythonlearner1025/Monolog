@@ -608,7 +608,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         print(self.formatter
             .string(from:
                         TimeInterval(self.audioPlayer.duration))!)
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: audioPlayer.isPlaying){ _ in
+        Timer.scheduledTimer(withTimeInterval: 0.01, repeats: audioPlayer.isPlaying){ _ in
             if(self.recordingsList[index].isPlaying){
                 let updatedRecording = self.recordingsList[index]
                 
@@ -619,7 +619,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
                 self.recordingsList[index] = updatedRecording
                 self.objectWillChange.send()
                 
-                if (self.audioPlayer.currentTime >= self.audioPlayer.duration - 0.11) {
+                if (self.audioPlayer.currentTime >= self.audioPlayer.duration) {
                     print("reached")
                     updatedRecording.absProgress = 0.0
                     self.recordingsList[index].progress = 0
@@ -714,7 +714,7 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
         let updatedRecording = recordingsList[index]
         if let idxToDelete = updatedRecording.outputs.outputs.firstIndex(where: {$0.id == output.id}) {
             updatedRecording.outputs.outputs.remove(at: idxToDelete)
-            recordingsList[index] = updatedRecording
+            //recordingsList[index] = updatedRecording
             let recordingMetadataURL = getRecordingMetaURL(filePath: updatedRecording.filePath)
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
@@ -769,7 +769,6 @@ class VoiceViewModel : NSObject, ObservableObject , AVAudioPlayerDelegate{
     }
     
     func blinkColor() {
-        
         blinkingCount = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true, block: { (value) in
             self.toggleColor.toggle()
         })

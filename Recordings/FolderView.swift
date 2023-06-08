@@ -8,31 +8,6 @@
 
 import SwiftUI
 import AVFoundation
-import Combine
-import UIKit
-
-final class KeyboardResponder: ObservableObject {
-    @Published var currentHeight: CGFloat = 0
-
-    var keyboardShow: AnyCancellable?
-    var keyboardHide: AnyCancellable?
-
-    init() {
-        keyboardShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-            .map { ($0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect)?.height ?? 0 }
-            .assign(to: \.currentHeight, on: self)
-        
-        keyboardHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-            .map { _ in 0 }
-            .assign(to: \.currentHeight, on: self)
-    }
-}
-
-enum FolderPageEnum: String, CaseIterable {
-    case normal = "Transcript"
-    case summary = "Summary"
-    case action = "Action Items"
-}
 
 struct FolderView: View {
     var folder: RecordingFolder
@@ -65,7 +40,7 @@ struct FolderView: View {
                 .listRowBackground(Color(.systemBackground))
                 
                 ForEach(filteredItems.indices, id: \.self) { idx in
-                    VStack{
+                    VStack (alignment: .leading){
                         HStack{
                             VStack(alignment:.leading) {
                                 Text("\(vm.recordingsList[idx].title)").font(.headline)
@@ -77,13 +52,13 @@ struct FolderView: View {
                                 
                             }
                         }
-                        VStack (alignment: .leading){
+                        VStack (alignment: .leading) {
                             if selection == .normal{
                                 ForEach(vm.recordingsList[idx].outputs.outputs) {output in
                                     switch output.type {
                                     case .Summary: EmptyView()
                                     case .Action: EmptyView()
-                                    case .Transcript: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+                                    case .Transcript: OutputPreview(output: output)
                                     case .Title: EmptyView()
                                     case .Custom: EmptyView()
                                     }
@@ -93,7 +68,7 @@ struct FolderView: View {
                                 ForEach(vm.recordingsList[idx].outputs.outputs) {output in
                                     switch output.type {
                                     case .Summary: EmptyView()
-                                    case .Action: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+                                    case .Action: OutputPreview(output: output)
                                     case .Transcript: EmptyView()
                                     case .Title: EmptyView()
                                     case .Custom: EmptyView()
@@ -103,7 +78,7 @@ struct FolderView: View {
                             if selection == .summary {
                                 ForEach(vm.recordingsList[idx].outputs.outputs) {output in
                                     switch output.type {
-                                    case .Summary: Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+                                    case .Summary: OutputPreview(output: output)
                                     case .Action: EmptyView()
                                     case .Transcript: EmptyView()
                                     case .Title: EmptyView()
@@ -111,18 +86,20 @@ struct FolderView: View {
                                     }
                                 }
                             }
-                            AudioControlView(vm: vm, idx: idx)
                         }
-                        Divider().padding(.vertical, 15)  // Add a divider here
+                        
                     }
-                    .id(UUID())   // Add unique id for each view
-                    .onAppear{
-                        for index in vm.recordingsList.indices {
-                            let updatedRecording = vm.recordingsList[index]
-                            vm.recordingsList[index] = updatedRecording
-                            print(vm.recordingsList[index].currentTime)
-                        }
+                    .id(UUID())
+                    HStack {
+                        Text(vm.recordingsList[idx].currentTime)
+                            .font(.caption.monospacedDigit())
+                        Slider(value: $vm.recordingsList[idx].absProgress, in: 0...vm.recordingsList[idx].duration).accentColor(Color.primary)
+                        Text(vm.recordingsList[idx].totalTime)
+                            .font(.caption.monospacedDigit())
                     }
+                    .padding()
+                    AudioControlView(vm: vm, idx: idx)
+                    Divider().padding(.vertical, 15)  // Add a divider here
                 }
                 .onDelete{indexSet in
                     indexSet.sorted(by: >).forEach{ i in
@@ -190,7 +167,6 @@ struct FolderView: View {
                }
                .background(Color(.secondarySystemBackground)) // Background color of the toolbar
                .edgesIgnoringSafeArea(.bottom)
-    // Makes the toolbar span the full width of the screen
                .padding(.top, -10)
         }
     }
@@ -219,21 +195,39 @@ struct FolderView: View {
     }
 }
 
+struct OutputPreview: View {
+    @State var output: Output
+    var body: some View {
+        if output.error {
+            HStack{
+                // TODO: show error sign
+                Image(systemName: "exclamationmark.arrow.circlepath")
+                ZStack {
+                    Text(output.content).foregroundColor(.gray)
+                }
+            }
+        } else if output.loading && output.content == "Loading" {
+            HStack{
+                ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5) // Scale effect to make spinner a bit larger
+                ZStack {
+                    Text(output.content)
+                        .font(.body).foregroundColor(.gray)
+                }
+            }
+        } else {
+            Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+        }
+    }
+}
+
 struct AudioControlView: View {
-    @State var vm: VoiceViewModel
+    @ObservedObject var vm: VoiceViewModel
     var idx: Int
     
     var body: some View {
-        HStack {
-            Text(vm.recordingsList[idx].currentTime)
-                .font(.caption.monospacedDigit())
-            Slider(value: $vm.recordingsList[idx].absProgress, in: 0...vm.recordingsList[idx].duration).accentColor(Color.primary)
-            Text(vm.recordingsList[idx].totalTime)
-                .font(.caption.monospacedDigit())
-        }
-        .padding()
         HStack{
             Spacer()
+            /*
             Button(action: {
                 vm.backwards15(index: idx, filePath: vm.recordingsList[idx].filePath)
             }){
@@ -243,6 +237,7 @@ struct AudioControlView: View {
                     .foregroundColor(.primary)
                     .padding(.trailing, 20)
             }.buttonStyle(.borderless)
+            */
             Button(action: {
                 if vm.recordingsList[idx].isPlaying == true {
                     vm.stopPlaying(index: idx)
@@ -254,6 +249,8 @@ struct AudioControlView: View {
                         .imageScale(.large)
                         .foregroundColor(.primary)
                 }.buttonStyle(.borderless)
+            /*
+
             Button(action: {
                 vm.forward15(index: idx, filePath: vm.recordingsList[idx].filePath)
             }){
@@ -263,6 +260,7 @@ struct AudioControlView: View {
                     .foregroundColor(.primary)
                     .padding(.leading, 20)
             }.buttonStyle(.borderless)
+             */
             Spacer()
         }
     }
