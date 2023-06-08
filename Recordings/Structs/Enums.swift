@@ -59,3 +59,9 @@ enum ActiveSheet: Identifiable {
 enum OutputGenerationError: Error {
     case failure(error: Error, outputType: OutputType, transcript: String)
 }
+
+enum FolderPageEnum: String, CaseIterable {
+    case normal = "Transcript"
+    case summary = "Summary"
+    case action = "Action Items"
+}
