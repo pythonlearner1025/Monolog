@@ -51,7 +51,7 @@ struct FolderView: View {
     }
     
     var body: some View {
-        NavigationStack{
+       VStack{
             List{
                 VStack{
                     Picker(selection: $selection, label: Text("")){
