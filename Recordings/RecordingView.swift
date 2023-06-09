@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 
 struct RecordingView: View {
-    @ObservedObject var os: Outputs
+    @ObservedObject var recording: Recording
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
@@ -19,8 +19,10 @@ struct RecordingView: View {
     @State private var customInput = ""
     @State private var showDelete: Bool = false
     @ObservedObject private var keyboardResponder = KeyboardResponder()
-    var index: Int
-    var recordingURL: URL
+    
+    init(_ recording: Recording) {
+        self.recording = recording
+    }
     
     var body: some View {
         List{
@@ -156,16 +158,15 @@ struct RecordingView: View {
     }
 }
 
+// TODO: add Recording
 struct OutputView: View {
     @ObservedObject var output: Output
-    var recording: ObservableRecording
+    var recording: Recording
     var recordingURL: URL
     @State private var isMinimized: Bool = false // Add this state variable
-    var vm: VoiceViewModel // add this
-    var index: Int // add this
     @ObservedObject var cache = OutputCache<String, Bool>()
 
-    init(output: Output, recording: ObservableRecording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
+    init(output: Output, recording: Recording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
         print("== On OutputView Init ==")
        self.output = output
        self.recording = recording

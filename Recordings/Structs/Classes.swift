@@ -80,72 +80,49 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable, Identifia
     }
 }
 
-class ObservableRecording: ObservableObject, Codable, Equatable {
+class Recording: ObservableObject, Codable, Equatable {
+    @Published var audioPlayer: AudioPlayerModel
+    @Published var audioPath: String
     @Published var filePath: String
     @Published var createdAt: Date
-    @Published var isPlaying: Bool
     @Published var title: String
-    @Published var text: Outputs
-    @Published var progress: CGFloat = 0.0
-    @Published var duration: Double = 0.0
-    @Published var absProgress: Double = 0.0
-    @Published var currentTime: String
-    @Published var totalTime: String
-    @Published var test = 0
+    @Published var outputs: Outputs
+
 
     enum CodingKeys: CodingKey {
-        case filePath, createdAt, isPlaying, title, outputs, currentTime, totalTime, progress, duration, absProgress
+        case filePath, createdAt, audioPath, title, outputs
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        audioPath = try container.decode(String.self, forKey: .audioPath)
         filePath = try container.decode(String.self, forKey: .filePath)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
-        isPlaying = try container.decode(Bool.self, forKey: .isPlaying)
         title = try container.decode(String.self, forKey: .title)
         outputs = try container.decode(Outputs.self, forKey: .outputs)
-        currentTime = try container.decode(String.self, forKey: .currentTime)
-        totalTime = try container.decode(String.self, forKey: .totalTime)
-        progress = try container.decode(CGFloat.self, forKey: .progress)
-        duration = try container.decode(Double.self, forKey: .duration)
-        absProgress = try container.decode(Double.self, forKey: .absProgress)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(filePath, forKey: .filePath)
-        try container.encode(createdAt, forKey: .createdAt)
-        try container.encode(isPlaying, forKey: .isPlaying)
         try container.encode(title, forKey: .title)
         try container.encode(outputs, forKey: .outputs)
-        try container.encode(currentTime, forKey: .currentTime)
-        try container.encode(totalTime, forKey: .totalTime)
-        try container.encode(progress, forKey: .progress)
-        try container.encode(duration, forKey: .duration)
-        try container.encode(absProgress, forKey: .absProgress)
     }
 
     // your initializer here
-    init (filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: Outputs, totalTime: String, duration: Double){
+    init (audioPath: String, filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: Outputs){
+        self.audioPath = audioPath
         self.filePath = filePath
         self.createdAt = createdAt
-        self.isPlaying = isPlaying
         self.title = title
         self.outputs = outputs
-        self.currentTime = "00:00"
-        self.totalTime = totalTime
-        self.duration = duration
-        self.absProgress = 0.0
-        self.vm = VoiceViewModel(filePath: filePath)
+        self.audioPlayer = AudioPlayerModel(audioPath: audioPath)
     }
     
-    static func == (lhs: ObservableRecording, rhs: ObservableRecording) -> Bool {
+    static func == (lhs: Recording, rhs: Recording) -> Bool {
            return lhs.filePath == rhs.filePath
                && lhs.createdAt == rhs.createdAt
-               && lhs.isPlaying == rhs.isPlaying
                && lhs.title == rhs.title
-               && lhs.currentTime == rhs.currentTime
-               && lhs.totalTime == rhs.totalTime
        }
 }
 

@@ -7,8 +7,16 @@
 
 import Foundation
 
+extension AudioRecorderModel {
+    func getFileDate(for file: URL) -> Date {
+        if let attributes = try? FileManager.default.attributesOfItem(atPath: file.path) as [FileAttributeKey: Any],
+            let creationDate = attributes[FileAttributeKey.creationDate] as? Date {
+            return creationDate
+        } else {
+            return Date()
+        }
+    }
 
-extension VoiceViewModel {
     func covertSecToMinAndHour(seconds : Int) -> String{
         
         let (_,m,s) = (seconds / 3600, (seconds % 3600) / 60, (seconds % 3600) % 60)
@@ -17,6 +25,7 @@ extension VoiceViewModel {
         
     }
 }
+
 
 extension Date
 {
