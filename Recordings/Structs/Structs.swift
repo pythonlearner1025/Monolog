@@ -97,37 +97,3 @@ struct CameraButtonView: View {
         self.recording ? 32 : 55
     }
 }
-
-struct CameraButtonView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-
-            CameraButtonView(recording: false)
-                .previewLayout(PreviewLayout.sizeThatFits)
-                .previewDisplayName("not recording")
-                .background(Color.gray)
-
-            CameraButtonView(recording: true)
-                .previewLayout(PreviewLayout.sizeThatFits)
-                .previewDisplayName("recording")
-                .background(Color.gray)
-
-            ZStack {
-                Image("turtlerock")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                HStack {
-                    Spacer()
-                    CameraButtonView()
-                }
-            }
-        }
-    }
-}
-/*
- all user default values
- - default outputs: summary, actions
- - length: short, medium, long
- - format: bullet point, paragraph
- - style: casual, professional
- */

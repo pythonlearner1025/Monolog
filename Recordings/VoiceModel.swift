@@ -11,10 +11,6 @@ import Combine
 import Alamofire
 
 class AudioRecorderModel : NSObject, ObservableObject {
-    @Published var isRecording : Bool = false
-    @Published var countSec = 0
-    @Published var timerCount : Timer?
-    @Published var timer : String = "0:00"
     let encoder : JSONEncoder
     var formatter : DateComponentsFormatter
     var audioRecorder : AVAudioRecorder!
@@ -26,7 +22,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
     ]
     let baseURL = "https://turing-api.com/api/v1/"
     private var cancellables = Set<AnyCancellable>()
-    init(){
+    override init(){
         self.formatter = DateComponentsFormatter()
         self.formatter.allowedUnits = [.minute, .second]
         self.formatter.unitsStyle = .positional
@@ -35,7 +31,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.encoder.dateEncodingStrategy = .iso8601
         super.init()
     }
-    private func startRecording(audioURL: URL) {
+    func startRecording(audioURL: URL) {
         let recordingSession = AVAudioSession.sharedInstance()
         do {
            try recordingSession.setCategory(.playAndRecord, mode: .default)
@@ -43,57 +39,47 @@ class AudioRecorderModel : NSObject, ObservableObject {
         } catch {
            print("Cannot setup the Recording")
         }
- 
         do {
             audioRecorder = try AVAudioRecorder(url: audioURL, settings: recordingSettings)
             audioRecorder.prepareToRecord()
             audioRecorder.record()
-            isRecording = true
-            timerCount = Timer.scheduledTimer(withTimeInterval: 1, repeats: true, block: { (value) in
-                self.countSec += 1
-                self.timer = self.covertSecToMinAndHour(seconds: self.countSec)
-            })
             
         } catch {
             print("Failed to Setup the Recording")
         }
     }
     
-    func stopRecording(_ recordings: inout [Recording]) {
+    func stopRecording(_ recordings: inout [Recording], folderPath: String) {
         audioRecorder.stop()
-        isRecording = false
-        timerCount!.invalidate()
         // write Recordings to localStorage as well.
         let audioURL = audioRecorder.url
-        do{audioPlayer = try AVAudioPlayer(contentsOf: audioURL)}
-        catch {print("recording error")}
-        let folderURL = audioURL.pathComponents.removeLast()
-        let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
-
-        let recording = Recording(audioPath: audioURL.path, fileURL: fileURL.path, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: Outputs())
+        let filePath = "\(audioURL.lastPathComponent).json"
+        let recording = Recording(folderPath: folderPath, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), isPlaying: false, title: "Untitled", outputs: Outputs())
         recordings.insert(recording, at: 0)
-        generateAll(recording: &recording, fileURL: fileURL)
+        generateAll(recording: recording, audioURL: audioURL)
     }
     
-    func saveImportedRecording(_ recordings: inout [Recording], oldAudioURL: URL, newAudioURL: URL){
+    func saveImportedRecording(_ recordings: inout [Recording], oldAudioURL: URL, newAudioURL: URL, folderPath: String){
         let fileManager = FileManager.default
         do {
             try fileManager.copyItem(at: oldAudioURL, to: newAudioURL)
         } catch {
             print("An error occurred while copying the file: \(error)")
         }
-        let folderURL = newAudioURL.pathComponents.removeLast()
-        let fileURL = folderURL.appendingPathComponent("\(newAudioURL.lastPathComponent).json")
-        let recording = Recording(audioPath: newAudioURL.path, fileURL: fileURL.path, createdAt: getFileDate(for: fileURL), isPlaying: false, title: "Untitled", outputs: Outputs())
-        recordingsList.insert(recording, at: 0)
-        generateAll(recording: &recording, fileURL: newFileURL)
+        let filePath = "\(newAudioURL.lastPathComponent).json"
+        let recording = Recording(folderPath: folderPath, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), isPlaying: false, title: "Untitled", outputs: Outputs())
+        recordings.insert(recording, at: 0)
+        generateAll(recording: recording, audioURL: newAudioURL)
     }
     
-    func generateAll(recording: inout Recording, fileURL: URL) {
-
+    func generateAll(recording: Recording, audioURL: URL) {
+       let folderURL = URL(fileURLWithPath: recording.folderPath)
+       let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
        do {
            let data = try encoder.encode(recording)
-           try data.write(to: URL(recording.filePath))
+           print("Saving generateALL results here:")
+           print(fileURL)
+           try data.write(to: fileURL)
        } catch {
            print("An error occurred while saving the recording object: \(error)")
        }
@@ -107,12 +93,12 @@ class AudioRecorderModel : NSObject, ObservableObject {
             switch completion {
             case .failure(let error):
                 print("An error occurred while generating transcript: \(error)")
-                self.updateErrorOutput(transcript_out.id.uuidString, settings: OutputSettings.defaultSettings, outputs: &recording.outputs.outputs)
+                self.updateErrorOutput(transcript_out.id.uuidString, settings: OutputSettings.defaultSettings, outputs: recording.outputs)
                 do {
                     print("-- saving transcript error data --")
                     print(recording)
                     let updatedData = try self.encoder.encode(recording)
-                    try updatedData.write(to: recordingMetadataURL)
+                    try updatedData.write(to: fileURL)
                 } catch {
                     print("Error saving generate-transcript-error to recording: \(error)")
                 }
@@ -121,10 +107,10 @@ class AudioRecorderModel : NSObject, ObservableObject {
             }
         }, receiveValue: { update in
             print("* update: Transcript **")
-            self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+            self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
             do {
                 let updatedData = try self.encoder.encode(recording)
-                try updatedData.write(to: URL(recording.filePath))
+                try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
             } catch {
                 print("An error occurred while updating the recording object: \(error)")
             }
@@ -134,7 +120,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
 
                 settings.outputs.forEach({ outputType in
                     if outputType != .Transcript {
-                        self.addLoadingOutput(type: outputType, settings: outputSettings, outputs: &recording.outputs.outputs)
+                        self.addLoadingOutput(type: outputType, settings: outputSettings, outputs:  recording.outputs)
                     }
                 })
                 let futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
@@ -151,33 +137,32 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                     case .Summary:
                                     let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Summary})
                                     let out = recording.outputs.outputs[out_idx!]
-                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs.outputs)
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs:  recording.outputs)
                                         break
                                     case .Action:
                                     let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Action})
                                     let out = recording.outputs.outputs[out_idx!]
-                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs.outputs)
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs:  recording.outputs)
                                         break
                                     case .Title:
                                         recording.title = "Error, tap to retry"
                                     let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Title})
                                     let out = recording.outputs.outputs[out_idx!]
-                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs.outputs)
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs:  recording.outputs)
                                             break
                                     case .Transcript:
                                         break
                                     case .Custom:
                                     let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Custom})
                                     let out = recording.outputs.outputs[out_idx!]
-                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs: &recording.outputs.outputs)
+                                        self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs:  recording.outputs)
                                         break
                                 }
                                 do {
                                     print("-- saving output error data --")
                                     print(recording.outputs)
                                     let updatedData = try self.encoder.encode(recording)
-                                    try updatedData.write(to: recordingMetadataURL)
-                                    //self.refreshRecording(recording: recording)
+                                    try updatedData.write(to: fileURL)
                                 }
                                 catch {
                                     print("Error saving output-generate-error to recording: \(error)")
@@ -198,21 +183,21 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 print("** update: summary **")
                             let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Summary})
                             let out = recording.outputs.outputs[out_idx!]
-                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                            
                             break
                             case .Action:
                                 print("** update: action **")
                             let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Action})
                             let out = recording.outputs.outputs[out_idx!]
-                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                                 break
                             case .Title:
                                 print("** update: Title **")
                             recording.title = update.content
                             let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Title})
                             let out = recording.outputs.outputs[out_idx!]
-                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+                            self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                                 break
                             case .Transcript:
                                 break
@@ -221,9 +206,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
                         }
                         do {
                             let updatedData = try self.encoder.encode(recording)
-                            try updatedData.write(to: recordingMetadataURL)
+                            try updatedData.write(to: fileURL)
                             print("** after update **")
-                            self.refreshRecording(recording: recording)
                         }
                         catch {
                             print("An error occurred while saving the recording object: \(error)")
@@ -235,53 +219,53 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }).store(in: &self.cancellables)
     }
     
-    func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) -> Output {
+    func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: Outputs) -> Output {
         let newOutput = Output(type: type, content: "Loading", settings: settings)
-        outputs.append(newOutput)
+        outputs.outputs.append(newOutput)
         return newOutput
     }
     
-    func updateOutput(_ id: String, content: String,  settings: OutputSettings, outputs: inout [Output]){
-        if let index = outputs.firstIndex(where: { $0.id.uuidString == id }) {
-            outputs[index].content = content
-            outputs[index].settings = settings
-            outputs[index].error = false
-            outputs[index].loading = false
+    func updateOutput(_ id: String, content: String,  settings: OutputSettings, outputs: Outputs){
+        if let index = outputs.outputs.firstIndex(where: { $0.id.uuidString == id }) {
+            outputs.outputs[index].content = content
+            outputs.outputs[index].settings = settings
+            outputs.outputs[index].error = false
+            outputs.outputs[index].loading = false
         }
     }
     
-    func updateErrorOutput(_ id: String, settings: OutputSettings, outputs: inout [Output]) {
-        if let index = outputs.firstIndex(where: { $0.id.uuidString == id }) {
-            outputs[index].content = "Error, tap to retry"
-            outputs[index].error = true
-            outputs[index].loading = false
+    func updateErrorOutput(_ id: String, settings: OutputSettings, outputs: Outputs) {
+        if let index = outputs.outputs.firstIndex(where: { $0.id.uuidString == id }) {
+            outputs.outputs[index].content = "Error, tap to retry"
+            outputs.outputs[index].error = true
+            outputs.outputs[index].loading = false
         }
     }
     
-    func addErrorOutput(type: OutputType, settings: OutputSettings, outputs: inout [Output]) -> Output {
+    func addErrorOutput(type: OutputType, settings: OutputSettings, outputs: Outputs) -> Output {
         let newOutput = Output(type: type, content: "Error, tap to retry", settings: settings)
         newOutput.error = true
         newOutput.loading = false
-        outputs.append(newOutput)
+        outputs.outputs.append(newOutput)
         return newOutput
     }
     
-    func getTranscript(outputs: [Output]) -> String {
-        if let index = outputs.firstIndex(where: {$0.type == .Transcript}) {
-            return outputs[index].content
+    func getTranscript(outputs: Outputs) -> String {
+        if let index = outputs.outputs.firstIndex(where: {$0.type == .Transcript}) {
+            return outputs.outputs[index].content
         } else {
             return ""
         }
     }
     
-    func regenerateOutput(recording: inout Recording, output: Output, outputSettings: OutputSettings) {
+    func regenerateOutput(recording: Recording, output: Output) {
         if output.type == .Transcript {
             print("== regen transcript and all ==")
-            generateAll(recording: &recording, fileURL: getAudioURL(filePath:recording.filePath))
+            generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
             return
         }
-        let transcript = getTranscript(outputs: recording.outputs.outputs)
-        generateOutput(transcript: transcript, outputType: output.type, outputSettings: outputSettings).sink(
+        let transcript = getTranscript(outputs: recording.outputs)
+        generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                 case .failure(let error):
@@ -294,18 +278,18 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 switch update.type {
                     case .Summary:
                         print("** update: summary **")
-                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                        
                         break
                     case .Action:
                         print("** update: action **")
-                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                       
                         break
                     case .Title:
                         print("** update: Title **")
                         recording.title = update.content
-                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: &recording.outputs.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
                     case .Transcript:
                         break
@@ -314,7 +298,9 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 }
                 do {
                     let updatedData = try self.encoder.encode(recording)
-                    try updatedData.write(to: URL(recording.audioPath))
+                    let folderURL = URL(fileURLWithPath: recording.filePath)
+                    let fileURL = folderURL.appendingPathComponent(recording.filePath)
+                    try updatedData.write(to: fileURL)
                 } catch {
                     print("error saving updated output")
                 }
@@ -322,19 +308,18 @@ class AudioRecorderModel : NSObject, ObservableObject {
             .store(in: &self.cancellables)
     }
     
-    func generateCustomOutput(recording: inout Recording, outputSettings: OutputSettings) {
-        let transcript = getTranscript(outputs: recording.outputs.outputs)
-        let custom_out = addLoadingOutput(type: .Custom, settings: outputSettings, outputs: &recording.outputs.outputs)
+    func generateCustomOutput(recording: Recording, outputSettings: OutputSettings) {
+        let transcript = getTranscript(outputs: recording.outputs)
+        let custom_out = addLoadingOutput(type: .Custom, settings: outputSettings, outputs: recording.outputs)
         generateOutput(transcript: transcript, outputType: .Custom, outputSettings: outputSettings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                     case .failure(_):
-                    self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: &recording.outputs.outputs)
+                    self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: recording.outputs)
                         do {
                             print("-- saving custom output error data --")
                             let updatedData = try self.encoder.encode(recording)
-                            try updatedData.write(to: URL(recording.filePath))
-                            self.recordingsList[index] = recording
+                            try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
                         }
                         catch {
                             print("Error saving output-generate-error to recording: \(error)")
@@ -345,13 +330,12 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 }
             },
             receiveValue: { update in
-                self.updateOutput(custom_out.id.uuidString, content: update.content, settings: outputSettings, outputs: &recording.outputs.outputs)
+                self.updateOutput(custom_out.id.uuidString, content: update.content, settings: outputSettings, outputs:  recording.outputs)
                 do {
                     let updatedData = try self.encoder.encode(recording)
-                    try updatedData.write(to: URL(recording.filePath))
-                    print("** recording after custom output **")
-                    print(recording)
-                    self.recordingsList[index] = recording
+                    let folderURL = URL(fileURLWithPath: recording.filePath)
+                    let fileURL = folderURL.appendingPathComponent(recording.filePath)
+                    try updatedData.write(to: fileURL)
                 } catch {
                     print("error saving updated output")
                 }
@@ -365,7 +349,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
             let url = self.baseURL + "generate_output"
             
             do {
-                let encodedSettings = try encoder.encode(outputSettings)
+                let encodedSettings = try self.encoder.encode(outputSettings)
                 let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
                 print("settings dict \(settingsDictionary!)")
                 let parameters: [String: Any] = [
@@ -413,7 +397,9 @@ class AudioRecorderModel : NSObject, ObservableObject {
             data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
 
             do {
-                let fileData = try Data(contentsOf: URL(recording.audioPath))
+                let rawFolderURL = URL(fileURLWithPath: recording.folderPath, isDirectory: true).appendingPathComponent("raw")
+                let audioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
+                let fileData = try Data(contentsOf: audioURL)
                 data.append(fileData)
             } catch {
                 print("Failed to read file data: \(error)")
@@ -463,24 +449,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
         cancellables.removeAll()
     }
     
-    // TODO: delete not here
-    func deleteOutput(index: Int, output: Output) {
-        let updatedRecording = recordingsList[index]
-        if let idxToDelete = updatedRecording.outputs.outputs.firstIndex(where: {$0.id == output.id}) {
-            updatedRecording.outputs.outputs.remove(at: idxToDelete)
-            //recordingsList[index] = updatedRecording
-            let recordingMetadataURL = getRecordingMetaURL(filePath: updatedRecording.filePath)
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
-            do {
-                let updatedData = try encoder.encode(updatedRecording)
-                try updatedData.write(to: recordingMetadataURL)
-                print("** recording after regenerated output **")
-            } catch {
-                print("error saving updated output")
-            }
-        }
-    }
 }
 
 class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
@@ -492,22 +460,22 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
     @Published var progress: CGFloat = 0.0
     @Published var absProgress: Double = 0.0
     @Published var currentTime: String = "00:00"
-    @Published var totalTime: String
     var formatter : DateComponentsFormatter
         
-    init(audioPath: String){
+    init(folderPath: String, audioPath: String){
         self.formatter = DateComponentsFormatter()
         self.formatter.allowedUnits = [.minute, .second]
         self.formatter.unitsStyle = .positional
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.audioPath = audioPath
         do {
-            self.audioPlayer = try AVAudioPlayer(contentsOf: URL(audioPath))
-            self.totalTime = formatter.string(from: TimeInterval(audioPlayer.duration))
+            let folderURL = URL(fileURLWithPath: folderPath)
+            let rawURL = folderURL.appendingPathComponent("raw", isDirectory: true)
+            let audioURL = rawURL.appendingPathComponent(audioPath)
+            self.audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
         } catch {
-            print(error)
+            print("audioPlayerModel \(error)")
         }
-        super.init()
     }
 
     // TODO: major changes to start / stop playing
@@ -526,19 +494,19 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             isPlaying = true
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
-            audioPlayer.currentTime = recordingsList[index].absProgress
+            audioPlayer.currentTime = absProgress
             audioPlayer.play()
             Timer.scheduledTimer(withTimeInterval: 0.01, repeats: audioPlayer.isPlaying){ _ in
-                if(self.recordingsList[index].isPlaying){
-                    currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-                    print(currentTime)
-                    progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
-                    absProgress = self.audioPlayer.currentTime
+                if(self.isPlaying){
+                    self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+                    print(self.currentTime)
+                    self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+                    self.absProgress = self.audioPlayer.currentTime
                     if (self.audioPlayer.currentTime >= self.audioPlayer.duration) {
                         print("reached")
-                        absProgress = 0.0
-                        progress = 0
-                        currentTime = self.formatter.string(from: TimeInterval(0.0))!
+                        self.absProgress = 0.0
+                        self.progress = 0
+                        self.currentTime = self.formatter.string(from: TimeInterval(0.0))!
                     }
             }
         }
@@ -554,6 +522,7 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             print("stopping playing")
             print("\(audioPlayer.currentTime)")
             audioPlayer.pause()
+            isPlaying = false
         }
     }
     

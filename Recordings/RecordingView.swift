@@ -10,6 +10,7 @@ import UIKit
 
 struct RecordingView: View {
     @ObservedObject var recording: Recording
+    var idx: Int
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
@@ -20,23 +21,29 @@ struct RecordingView: View {
     @State private var showDelete: Bool = false
     @ObservedObject private var keyboardResponder = KeyboardResponder()
     
-    init(_ recording: Recording) {
-        self.recording = recording
+    init(recordings: Binding<[Recording]>, idx: Int){
+        self.idx = idx
+        self.recording = recordings.wrappedValue[idx]
     }
     
+    // not in this view
     var body: some View {
+        
         List{
-            TitleView(vm: vm, os: os, index: index)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color(.systemBackground))
-            ForEach(sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }.indices, id: \.self) { idx in
-                let output = sortOutputs(os.outputs).filter { $0.type != .Title && $0.type != .Transcript }[idx]
+            if recording.outputs.outputs.first(where: {$0.type == .Title}) != nil {
+                TitleView(output: recording.outputs.outputs.first(where: {$0.type == .Title})!, recording: recording)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color(.systemBackground))
+            }
+            
+            // not here
+            ForEach(sortOutputs(recording.outputs.outputs).filter { $0.type != .Title}) { output in
                 HStack{
                     Group{
-                        if showDelete {
+                        if output.type != .Transcript && showDelete {
                             VStack{
                                 Button(action: {
-                                    vm.deleteOutput(index: index, output: output)
+                                    deleteOutput(output)
                                 }) {
                                     ZStack{
                                         Image(systemName:"minus.circle")
@@ -52,52 +59,19 @@ struct RecordingView: View {
                             }
                         }
                     }
-                    OutputView(output: output, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
-                        .id(UUID()) // Assigning unique id for each OutputView
+                    OutputView(output, recording: recording)
                 }
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color(.systemBackground))
             }
-            
-            TranscriptView(vm: vm, os: os, index: index, recordingURL: recordingURL)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color(.systemBackground))
         }
             .navigationBarItems(trailing:
             HStack{
                 Menu {
-                    Button(action: {
-                        let transcript = os.outputs.first { $0.type == .Transcript }?.content ?? ""
-                        let filename = "\(vm.recordingsList[index].title).txt"
-                        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-                        let fileURL = tempDirectoryURL.appendingPathComponent(filename)
-                        do {
-                            try transcript.write(to: fileURL, atomically: true, encoding: .utf8)
-                        } catch {
-                            print("Failed to create file")
-                            print("\(error)")
-                        }
-                        activeSheet = .exportText(fileURL)
-                    }) {
+                    Button(action: exportTranscript) {
                         Label("Export Transcript", systemImage: "doc.text")
                     }
-                    Button(action: {
-                        let originalURL = vm.getAudioURL(filePath: vm.recordingsList[index].filePath)
-                        let filename = "\(vm.recordingsList[index].title).m4a"
-                        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-                        let newURL = tempDirectoryURL.appendingPathComponent(filename)
-                        
-                        do {
-                            let fileManager = FileManager.default
-                            if fileManager.fileExists(atPath: originalURL.path) {
-                                try fileManager.copyItem(at: originalURL, to: newURL)
-                            }
-                        } catch {
-                            print("Failed to rename file")
-                            print("\(error)")
-                        }
-                        activeSheet = .exportAudio(newURL)
-                    }) {
+                    Button(action: exportAudio) {
                         Label("Export Audio", systemImage: "waveform")
                     }
                 }
@@ -117,14 +91,12 @@ struct RecordingView: View {
                 if keyboardResponder.currentHeight != 0 {
                     Button(action: hideKeyboard) {
                         Text("Done")
-                    }.onAppear(perform:{
-                        //print(keyboardResponder.currentHeight)
-                    })
+                    }
                 }
             })
             .listStyle(.plain)
             .sheet(isPresented: $isShowingCustomOutput){
-                CustomOutputSheet(vm: vm, index: index)
+                CustomOutputSheet(recording: recording)
             }
             .sheet(isPresented: $isShowingSettings) {
                 if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
@@ -142,38 +114,85 @@ struct RecordingView: View {
             .onReceive(keyboardResponder.$currentHeight){ height in
                 print(height)
             }
-            .onReceive(os.$outputs){ outputs in
+            .onReceive(recording.$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
             }
+         
+        Text("TEST")
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
+        print("sorting output")
         return outputs.sorted { $0.type < $1.type }
     }
     
-    // Function to dismiss the keyboard
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
+    
+    private func deleteOutput(_ output: Output){
+        if let idxToDelete = recording.outputs.outputs.firstIndex(where: {$0.id == output.id}) {
+            recording.outputs.outputs.remove(at: idxToDelete)
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            do {
+                let updatedData = try encoder.encode(recording)
+                try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
+                print("** recording after regenerated output **")
+            } catch {
+                print("error saving updated output")
+            }
+        }
+    }
+    
+    private func exportTranscript() {
+        let transcript = recording.outputs.outputs.first { $0.type == .Transcript }?.content ?? ""
+        let filename = "\(recording.title).txt"
+        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let fileURL = tempDirectoryURL.appendingPathComponent(filename)
+        do {
+            try transcript.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("Failed to create file")
+            print("\(error)")
+        }
+        activeSheet = .exportText(fileURL)
+    }
+    
+    private func exportAudio(){
+        let originalURL = URL(fileURLWithPath: recording.audioPath)
+        let filename = "\(recording.title).m4a"
+        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let newURL = tempDirectoryURL.appendingPathComponent(filename)
+        
+        do {
+            let fileManager = FileManager.default
+            if fileManager.fileExists(atPath: originalURL.path) {
+                try fileManager.copyItem(at: originalURL, to: newURL)
+            }
+        } catch {
+            print("Failed to rename file")
+            print("\(error)")
+        }
+        activeSheet = .exportAudio(newURL)
+    }
+     
 }
 
 // TODO: add Recording
 struct OutputView: View {
     @ObservedObject var output: Output
-    var recording: Recording
-    var recordingURL: URL
     @State private var isMinimized: Bool = false // Add this state variable
     @ObservedObject var cache = OutputCache<String, Bool>()
-
-    init(output: Output, recording: Recording, recordingURL: URL, vm: VoiceViewModel, index: Int) {
-        print("== On OutputView Init ==")
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    let recording: Recording
+    
+    init(_ output: Output, recording: Recording) {
+       print("== On OutputView Init ==")
        self.output = output
        self.recording = recording
-       self.recordingURL = recordingURL
-       self.vm = vm
-       self.index = index
-        let key = "\(recordingURL.lastPathComponent)_\(output.id)"
+       let key = "\(output.id)"
        if let cachedValue = cache.value(forKey: key) {
            self.isMinimized = cachedValue
        } else {
@@ -195,7 +214,7 @@ struct OutputView: View {
             .frame(height: 40)
             .onTapGesture {
                 self.isMinimized.toggle()
-                let key = "\(recordingURL.lastPathComponent)_\(output.id)"
+                let key = "\(output.id)"
                 cache.insert(isMinimized, forKey: key)
             }
             if output.error {
@@ -210,7 +229,7 @@ struct OutputView: View {
                        }.onTapGesture{
                            print("on retry")
                            print(output.content)
-                           vm.regenerateOutput(index: index, output: output, outputSettings: output.settings)
+                           audioAPI.regenerateOutput(recording: recording, output: output)
                        }
                        
                    }
@@ -245,18 +264,6 @@ struct OutputView: View {
         }
     }
     
-    private func saveRecording() {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601 // to properly encode the Date field
-        do {
-            let data = try encoder.encode(recording)
-            try data.write(to: recordingURL)
-            print("saved changes to disk")
-        } catch {
-            print("An error occurred while saving the recording object: \(error)")
-        }
-    }
-    
     private func getCustomOutputName(_ output: Output) -> String{
         let outputs = recording.outputs.outputs
         let dupes = outputs.filter{ $0.settings.name == output.settings.name}
@@ -268,54 +275,51 @@ struct OutputView: View {
         }
     }
     
+    private func saveRecording() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        do {
+            let data = try encoder.encode(recording)
+            try data.write(to: URL(fileURLWithPath: recording.filePath))
+            print("saved changes to disk")
+        } catch {
+            print("An error occurred while saving the recording object: \(error)")
+        }
+    }
+    
 }
 
 struct TitleView: View {
-    @ObservedObject var vm: VoiceViewModel
-    @ObservedObject var os: Outputs
-    var index: Int
+    @ObservedObject var output: Output
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    let recording: Recording
     
     var body: some View {
-        if !os.outputs.contains(where: {$0.type == .Title}) {
-            Text(vm.recordingsList[index].title).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
-
-        } else {
-            if let title = os.outputs.first(where: {$0.type == .Title}) {
-                if title.error {
-                    Text(title.content)
-                        .onTapGesture{
-                            self.vm.regenerateOutput(index: self.index, output: title, outputSettings: title.settings)
-                        }
-                } else {
-                    Text(title.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
- 
-                }
+        if output.error {
+            HStack{
+                Image(systemName: "exclamationmark.arrow.circlepath")
+                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
             }
-        }
-    }
-}
-
-struct TranscriptView: View {
-    @ObservedObject var vm: VoiceViewModel
-    @ObservedObject var os: Outputs
-    var index: Int
-    var recordingURL: URL
-    
-    var body: some View {
-        if os.outputs.contains(where: {$0.type == .Transcript}) {
-            let output = os.outputs.first(where: { $0.type == .Transcript})
-            OutputView(output: output!, recording: vm.recordingsList[index], recordingURL: recordingURL, vm: vm, index: index)
+            .onTapGesture{
+                audioAPI.regenerateOutput(recording:recording, output:output)
+            }
+        } else if output.loading {
+            HStack{
+                ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
+                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
+            }
+        } else {
+            Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
         }
     }
 }
 
 struct CustomOutputSheet: View {
     @Environment(\.presentationMode) var presentationMode
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
     @State private var customPrompt: String = ""
     @State private var customName: String = ""
-    
-    var vm: VoiceViewModel // add this
-    var index: Int // add this
+    let recording: Recording
 
     var body: some View{
         NavigationStack {
@@ -336,7 +340,7 @@ struct CustomOutputSheet: View {
                 Button("Generate") {
                     if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
                         let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone ,name: customName,  prompt: customPrompt)
-                        vm.generateCustomOutput(index: index, outputSettings: currentOutputSettings)
+                        audioAPI.generateCustomOutput(recording: recording, outputSettings: currentOutputSettings)
                         UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
                         presentationMode.wrappedValue.dismiss()
                     } else {

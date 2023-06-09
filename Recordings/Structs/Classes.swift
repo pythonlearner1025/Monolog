@@ -80,8 +80,10 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable, Identifia
     }
 }
 
+
 class Recording: ObservableObject, Codable, Equatable {
-    @Published var audioPlayer: AudioPlayerModel
+    @Published var audioPlayer: AudioPlayerModel?
+    @Published var folderPath: String
     @Published var audioPath: String
     @Published var filePath: String
     @Published var createdAt: Date
@@ -90,40 +92,52 @@ class Recording: ObservableObject, Codable, Equatable {
 
 
     enum CodingKeys: CodingKey {
-        case filePath, createdAt, audioPath, title, outputs
+        case filePath, createdAt, audioPath, title, outputs, folderPath
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        audioPath = try container.decode(String.self, forKey: .audioPath)
         filePath = try container.decode(String.self, forKey: .filePath)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         title = try container.decode(String.self, forKey: .title)
         outputs = try container.decode(Outputs.self, forKey: .outputs)
+        audioPath = try container.decode(String.self, forKey: .audioPath)
+        folderPath = try container.decode(String.self, forKey: .folderPath)
+        audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(filePath, forKey: .filePath)
+        try container.encode(folderPath, forKey: .folderPath)
         try container.encode(title, forKey: .title)
         try container.encode(outputs, forKey: .outputs)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(title, forKey: .title)
+        try container.encode(audioPath, forKey: .audioPath)
     }
 
     // your initializer here
-    init (audioPath: String, filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: Outputs){
+    init (folderPath: String, audioPath: String, filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: Outputs){
         self.audioPath = audioPath
         self.filePath = filePath
         self.createdAt = createdAt
         self.title = title
         self.outputs = outputs
-        self.audioPlayer = AudioPlayerModel(audioPath: audioPath)
+        self.folderPath = folderPath
+        self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
     }
     
     static func == (lhs: Recording, rhs: Recording) -> Bool {
            return lhs.filePath == rhs.filePath
                && lhs.createdAt == rhs.createdAt
                && lhs.title == rhs.title
+               && lhs.audioPath == rhs.audioPath
        }
+}
+
+class Recordings: ObservableObject {
+    @Published var recordings = [Recording]()
 }
 
 class Outputs: ObservableObject, Codable {

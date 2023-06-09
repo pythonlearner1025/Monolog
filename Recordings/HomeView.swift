@@ -12,6 +12,7 @@ struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     @AppStorage("isNewLaunch") var isNewLaunch: Bool = true
     @EnvironmentObject var folderNavigationModel: FolderNavigationModel
+    @StateObject var audioRecorder: AudioRecorderModel = AudioRecorderModel()
 
     //var isFirstLaunch = true
     @State private var showAllFirst = true
@@ -43,6 +44,7 @@ struct HomeView: View {
                 }
                 .navigationDestination(for: RecordingFolder.self){ folder in
                     FolderView(folder: folder)
+                        .environmentObject(audioRecorder)
                 }
                 .navigationTitle("Folders")
                 .navigationBarItems(trailing:
@@ -72,17 +74,18 @@ struct HomeView: View {
                         }
                     }
             }
-            .onAppear(perform: {
-                print("Loading folders")
-                loadFolders()
-            }
-        )
+          
         .listStyle(.automatic)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
                 print("calling terminate")
                 isNewLaunch = true
             })
         }
+        .onAppear(perform: {
+            print("Loading folders")
+            loadFolders()
+        }
+    )
     }
 
     func setup() {
@@ -145,7 +148,6 @@ struct HomeView: View {
             let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
             let folderidx = folders.firstIndex(where: {$0.id == folder.id})
             folders[folderidx!] = RecordingFolder(name: folder.name, path: folder.path, count: itemCount)
-            
         } catch {
             print("error loading folder \(error)")
         }
