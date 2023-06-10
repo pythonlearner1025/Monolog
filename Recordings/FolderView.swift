@@ -92,12 +92,12 @@ struct FolderView: View {
             }
             .onDelete{indexSet in
                 indexSet.sorted(by: >).forEach{ i in
-                    // TODO: 1) stop playing audio 2) delete file 3) pop from recordings to update View
                     recordings[i].audioPlayer!.stopPlaying()
                     recordings[i].audioPlayer!.isPlaying = false
-                    deleteRecording(recordings[i].audioPath, recordings[i].filePath)
+                    deleteRecording(recordings[i], recordings[i].audioPath, recordings[i].filePath)
+                    
+                    recordings.remove(atOffsets: indexSet)
                 }
-                recordings.remove(atOffsets: indexSet)
             }
             .id(UUID())
             .listRowSeparator(.hidden)
@@ -213,14 +213,16 @@ struct FolderView: View {
         print(recordings)
     }
     
-    private func deleteRecording(_ audioPath: String, _ filePath: String) {
-        let oldAudioURL = URL(fileURLWithPath: audioPath)
-        let oldFileURL = URL(fileURLWithPath: filePath)
+    private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let oldAudioURL = rawFolderURL.appendingPathComponent(audioPath)
+        let oldFileURL = Util.buildFolderURL(folder.path).appendingPathComponent(filePath)
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
         let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
         // if curr folder == recently deleted, perma delete
-        if (recentlyDeletedFolder.lastPathComponent == URL(fileURLWithPath: folder.path).lastPathComponent) {
+        if (recentlyDeletedFolder.lastPathComponent == folder.path) {
             print("Deleting permanently")
             do {
                 try fileManager.removeItem(at: oldAudioURL)
@@ -236,8 +238,9 @@ struct FolderView: View {
             return
         }
         // move to recently deleted
-        let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(oldAudioURL.lastPathComponent)")
-        let newFileURL = recentlyDeletedFolder.appendingPathComponent(oldFileURL.lastPathComponent)
+        recording.folderPath = "Recently Deleted"
+        let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(audioPath)")
+        let newFileURL = recentlyDeletedFolder.appendingPathComponent(filePath)
         do {
             try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
         } catch {
@@ -245,7 +248,9 @@ struct FolderView: View {
         }
                                                                     
         do {
-            try fileManager.moveItem(at: oldFileURL, to: newFileURL)
+            let data = try encoder.encode(recording)
+            try data.write(to: newFileURL)
+            try fileManager.removeItem(at: oldFileURL)
         } catch {
             print("can't move meta\(error)")
         }
