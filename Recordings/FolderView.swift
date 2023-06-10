@@ -24,7 +24,7 @@ struct FolderView: View {
     init(folder: RecordingFolder) {
         print("FolderView refreshed")
         self.folder = folder
-        self.rawFolderURL = URL(fileURLWithPath: folder.path).appendingPathComponent("raw")
+        self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
     
     var body: some View {
@@ -86,7 +86,7 @@ struct FolderView: View {
                             }
                         }
                     }
-                    AudioControlView(folderPath: folder.path, audioPath: recordings[idx].audioPath)
+                    AudioControlView(folderPath: recordings[idx].folderPath, audioPath: recordings[idx].audioPath)
                     Divider().padding(.vertical, 15)  // Add a divider here
                 }
             }
@@ -100,6 +100,8 @@ struct FolderView: View {
                 recordings.remove(atOffsets: indexSet)
             }
             .id(UUID())
+            .listRowSeparator(.hidden)
+
         }
         .listRowSeparator(.hidden)
         .navigationDestination(for: Int.self){ [$recordings] idx in
@@ -137,7 +139,7 @@ struct FolderView: View {
                 let importedAudioURL = try res.get()
                 if importedAudioURL.startAccessingSecurityScopedResource() {
                     let newAudioURL = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
-                    audioRecorder.saveImportedRecording(&recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderPath: folder.path)
+                    audioRecorder.saveImportedRecording(&recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path))
                     importedAudioURL.stopAccessingSecurityScopedResource()
                 }
             } catch {
@@ -150,7 +152,7 @@ struct FolderView: View {
                 Spacer()
                CameraButtonView(action: { isRecording in
                    if isRecording {
-                       audioRecorder.stopRecording(&recordings, folderPath: folder.path)
+                       audioRecorder.stopRecording(&recordings, folderURL: Util.buildFolderURL(folder.path))
                    } else {
                        audioRecorder.startRecording(audioURL: rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a"))
                    }
@@ -183,7 +185,7 @@ struct FolderView: View {
     func fetchAllRecording(){
         recordings = []
         let fileManager = FileManager.default
-        let folderURL = URL(fileURLWithPath: folder.path)
+        let folderURL = Util.buildFolderURL(folder.path)
         let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601 // match the encoding strategy

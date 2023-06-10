@@ -103,7 +103,7 @@ class Recording: ObservableObject, Codable, Equatable {
         outputs = try container.decode(Outputs.self, forKey: .outputs)
         audioPath = try container.decode(String.self, forKey: .audioPath)
         folderPath = try container.decode(String.self, forKey: .folderPath)
-        audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
+        audioPlayer = AudioPlayerModel(folderPath: Util.buildFolderURL(folderPath).path, audioPath: audioPath)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -125,7 +125,7 @@ class Recording: ObservableObject, Codable, Equatable {
         self.title = title
         self.outputs = outputs
         self.folderPath = folderPath
-        self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
+        self.audioPlayer = AudioPlayerModel(folderPath: Util.buildFolderURL(folderPath).path, audioPath: audioPath)
     }
     
     static func == (lhs: Recording, rhs: Recording) -> Bool {
@@ -170,6 +170,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
     @Published var error: Bool = false
     @Published var loading: Bool = true
     @Published var settings: OutputSettings
+    
 
     init(type: OutputType, content: String, settings: OutputSettings) {
         self.type = type
@@ -178,7 +179,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
     }
     
     enum CodingKeys: CodingKey {
-        case id, type, content, settings
+        case id, type, content, settings, error, loading
     }
     
     required init(from decoder: Decoder) throws {
@@ -187,6 +188,8 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
         type = try container.decode(OutputType.self, forKey: .type)
         content = try container.decode(String.self, forKey: .content)
         settings = try container.decodeIfPresent(OutputSettings.self, forKey: .settings) ?? OutputSettings.defaultSettings
+        error = try container.decode(Bool.self, forKey: .error)
+        loading = try container.decode(Bool.self, forKey: .loading)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -195,7 +198,11 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
         try container.encode(type, forKey: .type)
         try container.encode(content, forKey: .content)
         try container.encode(settings, forKey: .settings)
+        try container.encode(error, forKey: .error)
+        try container.encode(loading, forKey: .loading)
+
     }
+    
     
     static func == (lhs: Output, rhs: Output) -> Bool{
         return lhs.id == rhs.id

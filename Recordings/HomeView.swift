@@ -128,7 +128,7 @@ struct HomeView: View {
                    let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
                    let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
                    print("loaded folder \(url)")
-                   return RecordingFolder(name: folderName, path: folderPath, count: itemCount)
+                   return RecordingFolder(name: folderName, path: folderName, count: itemCount)
                } catch {
                    print("An error occurred while counting items in \(folderName): \(error)")
                    return nil
@@ -147,7 +147,7 @@ struct HomeView: View {
             let folderContents = try fileManager.contentsOfDirectory(atPath: folder.path)
             let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
             let folderidx = folders.firstIndex(where: {$0.id == folder.id})
-            folders[folderidx!] = RecordingFolder(name: folder.name, path: folder.path, count: itemCount)
+            folders[folderidx!] = RecordingFolder(name: folder.name, path: folder.name, count: itemCount)
         } catch {
             print("error loading folder \(error)")
         }
@@ -198,7 +198,7 @@ struct HomeView: View {
             print("An error occurred while creating the 'All' directory: \(error)")
         }
         // Create a new Folder instance and add it to the 'folders' array
-        let newFolder = RecordingFolder(name: title, path: newFolderPath.path, count: 0)
+        let newFolder = RecordingFolder(name: title, path: newFolderPath.lastPathComponent, count: 0)
         folders.append(newFolder)
     }
 

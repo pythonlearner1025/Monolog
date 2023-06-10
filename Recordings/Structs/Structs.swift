@@ -9,6 +9,13 @@ import Foundation
 import UIKit
 import SwiftUI
 
+struct Util {
+    static func buildFolderURL(_ folderLastPathComponent: String) -> URL {
+        let fileManager = FileManager.default
+        let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return applicationSupportDirectory.appendingPathComponent(folderLastPathComponent)
+    }
+}
 
 struct ShareSheet: UIViewControllerRepresentable {
     var items: [Any]

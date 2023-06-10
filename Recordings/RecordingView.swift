@@ -9,6 +9,7 @@ import Foundation
 import UIKit
 
 struct RecordingView: View {
+    @ObservedObject var outputs: Outputs
     @ObservedObject var recording: Recording
     var idx: Int
     @State private var isShowingSettings = false
@@ -24,20 +25,17 @@ struct RecordingView: View {
     init(recordings: Binding<[Recording]>, idx: Int){
         self.idx = idx
         self.recording = recordings.wrappedValue[idx]
+        self.outputs = recordings.wrappedValue[idx].outputs
     }
     
-    // not in this view
     var body: some View {
-        
         List{
-            if recording.outputs.outputs.first(where: {$0.type == .Title}) != nil {
+            if outputs.outputs.first(where: {$0.type == .Title}) != nil {
                 TitleView(output: recording.outputs.outputs.first(where: {$0.type == .Title})!, recording: recording)
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color(.systemBackground))
             }
-            
-            // not here
-            ForEach(sortOutputs(recording.outputs.outputs).filter { $0.type != .Title}) { output in
+            ForEach(sortOutputs(outputs.outputs).filter { $0.type != .Title}) { output in
                 HStack{
                     Group{
                         if output.type != .Transcript && showDelete {
@@ -114,16 +112,14 @@ struct RecordingView: View {
             .onReceive(keyboardResponder.$currentHeight){ height in
                 print(height)
             }
-            .onReceive(recording.$outputs){ outputs in
+            .onReceive(outputs.$outputs){ outputs in
                 print("-- onReceive new update --")
                 print(outputs)
             }
-         
-        Text("TEST")
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
-        print("sorting output")
+        print("recording update")
         return outputs.sorted { $0.type < $1.type }
     }
     
@@ -131,23 +127,25 @@ struct RecordingView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
+    // TODO: fix filePath is differen on each load - build folderPath again, from scratch.
     private func deleteOutput(_ output: Output){
-        if let idxToDelete = recording.outputs.outputs.firstIndex(where: {$0.id == output.id}) {
-            recording.outputs.outputs.remove(at: idxToDelete)
+        if let idxToDelete = outputs.outputs.firstIndex(where: {$0.id == output.id}) {
+            outputs.outputs.remove(at: idxToDelete)
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             do {
                 let updatedData = try encoder.encode(recording)
-                try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
-                print("** recording after regenerated output **")
+                let folderURL = Util.buildFolderURL(recording.folderPath)
+                let fileURL = folderURL.appendingPathComponent(recording.filePath)
+                try updatedData.write(to: fileURL)
             } catch {
-                print("error saving updated output")
+                print("error saving updated output \(error)")
             }
         }
     }
     
     private func exportTranscript() {
-        let transcript = recording.outputs.outputs.first { $0.type == .Transcript }?.content ?? ""
+        let transcript = outputs.outputs.first { $0.type == .Transcript }?.content ?? ""
         let filename = "\(recording.title).txt"
         let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let fileURL = tempDirectoryURL.appendingPathComponent(filename)
@@ -234,7 +232,7 @@ struct OutputView: View {
                        
                    }
                 }.animation(.easeInOut.speed(1.4),  value: isMinimized)
-            } else if output.loading && output.content == "Loading" {
+            } else if output.loading {
                 Group {
                    if !isMinimized {
                        HStack{
@@ -280,7 +278,7 @@ struct OutputView: View {
         encoder.dateEncodingStrategy = .iso8601
         do {
             let data = try encoder.encode(recording)
-            try data.write(to: URL(fileURLWithPath: recording.filePath))
+            try data.write(to: Util.buildFolderURL(recording.filePath))
             print("saved changes to disk")
         } catch {
             print("An error occurred while saving the recording object: \(error)")
@@ -306,10 +304,14 @@ struct TitleView: View {
         } else if output.loading {
             HStack{
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
-                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
+                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
             }
+            .onAppear(perform: {
+                print("title loading appear")
+                print(output.loading)
+            })
         } else {
-            Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
+            Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
         }
     }
 }
