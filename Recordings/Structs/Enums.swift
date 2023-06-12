@@ -15,7 +15,6 @@ enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
     case Action
     case Custom
     
-    
     static func < (lhs: OutputType, rhs: OutputType) -> Bool {
            switch (lhs, rhs) {
            case (.Title, _): return true
@@ -24,6 +23,8 @@ enum OutputType: String, Encodable, Decodable, CaseIterable, Comparable {
            case (.Action, .Summary), (.Transcript, .Summary): return false
            case (.Action, .Transcript): return true
            case (.Transcript, .Action): return false
+           case (.Custom, .Transcript): return true
+           case (.Transcript, .Custom): return false
            default: return false
            }
        }

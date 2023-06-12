@@ -22,7 +22,6 @@ struct FolderView: View {
     @State var recordings: [Recording] = []
     
     init(folder: RecordingFolder) {
-        print("FolderView refreshed")
         self.folder = folder
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
@@ -170,11 +169,9 @@ struct FolderView: View {
 
     private var filteredItems: [Recording] {
         if searchText.isEmpty {
-            print("recordings update")
             return recordings
         }
         else{
-            print("searchtext update")
             return recordings.filter {item in
                 item.title.localizedCaseInsensitiveContains(searchText)
             }
@@ -191,18 +188,14 @@ struct FolderView: View {
             let folderURLs = Util.allFolderURLs()
             for f in folderURLs {
                 if (f.lastPathComponent != "Recently Deleted" && f.lastPathComponent != "All") {
-                print("adding folder \(f.lastPathComponent)")
                   let folderContents = try! fileManager.contentsOfDirectory(at: f, includingPropertiesForKeys: nil)
-                print(folderContents)
                 directoryContents.append(contentsOf: folderContents)
                 }
             }
         }
-        print("directoryContents count: \(directoryContents.count)")
         for i in directoryContents {
             if (i.lastPathComponent != "raw") {
                 do {
-                    print("==decoding==")
                     let data = try Data(contentsOf: i)
                     let recording = try decoder.decode(Recording.self, from: data)
                     recordings.append(recording)
@@ -212,8 +205,6 @@ struct FolderView: View {
             }
         }
         recordings.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
-        print("count of recordings after fetch:")
-        print(recordings.count)
     }
     
     private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
@@ -225,7 +216,6 @@ struct FolderView: View {
         let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
         // if curr folder == recently deleted, perma delete
         if (recentlyDeletedFolder.lastPathComponent == folder.path) {
-            print("Deleting permanently")
             do {
                 try fileManager.removeItem(at: oldAudioURL)
             } catch {
@@ -294,8 +284,6 @@ struct AudioControlView: View {
     @ObservedObject var audioPlayer: AudioPlayerModel
     
     init(folderPath: String, audioPath: String){
-        print("-- ACV --")
-        print(audioPath)
         self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
     }
     

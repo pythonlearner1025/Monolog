@@ -213,44 +213,46 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
     }
 }
 
-
-class OutputCache<Key: Hashable, Value>: ObservableObject {
+class OutputCache: ObservableObject {
     private let wrappedCache = NSCache<WrappedKey, Entry>()
 
-    func insert(_ value: Value, forKey key: Key) {
+    func insert(_ value: Bool, forKey key: String) {
         let entry = Entry(value: value)
         wrappedCache.setObject(entry, forKey: WrappedKey(key))
     }
 
-    func value(forKey key: Key) -> Value? {
-        let entry = wrappedCache.object(forKey: WrappedKey(key))
-        return entry?.value
+    func value(forKey key: String) -> Bool {
+        if let entry = wrappedCache.object(forKey: WrappedKey(key)) {
+            return entry.value
+        } else {
+            return false
+        }
     }
 
-    private class WrappedKey: NSCopying {
-        let key: Key
+    private class WrappedKey: NSObject {
+        let key: String
 
-        init(_ key: Key) {
+        init(_ key: String) {
             self.key = key
         }
 
-        func copy(with zone: NSZone? = nil) -> Any {
-            return self
+        override var hash: Int {
+            return key.hash
         }
 
-        static func == (lhs: WrappedKey, rhs: WrappedKey) -> Bool {
-            return lhs.key == rhs.key
-        }
-
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(key)
+        override func isEqual(_ object: Any?) -> Bool {
+            guard let otherWrappedKey = object as? WrappedKey else {
+                return false
+            }
+            
+            return key == otherWrappedKey.key
         }
     }
 
     private class Entry {
-        let value: Value
+        let value: Bool
         
-        init(value: Value) {
+        init(value: Bool) {
             self.value = value
         }
     }

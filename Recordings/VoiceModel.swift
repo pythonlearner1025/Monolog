@@ -155,8 +155,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                         self.updateErrorOutput(out.id.uuidString, settings: out.settings, outputs:  recording.outputs)
                                 }
                                 do {
-                                    print("-- saving output error data --")
-                                    print(recording.outputs)
                                     let updatedData = try self.encoder.encode(recording)
                                     try updatedData.write(to: fileURL)
                                 }
@@ -261,7 +259,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
     func regenerateOutput(recording: Recording, output: Output) {
         if output.type == .Transcript {
-            print("== regen transcript and all ==")
             generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
             return
         }
@@ -370,7 +367,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                     promise(.success(update))
                                 }
                             case .failure(let error):
-                                print("AF failure \(error)")
                                 promise(.failure(OutputGenerationError.failure(error: error, outputType: outputType, transcript: transcript)))
                         }
                 }
@@ -518,8 +514,6 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
     
     func stopPlaying() {
         if(isPlaying){
-            print("stopping playing")
-            print("\(audioPlayer.currentTime)")
             audioPlayer.pause()
             isPlaying = false
         }
@@ -536,7 +530,6 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             }
             
             currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-            print(currentTime)
             progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
             absProgress = self.audioPlayer.currentTime
             isPlaying = audioPlayer.isPlaying
@@ -556,7 +549,6 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             }
             
             currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-            print(currentTime)
             progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
             absProgress = self.audioPlayer.currentTime
         }

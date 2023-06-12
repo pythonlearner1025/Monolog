@@ -13,10 +13,6 @@ struct RecordingsApp: App {
     @AppStorage("isNewLaunch") var isNewLaunch: Bool = true
     @StateObject var folderNavigationModel = FolderNavigationModel()
     @StateObject var audioRecorder: AudioRecorderModel = AudioRecorderModel()
-    
-    init() {
-       
-    }
 
     var body: some Scene {
         WindowGroup {

@@ -9,8 +9,8 @@
 import SwiftUI
 
 struct HomeView: View {
-    @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     @AppStorage("isNewLaunch") var isNewLaunch: Bool = true
+    @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     @EnvironmentObject var folderNavigationModel: FolderNavigationModel
     @EnvironmentObject var audioRecorder: AudioRecorderModel
     //var isFirstLaunch = true
@@ -21,15 +21,12 @@ struct HomeView: View {
     private var section = ["Defaults", "User Created"]
     
     init() {
-        print("== INIT ==")
-        print(isNewLaunch)
         if isFirstLaunch {
             setup()
             loadFolders()
             print(folders.count)
             isFirstLaunch = false
         }
-        
       }
     
     var body: some View {
@@ -73,13 +70,11 @@ struct HomeView: View {
                            }
                        }
                      .onAppear(perform: {
-                       print("Loading folders")
                        loadFolders()
                    })
                }
            .listStyle(.automatic)
            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
-                   print("calling terminate")
                    isNewLaunch = true
                })
            }

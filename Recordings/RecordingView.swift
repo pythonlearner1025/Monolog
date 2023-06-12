@@ -109,17 +109,11 @@ struct RecordingView: View {
                         ShareSheet(items: [url])
                 }
             }
-            .onReceive(keyboardResponder.$currentHeight){ height in
-                print(height)
-            }
             .onReceive(outputs.$outputs){ outputs in
-                print("-- onReceive new update --")
-                print(outputs)
             }
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
-        print("recording update")
         return outputs.sorted { $0.type < $1.type }
     }
     
@@ -180,22 +174,13 @@ struct RecordingView: View {
 // TODO: add Recording
 struct OutputView: View {
     @ObservedObject var output: Output
-    @State private var isMinimized: Bool = false // Add this state variable
-    @ObservedObject var cache = OutputCache<String, Bool>()
+    @State var isMinimized: Bool = false // Add this state variable
     let audioAPI: AudioRecorderModel = AudioRecorderModel()
     let recording: Recording
     
     init(_ output: Output, recording: Recording) {
-       print("== On OutputView Init ==")
        self.output = output
        self.recording = recording
-       let key = "\(output.id)"
-       if let cachedValue = cache.value(forKey: key) {
-           self.isMinimized = cachedValue
-       } else {
-           cache.insert(false, forKey: key)
-           self.isMinimized = false
-       }
     }
     
     var body: some View {
@@ -209,11 +194,6 @@ struct OutputView: View {
             }
             .padding(.vertical)
             .frame(height: 40)
-            .onTapGesture {
-                self.isMinimized.toggle()
-                let key = "\(output.id)"
-                cache.insert(isMinimized, forKey: key)
-            }
             if output.error {
                 Group {
                    if !isMinimized {
@@ -223,13 +203,11 @@ struct OutputView: View {
                            ZStack {
                                Text(output.content)
                            }
-                       }.onTapGesture{
-                           print("on retry")
-                           print(output.content)
-                           audioAPI.regenerateOutput(recording: recording, output: output)
                        }
                        
                    }
+                }.onTapGesture{
+                   audioAPI.regenerateOutput(recording: recording, output: output)
                 }.animation(.easeInOut.speed(1.4),  value: isMinimized)
             } else if output.loading {
                 Group {
@@ -253,12 +231,13 @@ struct OutputView: View {
                        }
                    }
                 }
-                .animation(.easeInOut.speed(1.4), value: isMinimized)
+                .animation(.easeInOut.speed(1.6))
                 .onChange(of: output.content, perform: { value in
                    saveRecording()
                 })
             }
         }
+       
     }
     
     private func getCustomOutputName(_ output: Output) -> String{
@@ -278,7 +257,6 @@ struct OutputView: View {
             let data = try encoder.encode(recording)
             let folderURL = Util.buildFolderURL(recording.folderPath)
             try data.write(to: folderURL.appendingPathComponent(recording.filePath))
-            print("saved changes to disk")
         } catch {
             print("An error occurred while saving the recording object: \(error)")
         }
@@ -305,10 +283,6 @@ struct TitleView: View {
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
                 Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
             }
-            .onAppear(perform: {
-                print("title loading appear")
-                print(output.loading)
-            })
         } else {
             Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
         }
