@@ -180,7 +180,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 out.content = update.content
                                 out.settings = update.settings
                                 
-                                //self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
                             case .Action:
                                 print("** update: action **")
                                 let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Action})
@@ -190,7 +189,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 out.content = update.content
                                 out.settings = update.settings
                                 
-                                //self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+                          
                             case .Title:
                                 print("** update: Title **")
                                 recording.title = update.content
@@ -201,7 +200,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 out.content = update.content
                                 out.settings = update.settings
                                 
-                                //self.updateOutput(out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+                          
                             case .Transcript:
                                 break
                             case .Custom:
@@ -447,7 +446,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }
     }
     
-    func deleteRecording() {
+    func cancelSave() {
         cancellables.removeAll()
     }
     
@@ -474,10 +473,6 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             let folderURL = Util.buildFolderURL(folderPath)
             let rawURL = folderURL.appendingPathComponent("raw", isDirectory: true)
             let audioURL = rawURL.appendingPathComponent(audioPath)
-            print("PROBLEM")
-            print(folderURL)
-            print(audioPath)
-            print(audioURL)
             self.audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
         } catch {
             print("audioPlayerModel \(error)")
@@ -505,11 +500,9 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             Timer.scheduledTimer(withTimeInterval: 0.01, repeats: audioPlayer.isPlaying){ _ in
                 if(self.isPlaying){
                     self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-                    print(self.currentTime)
                     self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
                     self.absProgress = self.audioPlayer.currentTime
                     if (self.audioPlayer.currentTime >= self.audioPlayer.duration) {
-                        print("reached")
                         self.absProgress = 0.0
                         self.progress = 0
                         self.currentTime = self.formatter.string(from: TimeInterval(0.0))!

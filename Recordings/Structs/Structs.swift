@@ -15,6 +15,31 @@ struct Util {
         let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return applicationSupportDirectory.appendingPathComponent(folderLastPathComponent)
     }
+    
+    static func allFolderURLs() -> [URL] {
+        let fileManager = FileManager.default
+        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return [] }
+        let folderURLs = try! fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
+        return folderURLs
+    }
+    
+    static func decoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601 // match the encoding strategy
+        return decoder
+    }
+    
+    static func encoder() -> JSONEncoder {
+         let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }
+    
+    static func root() -> URL {
+        let fileManager = FileManager.default
+        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return  URL.applicationDirectory}
+        return applicationSupportDirectory
+    }
 }
 
 struct ShareSheet: UIViewControllerRepresentable {

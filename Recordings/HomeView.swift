@@ -12,8 +12,7 @@ struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     @AppStorage("isNewLaunch") var isNewLaunch: Bool = true
     @EnvironmentObject var folderNavigationModel: FolderNavigationModel
-    @StateObject var audioRecorder: AudioRecorderModel = AudioRecorderModel()
-
+    @EnvironmentObject var audioRecorder: AudioRecorderModel
     //var isFirstLaunch = true
     @State private var showAllFirst = true
     @State private var folders: [RecordingFolder] = []
@@ -73,20 +72,19 @@ struct HomeView: View {
                             })
                         }
                     }
+                  .onAppear(perform: {
+                    print("Loading folders")
+                    loadFolders()
+                })
             }
-          
         .listStyle(.automatic)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
                 print("calling terminate")
                 isNewLaunch = true
             })
         }
-        .onAppear(perform: {
-            print("Loading folders")
-            loadFolders()
-        }
-    )
-    }
+      }
+
 
     func setup() {
         //default settings
@@ -120,36 +118,29 @@ struct HomeView: View {
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
         
         do {
-           let folderURLs = try fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
-           folders = folderURLs.compactMap { url -> RecordingFolder? in
-               let folderName = url.lastPathComponent
-               let folderPath = url.path
-               do {
-                   let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
-                   let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
-                   print("loaded folder \(url)")
-                   return RecordingFolder(name: folderName, path: folderName, count: itemCount)
-               } catch {
-                   print("An error occurred while counting items in \(folderName): \(error)")
-                   return nil
-               }
-           }
-       } catch {
-           print("An error occurred while retrieving folder URLs: \(error)")
-       }
-    }
-    
-    func loadFolder(_ folder: RecordingFolder) {
-        let fileManager = FileManager.default
-        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
-        
-        do {
-            let folderContents = try fileManager.contentsOfDirectory(atPath: folder.path)
-            let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
-            let folderidx = folders.firstIndex(where: {$0.id == folder.id})
-            folders[folderidx!] = RecordingFolder(name: folder.name, path: folder.name, count: itemCount)
-        } catch {
-            print("error loading folder \(error)")
+            let folderURLs = try! fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
+            var allCount = 0
+            folders = folderURLs.compactMap { url -> RecordingFolder? in
+                let folderName = url.lastPathComponent
+                let folderPath = url.path
+                do {
+                    print("loaded folder \(url.path)")
+                    let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
+                    let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
+                    if (folderName != "Recently Deleted") {
+                        allCount += itemCount
+                    }
+                    if (folderName != "All") {
+                         return RecordingFolder(name: folderName, path: folderName, count: itemCount)
+                    } else {
+                        return nil
+                    }
+                } catch {
+                    print("An error occurred while counting items in \(folderName): \(error)")
+                    return nil
+                }
+            }
+            folders.append(RecordingFolder(name: "All", path: "All", count: allCount))
         }
     }
     

@@ -92,10 +92,10 @@ struct FolderView: View {
             }
             .onDelete{indexSet in
                 indexSet.sorted(by: >).forEach{ i in
+                    audioRecorder.cancelSave()
                     recordings[i].audioPlayer!.stopPlaying()
                     recordings[i].audioPlayer!.isPlaying = false
                     deleteRecording(recordings[i], recordings[i].audioPath, recordings[i].filePath)
-                    
                     recordings.remove(atOffsets: indexSet)
                 }
             }
@@ -107,7 +107,6 @@ struct FolderView: View {
         .navigationDestination(for: Int.self){ [$recordings] idx in
             RecordingView(recordings:$recordings, idx: idx)
         }
-        // not here
         .onAppear {
             fetchAllRecording()
             formHasAppeared = true
@@ -186,40 +185,43 @@ struct FolderView: View {
         recordings = []
         let fileManager = FileManager.default
         let folderURL = Util.buildFolderURL(folder.path)
-        let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601 // match the encoding strategy
-        print("num items in dir \(directoryContents.count)")
-        for i in directoryContents {
-            if (i.lastPathComponent == "raw") {
-                continue
+        var directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
+        let decoder = Util.decoder()
+        if (folder.path == "All") {
+            let folderURLs = Util.allFolderURLs()
+            for f in folderURLs {
+                if (f.lastPathComponent != "Recently Deleted" && f.lastPathComponent != "All") {
+                print("adding folder \(f.lastPathComponent)")
+                  let folderContents = try! fileManager.contentsOfDirectory(at: f, includingPropertiesForKeys: nil)
+                print(folderContents)
+                directoryContents.append(contentsOf: folderContents)
+                }
             }
-            else {
+        }
+        print("directoryContents count: \(directoryContents.count)")
+        for i in directoryContents {
+            if (i.lastPathComponent != "raw") {
                 do {
-                    print("==== dcoding == ")
+                    print("==decoding==")
                     let data = try Data(contentsOf: i)
                     let recording = try decoder.decode(Recording.self, from: data)
                     recordings.append(recording)
-                    print(recordings.count)
                 } catch {
                     print("An error occurred while decoding the recording object: \(error)")
                 }
             }
         }
-        
         recordings.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
         print("count of recordings after fetch:")
         print(recordings.count)
-        print(recordings)
     }
     
     private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        let fileManager = FileManager.default
+        let encoder = Util.encoder()
         let oldAudioURL = rawFolderURL.appendingPathComponent(audioPath)
         let oldFileURL = Util.buildFolderURL(folder.path).appendingPathComponent(filePath)
-        let fileManager = FileManager.default
-        guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        let applicationSupportDirectory = Util.root()
         let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
         // if curr folder == recently deleted, perma delete
         if (recentlyDeletedFolder.lastPathComponent == folder.path) {
@@ -239,7 +241,8 @@ struct FolderView: View {
         }
         // move to recently deleted
         recording.folderPath = "Recently Deleted"
-        let newAudioURL = recentlyDeletedFolder.appendingPathComponent("raw/\(audioPath)")
+        let recentlyDeletedRawFolder = recentlyDeletedFolder.appendingPathComponent("raw")
+        let newAudioURL = recentlyDeletedRawFolder.appendingPathComponent(audioPath)
         let newFileURL = recentlyDeletedFolder.appendingPathComponent(filePath)
         do {
             try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
