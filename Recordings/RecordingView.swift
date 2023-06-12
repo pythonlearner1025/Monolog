@@ -131,8 +131,7 @@ struct RecordingView: View {
     private func deleteOutput(_ output: Output){
         if let idxToDelete = outputs.outputs.firstIndex(where: {$0.id == output.id}) {
             outputs.outputs.remove(at: idxToDelete)
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
+            let encoder = Util.encoder()
             do {
                 let updatedData = try encoder.encode(recording)
                 let folderURL = Util.buildFolderURL(recording.folderPath)
@@ -274,11 +273,11 @@ struct OutputView: View {
     }
     
     private func saveRecording() {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        let encoder = Util.encoder()
         do {
             let data = try encoder.encode(recording)
-            try data.write(to: Util.buildFolderURL(recording.filePath))
+            let folderURL = Util.buildFolderURL(recording.folderPath)
+            try data.write(to: folderURL.appendingPathComponent(recording.filePath))
             print("saved changes to disk")
         } catch {
             print("An error occurred while saving the recording object: \(error)")

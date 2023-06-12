@@ -11,7 +11,11 @@ import Combine
 import UIKit
 
 class FolderNavigationModel: ObservableObject {
-    @Published var presentedItems = NavigationPath()
+    @Published var presentedItems: NavigationPath = NavigationPath()
+    
+    func addAllFolderView(_ folder: RecordingFolder) {
+        presentedItems.append(folder)
+    }
 }
 
 class KeyboardResponder: ObservableObject {

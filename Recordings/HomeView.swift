@@ -22,7 +22,6 @@ struct HomeView: View {
     
     init() {
         print("== INIT ==")
-        print(isFirstLaunch)
         print(isNewLaunch)
         if isFirstLaunch {
             setup()
@@ -30,60 +29,62 @@ struct HomeView: View {
             print(folders.count)
             isFirstLaunch = false
         }
-    }
+        
+      }
     
     var body: some View {
-        ZStack{
-            NavigationStack(path: $folderNavigationModel.presentedItems) {
-                List (folders){ folder in
-                    NavigationLink(value: folder) {
-                        FolderInnerView(folder: folder)
-                        }
-                        .deleteDisabled(true)
-                }
-                .navigationDestination(for: RecordingFolder.self){ folder in
-                    FolderView(folder: folder)
-                        .environmentObject(audioRecorder)
-                }
-                .navigationTitle("Folders")
-                .navigationBarItems(trailing:
-                    EditButton()
-                    ).toolbar {
-                    ToolbarItem(placement: .bottomBar){
-                            Button(action: {
-                            }) {
-                                Text("")
-                            }
-                    }
-                    ToolbarItem(placement: .bottomBar){
-                            Button(action: {
-                                showAlert = true
-                            }) {
-                                Image(systemName: "folder.badge.plus")
-                            }
-                            .alert("New Folder", isPresented: $showAlert, actions: {
-                                TextField("New folder name", text: $newFolderName)
-                                Button("Create", action: {
-                                    createFolder(title: newFolderName)
-                                    newFolderName=""
-                                }
-                                )
-                                Button("Cancel", role: .cancel, action: {})
-                            })
-                        }
-                    }
-                  .onAppear(perform: {
-                    print("Loading folders")
-                    loadFolders()
-                })
-            }
-        .listStyle(.automatic)
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
-                print("calling terminate")
-                isNewLaunch = true
-            })
-        }
-      }
+           ZStack{
+               NavigationStack(path: $folderNavigationModel.presentedItems) {
+                   List (folders){ folder in
+                       NavigationLink(value: folder) {
+                           FolderInnerView(folder: folder)
+                           }
+                           .deleteDisabled(true)
+                   }
+                   .navigationDestination(for: RecordingFolder.self){ folder in
+                       FolderView(folder: folder)
+                           .environmentObject(audioRecorder)
+                   }
+                   .navigationTitle("Folders")
+                   .navigationBarItems(trailing:
+                       EditButton()
+                       ).toolbar {
+                       ToolbarItem(placement: .bottomBar){
+                               Button(action: {
+                               }) {
+                                   Text("")
+                               }
+                       }
+                       ToolbarItem(placement: .bottomBar){
+                               Button(action: {
+                                   showAlert = true
+                               }) {
+                                   Image(systemName: "folder.badge.plus")
+                               }
+                               .alert("New Folder", isPresented: $showAlert, actions: {
+                                   TextField("New folder name", text: $newFolderName)
+                                   Button("Create", action: {
+                                       createFolder(title: newFolderName)
+                                       newFolderName=""
+                                   }
+                                   )
+                                   Button("Cancel", role: .cancel, action: {})
+                               })
+                           }
+                       }
+                     .onAppear(perform: {
+                       print("Loading folders")
+                       loadFolders()
+                   })
+               }
+           .listStyle(.automatic)
+           .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
+                   print("calling terminate")
+                   isNewLaunch = true
+               })
+           }
+         }
+
 
 
     func setup() {
@@ -112,6 +113,8 @@ struct HomeView: View {
             print("An error occurred while creating the 'All' directory: \(error)")
         }
     }
+    
+
     
     func loadFolders() {
         let fileManager = FileManager.default
