@@ -65,30 +65,36 @@ struct RecordingView: View {
         }
             .navigationBarItems(trailing:
             HStack{
-                Menu {
-                    Button(action: exportTranscript) {
-                        Label("Export Transcript", systemImage: "doc.text")
-                    }
-                    Button(action: exportAudio) {
-                        Label("Export Audio", systemImage: "waveform")
-                    }
-                }
-            label: {
-                Image(systemName: "square.and.arrow.up")
-            }
-                Button(action: {
-                    isShowingCustomOutput.toggle()
-                }) {
-                    Image(systemName: "sparkles")
-                }
-                Button(action: {
-                    showDelete.toggle()
-                }){
-                    Text("Edit")
-                }
                 if keyboardResponder.currentHeight != 0 {
+                    Spacer()
                     Button(action: hideKeyboard) {
                         Text("Done")
+                    }
+                } else {
+                    Menu {
+                        Button(action: exportTranscript) {
+                            Label("Export Transcript", systemImage: "doc.text")
+                        }
+                        Button(action: exportAudio) {
+                            Label("Export Audio", systemImage: "waveform")
+                        }
+                    }
+                    label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    Button(action: {
+                        isShowingCustomOutput.toggle()
+                    }) {
+                        Image(systemName: "sparkles")
+                    }
+                    Button(action: {
+                        showDelete.toggle()
+                    }){
+                        if !showDelete {
+                            Text("Edit")
+                        } else {
+                            Text("Done")
+                        }
                     }
                 }
             })
@@ -194,6 +200,9 @@ struct OutputView: View {
             }
             .padding(.vertical)
             .frame(height: 40)
+            .onTapGesture {
+                isMinimized.toggle()
+            }
             if output.error {
                 Group {
                    if !isMinimized {
@@ -281,10 +290,32 @@ struct TitleView: View {
         } else if output.loading {
             HStack{
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
-                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
+                Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
             }
         } else {
-            Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)
+            HStack{
+                ZStack {
+                    TextEditor(text: $output.content)
+                      .font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30)                    .multilineTextAlignment(.center)
+
+                    Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray).opacity(0)
+                    }
+            }
+            .onChange(of: output.content, perform: { value in
+                recording.title = value
+                saveRecording()
+            })
+        }
+    }
+    
+    private func saveRecording() {
+        let encoder = Util.encoder()
+        do {
+            let data = try encoder.encode(recording)
+            let folderURL = Util.buildFolderURL(recording.folderPath)
+            try data.write(to: folderURL.appendingPathComponent(recording.filePath))
+        } catch {
+            print("An error occurred while saving the recording object: \(error)")
         }
     }
 }
