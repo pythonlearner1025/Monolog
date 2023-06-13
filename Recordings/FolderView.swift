@@ -14,6 +14,8 @@ struct FolderView: View {
     @State var selection: FolderPageEnum = .normal
     @State private var isShowingSettings = false
     @State private var isShowingPicker = false
+    @State private var isShowingMoveSheet = false
+    @State private var recordingToMove: Recording?
     @State private var searchText = ""
     @State private var formHasAppeared = false
     @EnvironmentObject var audioRecorder: AudioRecorderModel
@@ -22,6 +24,7 @@ struct FolderView: View {
     @State var recordings: [Recording] = []
     
     init(folder: RecordingFolder) {
+        print("INIT FOLDERVIEW")
         self.folder = folder
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
@@ -88,19 +91,29 @@ struct FolderView: View {
                     AudioControlView(folderPath: recordings[idx].folderPath, audioPath: recordings[idx].audioPath)
                     Divider().padding(.vertical, 15)  // Add a divider here
                 }
+                .swipeActions(allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        audioRecorder.cancelSave()
+                        recordings[idx].audioPlayer!.stopPlaying()
+                        recordings[idx].audioPlayer!.isPlaying = false
+                        deleteRecording(recordings[idx], recordings[idx].audioPath, recordings[idx].filePath)
+                        recordings.remove(atOffsets: [idx])
+                    } label: {
+                        Label("Delete", systemImage: "minus.circle.fill")
+                    }
+                    Button {
+                        recordingToMove = recordings[idx]
+                        isShowingMoveSheet = true
+                    } label: {
+                        Label("Move", systemImage: "folder")
+                    }
+                    .tint(.green)
+                }
             }
             .onDelete{indexSet in
-                indexSet.sorted(by: >).forEach{ i in
-                    audioRecorder.cancelSave()
-                    recordings[i].audioPlayer!.stopPlaying()
-                    recordings[i].audioPlayer!.isPlaying = false
-                    deleteRecording(recordings[i], recordings[i].audioPath, recordings[i].filePath)
-                    recordings.remove(atOffsets: indexSet)
-                }
             }
             .id(UUID())
             .listRowSeparator(.hidden)
-
         }
         .listRowSeparator(.hidden)
         .navigationDestination(for: Int.self){ [$recordings] idx in
@@ -109,9 +122,18 @@ struct FolderView: View {
         .onAppear {
             fetchAllRecording()
             formHasAppeared = true
+            recordingToMove = nil
         }
         .if(formHasAppeared) { view in
             view.searchable(text: $searchText)
+        }
+        // TODO: bug
+        .sheet(item: $recordingToMove) { recording in
+            if let idx = recordings.firstIndex(where: {$0.id == recording.id}) {
+                MoveSheet($recordings, idx: idx)
+            } else {
+                Text("Fok")
+            }
         }
         .sheet(isPresented: $isShowingSettings){
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
@@ -380,6 +402,108 @@ struct SettingsView: View {
 
     }
 }
+struct MoveSheet: View {
+    @Binding var recordings: [Recording]
+    let idx: Int
+    @Environment(\.presentationMode) private var presentationMode
+    @State private var allFolders: [String] = []
+
+    init(_ recordings: Binding<[Recording]>, idx: Int){
+        self._recordings = recordings
+        self.idx = idx
+    }
+    
+    var body: some View {
+        NavigationView{
+            Form {
+                Section(header: Text("Recording")) {
+                    Text(idx < recordings.count ? recordings[idx].title : "loading")
+                }
+                
+                Section(header: Text("Folders")) {
+                    ForEach(allFolders, id: \.self) { folder in
+                        MoveFolderInnerView(name: folder)
+                         Change background color
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                moveItem(folder)
+                        }
+                    }
+                }
+            }
+            .navigationBarTitle("Move Item", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+        .onAppear(perform: {
+            let allFolderURLs = Util.allFolderURLs()
+            for url in allFolderURLs {
+                if url.lastPathComponent != recordings[idx].folderPath {
+                    allFolders.append(url.lastPathComponent)
+                }
+            }
+        })
+    }
+    
+
+    private func moveItem(_ folder: String) {
+        print("moving item")
+        let fileManager = FileManager.default
+        let recording = recordings[idx]
+        let encoder = Util.encoder()
+        let folderURL = Util.buildFolderURL(recording.folderPath)
+        let rawFolderURL = folderURL.appendingPathComponent("raw")
+        let oldAudioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
+        let oldFileURL = folderURL.appendingPathComponent(recording.filePath)
+        // implement moving the file here
+        recording.folderPath = folder
+        
+        let newFolderURL = Util.buildFolderURL(folder)
+        let newRawFolderURL = newFolderURL.appendingPathComponent("raw")
+        let newFileURL = newFolderURL.appendingPathComponent(recording.filePath)
+        let newAudioURL = newRawFolderURL.appendingPathComponent(recording.audioPath)
+       
+        do {
+            let data = try encoder.encode(recording)
+            try data.write(to: newFileURL)
+            try fileManager.removeItem(at: oldFileURL)
+        } catch {
+            print("can't move file \(error)")
+        }
+        
+        do {
+            try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
+        } catch {
+            print("can't move audio \(error)")
+        }
+        // After moving, dismiss the view
+        recordings.remove(at: idx)
+        presentationMode.wrappedValue.dismiss()
+    }
+}
+
+struct MoveFolderInnerView: View {
+    var name: String
+    
+    var body: some View {
+        HStack{
+            if name == "Recently Deleted" {
+                Image(systemName: "trash")
+            } else {
+                Image(systemName: "folder")
+            }
+            Text(name)
+            Spacer()
+        }.font(.body)
+    }
+    
+}
+
 extension View {
     @ViewBuilder
     func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {

@@ -85,7 +85,7 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable, Identifia
 }
 
 
-class Recording: ObservableObject, Codable, Equatable {
+class Recording: ObservableObject, Codable, Equatable, Identifiable {
     @Published var audioPlayer: AudioPlayerModel?
     @Published var folderPath: String
     @Published var audioPath: String
@@ -93,10 +93,11 @@ class Recording: ObservableObject, Codable, Equatable {
     @Published var createdAt: Date
     @Published var title: String
     @Published var outputs: Outputs
+    var id: UUID = UUID()
 
 
     enum CodingKeys: CodingKey {
-        case filePath, createdAt, audioPath, title, outputs, folderPath
+        case filePath, createdAt, audioPath, title, outputs, folderPath, id
     }
 
     required init(from decoder: Decoder) throws {
@@ -107,6 +108,7 @@ class Recording: ObservableObject, Codable, Equatable {
         outputs = try container.decode(Outputs.self, forKey: .outputs)
         audioPath = try container.decode(String.self, forKey: .audioPath)
         folderPath = try container.decode(String.self, forKey: .folderPath)
+        id = try container.decode(UUID.self, forKey: .id)
         audioPlayer = AudioPlayerModel(folderPath: Util.buildFolderURL(folderPath).path, audioPath: audioPath)
     }
 
@@ -119,6 +121,7 @@ class Recording: ObservableObject, Codable, Equatable {
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(title, forKey: .title)
         try container.encode(audioPath, forKey: .audioPath)
+        try container.encode(id, forKey: .id)
     }
 
     // your initializer here
@@ -133,10 +136,7 @@ class Recording: ObservableObject, Codable, Equatable {
     }
     
     static func == (lhs: Recording, rhs: Recording) -> Bool {
-           return lhs.filePath == rhs.filePath
-               && lhs.createdAt == rhs.createdAt
-               && lhs.title == rhs.title
-               && lhs.audioPath == rhs.audioPath
+           return lhs.id == rhs.id
        }
 }
 
