@@ -423,7 +423,6 @@ struct MoveSheet: View {
                 Section(header: Text("Folders")) {
                     ForEach(allFolders, id: \.self) { folder in
                         MoveFolderInnerView(name: folder)
-                         Change background color
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 moveItem(folder)

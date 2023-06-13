@@ -72,8 +72,8 @@ struct RecordingView: View {
                     }
                 } else {
                     Menu {
-                        Button(action: exportTranscript) {
-                            Label("Export Transcript", systemImage: "doc.text")
+                        Button(action: exportText) {
+                            Label("Export Text", systemImage: "doc.text")
                         }
                         Button(action: exportAudio) {
                             Label("Export Audio", systemImage: "waveform")
@@ -143,19 +143,25 @@ struct RecordingView: View {
         }
     }
     
-    private func exportTranscript() {
-        let transcript = outputs.outputs.first { $0.type == .Transcript }?.content ?? ""
+    private func exportText() {
+        var all = outputs.outputs
+            .filter { $0.type != .Title }  // Exclude .Title type
+            .map { "\n\($0.type.rawValue)\n\($0.content)" }  // Concatenate title and content with newlines
+            .joined(separator: "\n")  // Join all strings into one with a newline separator
+        all.removeFirst()
         let filename = "\(recording.title).txt"
         let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let fileURL = tempDirectoryURL.appendingPathComponent(filename)
+
         do {
-            try transcript.write(to: fileURL, atomically: true, encoding: .utf8)
+            try all.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
             print("Failed to create file")
             print("\(error)")
         }
         activeSheet = .exportText(fileURL)
     }
+
     
     private func exportAudio(){
         let originalURL = URL(fileURLWithPath: recording.audioPath)
