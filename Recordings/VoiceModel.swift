@@ -22,7 +22,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
     ]
     //let baseURL = "https://turing-api.com/api/v1/"
-    let baseURL = "http://0.0.0.0:3000/api/v1/"
+    let baseURL = "https://turing-api.com/api/v1/"
     var cancellables = Set<AnyCancellable>()
     override init(){
         self.formatter = DateComponentsFormatter()
