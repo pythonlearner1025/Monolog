@@ -93,7 +93,7 @@ struct FolderView: View {
                             }
                         }
                     }
-                    AudioControlView(folderPath: filteredItems[idx].folderPath, audioPath: filteredItems[idx].audioPath)
+                    AudioControlView(folderPath: filteredItems[idx].folderPath, audioPath: filteredItems[idx].audioPath).environmentObject(audioRecorder)
                     Divider().padding(.vertical, 15)  // Add a divider here
                 }
                 .swipeActions(allowsFullSwipe: false) {
@@ -350,6 +350,7 @@ struct OutputPreview: View {
 // that loads 
 struct AudioControlView: View {
     @ObservedObject var audioPlayer: AudioPlayerModel
+    @EnvironmentObject var audioRecorder: AudioRecorderModel
     
     init(folderPath: String, audioPath: String){
         self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)

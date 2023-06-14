@@ -32,11 +32,29 @@ struct HomeView: View {
     var body: some View {
            ZStack{
                NavigationStack(path: $folderNavigationModel.presentedItems) {
-                   List (folders){ folder in
-                       NavigationLink(value: folder) {
-                           FolderInnerView(folder: folder)
+                   List{
+                       Section{
+                           ForEach(folders) {folder in
+                               if(folder.name == "All" || folder.name == "Recently Deleted"){
+                                   NavigationLink(value: folder) {
+                                       FolderInnerView(folder: folder)
+                                   }.deleteDisabled(true)
+                               }
                            }
-                           .deleteDisabled(true)
+                       }
+                       Section(header: Text("Custom")){
+                           ForEach(folders) {folder in
+                               if(folder.name != "All" && folder.name != "Recently Deleted"){
+                                   NavigationLink(value: folder) {
+                                       FolderInnerView(folder: folder)
+                                   }
+                               }
+                           }.onDelete{indexSet in
+                               indexSet.sorted(by:>).forEach{i in deleteFolder(targetFolder: folders[i])
+                               }
+                               folders.remove(atOffsets: indexSet)
+                           }
+                       }
                    }
                    .navigationDestination(for: RecordingFolder.self){ folder in
                        FolderView(folder: folder)
@@ -188,7 +206,9 @@ struct HomeView: View {
         }
         // Create a new Folder instance and add it to the 'folders' array
         let newFolder = RecordingFolder(name: title, path: newFolderPath.lastPathComponent, count: 0)
-        folders.append(newFolder)
+        withAnimation{
+            folders.append(newFolder)
+        }
     }
 
 }
@@ -216,6 +236,6 @@ struct FolderInnerView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        HomeView()
+        HomeView().environmentObject(FolderNavigationModel()).environmentObject(AudioRecorderModel())
     }
 }

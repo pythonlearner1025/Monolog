@@ -11,6 +11,7 @@ import Combine
 import Alamofire
 
 class AudioRecorderModel : NSObject, ObservableObject {
+    @Published var isPlaying : Bool = false
     let encoder : JSONEncoder
     var formatter : DateComponentsFormatter
     var audioRecorder : AVAudioRecorder!
