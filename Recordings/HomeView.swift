@@ -42,7 +42,7 @@ struct HomeView: View {
                                }
                            }
                        }
-                       Section(header: Text("Custom")){
+                       Section(header: Text("My Folders")){
                            ForEach(folders) {folder in
                                if(folder.name != "All" && folder.name != "Recently Deleted"){
                                    NavigationLink(value: folder) {
