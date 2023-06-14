@@ -345,6 +345,9 @@ struct OutputPreview: View {
     }
 }
 
+//TODO: Ideally, audioPlayer would persist in memory even through navigations
+// have one audioPlayer
+// that loads 
 struct AudioControlView: View {
     @ObservedObject var audioPlayer: AudioPlayerModel
     

@@ -105,6 +105,7 @@ async def transcribe(file: UploadFile = File(...)):
 @app.post('/api/v1/generate_output')
 async def generate_output(load: OutputLoad):
     if load.type == 'Summary':
+        #raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Missing Authorization header")
         print(load.type)
         gpt = CompletionAI(
             get_summary_out,

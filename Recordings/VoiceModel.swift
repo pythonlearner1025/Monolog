@@ -20,7 +20,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
         AVNumberOfChannelsKey: 1,
         AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
     ]
-    let baseURL = "https://turing-api.com/api/v1/"
+    //let baseURL = "https://turing-api.com/api/v1/"
+    let baseURL = "http://0.0.0.0:3000/api/v1/"
     var cancellables = Set<AnyCancellable>()
     override init(){
         self.formatter = DateComponentsFormatter()
@@ -93,7 +94,9 @@ class AudioRecorderModel : NSObject, ObservableObject {
             switch completion {
             case .failure(let error):
                 print("An error occurred while generating transcript: \(error)")
-                self.updateErrorOutput(transcript_out.id.uuidString, settings: OutputSettings.defaultSettings, outputs: recording.outputs)
+                //self.updateErrorOutput(transcript_out.id.uuidString, settings: OutputSettings.defaultSettings, outputs: recording.outputs)
+                self.updateAllErrorOutput(outputs: recording.outputs)
+                
                 do {
                     print("-- saving transcript error data --")
                     print(recording)
@@ -237,6 +240,22 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }
     }
     
+    func updateAllLoadingOutput(outputs: Outputs) {
+        for output in outputs.outputs {
+            output.content = "Loading"
+            output.error = false
+            output.loading = true
+        }
+    }
+    
+    func updateAllErrorOutput(outputs: Outputs) {
+        for output in outputs.outputs {
+            output.content = "Error, tap to retry"
+            output.error = true
+            output.loading = false
+        }
+    }
+    
     func updateErrorOutput(_ id: String, settings: OutputSettings, outputs: Outputs) {
         if let index = outputs.outputs.firstIndex(where: { $0.id.uuidString == id }) {
             outputs.outputs[index].content = "Error, tap to retry"
@@ -262,16 +281,24 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func regenerateOutput(recording: Recording, output: Output) {
+        // should immediately show loading
         if output.type == .Transcript {
+            updateAllLoadingOutput(outputs: recording.outputs)
             generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
             return
         }
+        output.content = "Loading"
+        output.error = false
+        output.loading = true
         let transcript = getTranscript(outputs: recording.outputs)
         generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                 case .failure(let error):
                     print("failed to regenerate \(error)")
+                    output.content = "Error, tap to retry"
+                    output.loading = false
+                    output.error = true
                 case .finished:
                     break
                 }
@@ -280,7 +307,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 switch update.type {
                     case .Summary:
                         print("** update: summary **")
-                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                        
                         break
                     case .Action:
@@ -479,7 +506,6 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
         }
     }
 
-    // TODO: major changes to start / stop playing
     func startPlaying() {
         let playSession = AVAudioSession.sharedInstance()
         do {
