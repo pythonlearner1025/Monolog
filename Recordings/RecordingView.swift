@@ -23,6 +23,9 @@ struct RecordingView: View {
     @ObservedObject private var keyboardResponder = KeyboardResponder()
     
     init(recordings: Binding<[Recording]>, idx: Int){
+        print("==RecordingView INIT==")
+        print(idx)
+        print(recordings.wrappedValue)
         self.idx = idx
         self.recording = recordings.wrappedValue[idx]
         self.outputs = recordings.wrappedValue[idx].outputs
@@ -319,6 +322,8 @@ struct TitleView: View {
         do {
             let data = try encoder.encode(recording)
             let folderURL = Util.buildFolderURL(recording.folderPath)
+            print("saving at this folder:")
+            print(recording.folderPath)
             try data.write(to: folderURL.appendingPathComponent(recording.filePath))
         } catch {
             print("An error occurred while saving the recording object: \(error)")
@@ -336,15 +341,12 @@ struct CustomOutputSheet: View {
     var body: some View{
         NavigationStack {
             Form {
-                Section(header: Text("Create a new transformation of your transcript").textCase(nil)){
-                    
-                }
                 
-                Section(header: Text("Transform Name")) {
+                Section(header: Text("Text Name")) {
                     TextEditor(text: $customName)
                 }
                 
-                Section(header: Text("Transform Prompt")) {
+                Section(header: Text("Text Prompt")) {
                     TextEditor(text: $customPrompt)
                         .frame(height: 120)
                 }
@@ -361,7 +363,7 @@ struct CustomOutputSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Transform")
+            .navigationBarTitle("Generate Text")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

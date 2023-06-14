@@ -8,10 +8,10 @@
 
 import SwiftUI
 import AVFoundation
-
 struct FolderView: View {
     @State private var keyboardResponder = KeyboardResponder()
     @State var selection: FolderPageEnum = .normal
+    @State private var showLoadingAlert = false
     @State private var isShowingSettings = false
     @State private var isShowingPicker = false
     @State private var isShowingMoveSheet = false
@@ -42,68 +42,81 @@ struct FolderView: View {
             .listRowSeparator(.hidden)
             .listRowBackground(Color(.systemBackground))
             ForEach(filteredItems.indices, id: \.self) { idx in
-                VStack (alignment: .leading){
+                VStack (alignment: .leading) {
                     HStack{
-                        VStack(alignment:.leading) {
-                            Text("\(recordings[idx].title)").font(.headline)
-                            Text("\(formatter.string(from: recordings[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
-                            
+                        VStack(alignment: .leading) {
+                            ForEach(filteredItems[idx].outputs.outputs) {output in
+                                switch output.type {
+                                case .Summary: EmptyView()
+                                case .Action: EmptyView()
+                                case .Transcript: EmptyView()
+                                case .Title: OutputPreview(output: output)
+                                case .Custom: EmptyView()
+                                }
+                            }
+                            Text("\(formatter.string(from: filteredItems[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
                         }.padding(.bottom, 10)
                         Spacer()
                         NavigationLink(value: idx){
                         }
                     }
-                    VStack (alignment: .leading) {
-                        if selection == .normal{
-                            ForEach(recordings[idx].outputs.outputs) {output in
-                                switch output.type {
-                                case .Summary: EmptyView()
-                                case .Action: EmptyView()
-                                case .Transcript: OutputPreview(output: output)
-                                case .Title: EmptyView()
-                                case .Custom: EmptyView()
-                                }
-                            }
-                        }
-                        if selection == .action {
-                            ForEach(recordings[idx].outputs.outputs) {output in
-                                switch output.type {
-                                case .Summary: EmptyView()
-                                case .Action: OutputPreview(output: output)
-                                case .Transcript: EmptyView()
-                                case .Title: EmptyView()
-                                case .Custom: EmptyView()
-                                }
-                            }
-                        }
-                        if selection == .summary {
-                            ForEach(recordings[idx].outputs.outputs) {output in
-                                switch output.type {
-                                case .Summary: OutputPreview(output: output)
-                                case .Action: EmptyView()
-                                case .Transcript: EmptyView()
-                                case .Title: EmptyView()
-                                case .Custom: EmptyView()
-                                }
+                    if selection == .normal{
+                        ForEach(filteredItems[idx].outputs.outputs) {output in
+                            switch output.type {
+                            case .Summary: EmptyView()
+                            case .Action: EmptyView()
+                            case .Transcript: OutputPreview(output: output)
+                            case .Title: EmptyView()
+                            case .Custom: EmptyView()
                             }
                         }
                     }
-                    AudioControlView(folderPath: recordings[idx].folderPath, audioPath: recordings[idx].audioPath)
+                    if selection == .action {
+                        ForEach(filteredItems[idx].outputs.outputs) {output in
+                            switch output.type {
+                            case .Summary: EmptyView()
+                            case .Action: OutputPreview(output: output)
+                            case .Transcript: EmptyView()
+                            case .Title: EmptyView()
+                            case .Custom: EmptyView()
+                            }
+                        }
+                    }
+                    if selection == .summary {
+                        ForEach(filteredItems[idx].outputs.outputs) {output in
+                            switch output.type {
+                            case .Summary: OutputPreview(output: output)
+                            case .Action: EmptyView()
+                            case .Transcript: EmptyView()
+                            case .Title: EmptyView()
+                            case .Custom: EmptyView()
+                            }
+                        }
+                    }
+                    AudioControlView(folderPath: filteredItems[idx].folderPath, audioPath: filteredItems[idx].audioPath)
                     Divider().padding(.vertical, 15)  // Add a divider here
                 }
                 .swipeActions(allowsFullSwipe: false) {
                     Button(role: .destructive) {
-                        audioRecorder.cancelSave()
-                        recordings[idx].audioPlayer!.stopPlaying()
-                        recordings[idx].audioPlayer!.isPlaying = false
-                        deleteRecording(recordings[idx], recordings[idx].audioPath, recordings[idx].filePath)
-                        recordings.remove(atOffsets: [idx])
+                        if outputsLoaded(filteredItems[idx]) {
+                            audioRecorder.cancelSave()
+                            filteredItems[idx].audioPlayer!.stopPlaying()
+                            filteredItems[idx].audioPlayer!.isPlaying = false
+                            deleteRecording(filteredItems[idx], filteredItems[idx].audioPath, filteredItems[idx].filePath)
+                            removeRecording(idx: idx)
+                        } else {
+                            showLoadingAlert = true
+                        }
                     } label: {
                         Label("Delete", systemImage: "minus.circle.fill")
                     }
                     Button {
-                        recordingToMove = recordings[idx]
-                        isShowingMoveSheet = true
+                        if outputsLoaded(filteredItems[idx]) {
+                            recordingToMove = filteredItems[idx]
+                            isShowingMoveSheet = true
+                        } else {
+                            showLoadingAlert = true
+                        }
                     } label: {
                         Label("Move", systemImage: "folder")
                     }
@@ -115,7 +128,6 @@ struct FolderView: View {
             .id(UUID())
             .listRowSeparator(.hidden)
         }
-        .listRowSeparator(.hidden)
         .navigationDestination(for: Int.self){ [$recordings] idx in
             RecordingView(recordings:$recordings, idx: idx)
         }
@@ -123,6 +135,8 @@ struct FolderView: View {
             fetchAllRecording()
             formHasAppeared = true
             recordingToMove = nil
+            print("fully fetched recordings:")
+            print(recordings)
         }
         .if(formHasAppeared) { view in
             view.searchable(text: $searchText)
@@ -130,7 +144,11 @@ struct FolderView: View {
         // TODO: bug
         .sheet(item: $recordingToMove) { recording in
             if let idx = recordings.firstIndex(where: {$0.id == recording.id}) {
-                MoveSheet($recordings, idx: idx)
+                MoveSheet($recordings, idx: idx, currFolder: folder.path)
+                    .onDisappear(perform: {
+                        fetchAllRecording()
+                        }
+                    )
             } else {
                 Text("Fok")
             }
@@ -166,6 +184,14 @@ struct FolderView: View {
                 print("error reading file")
             }
         }
+        .alert(isPresented: $showLoadingAlert) {
+            Alert(title: Text("Error Editing"), message: Text("Please wait until the recording has fully loaded"),
+                  dismissButton: .default(Text("OK")) {
+                showLoadingAlert=false
+            }
+                  )
+        }
+    
 
         if (folder.name != "Recently Deleted") {
             HStack {
@@ -185,6 +211,13 @@ struct FolderView: View {
         }
     }
     
+    private func removeRecording(idx: Int) {
+        let toDelete = filteredItems[idx]
+        if let toDeleteIdx = recordings.firstIndex(of: toDelete) {
+            recordings.remove(at: toDeleteIdx)
+        }
+    }
+    
     private func getOutput(idx: Int, type: OutputType) -> Output {
         return recordings[idx].outputs.outputs.first(where: {$0.type == type})!
     }
@@ -198,6 +231,15 @@ struct FolderView: View {
                 item.title.localizedCaseInsensitiveContains(searchText)
             }
         }
+    }
+    
+    private func outputsLoaded(_ recording: Recording) -> Bool {
+        for out in recording.outputs.outputs {
+            if out.loading {
+                return false
+            }
+        }
+        return true
     }
     
     func fetchAllRecording(){
@@ -232,8 +274,9 @@ struct FolderView: View {
     private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
         let fileManager = FileManager.default
         let encoder = Util.encoder()
+        let rawFolderURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent("raw")
         let oldAudioURL = rawFolderURL.appendingPathComponent(audioPath)
-        let oldFileURL = Util.buildFolderURL(folder.path).appendingPathComponent(filePath)
+        let oldFileURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent(filePath)
         let applicationSupportDirectory = Util.root()
         let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
         // if curr folder == recently deleted, perma delete
@@ -285,7 +328,7 @@ struct OutputPreview: View {
                 // TODO: show error sign
                 Image(systemName: "exclamationmark.arrow.circlepath")
                 ZStack {
-                    Text(output.content).foregroundColor(.gray)
+                    Text(output.content).foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
                 }
             }
         } else if output.loading && output.content == "Loading" {
@@ -293,11 +336,11 @@ struct OutputPreview: View {
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5) // Scale effect to make spinner a bit larger
                 ZStack {
                     Text(output.content)
-                        .font(.body).foregroundColor(.gray)
+                        .font(.body).foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
                 }
             }
         } else {
-            Text(output.content).font(.body).lineLimit(4).truncationMode(.tail)
+            Text(output.content).font(output.type == .Title ? .headline : .body).lineLimit(output.type == .Title ? nil : 4).truncationMode(.tail)
         }
     }
 }
@@ -405,18 +448,20 @@ struct SettingsView: View {
 struct MoveSheet: View {
     @Binding var recordings: [Recording]
     let idx: Int
+    let currFolder: String
     @Environment(\.presentationMode) private var presentationMode
     @State private var allFolders: [String] = []
 
-    init(_ recordings: Binding<[Recording]>, idx: Int){
+    init(_ recordings: Binding<[Recording]>, idx: Int, currFolder: String){
         self._recordings = recordings
         self.idx = idx
+        self.currFolder = currFolder
     }
     
     var body: some View {
         NavigationView{
             Form {
-                Section(header: Text("Recording")) {
+                Section(header: Text("Selected Recording")) {
                     Text(idx < recordings.count ? recordings[idx].title : "loading")
                 }
                 
@@ -426,11 +471,12 @@ struct MoveSheet: View {
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 moveItem(folder)
+                                presentationMode.wrappedValue.dismiss()
                         }
                     }
                 }
             }
-            .navigationBarTitle("Move Item", displayMode: .inline)
+            .navigationBarTitle("Move Recording", displayMode: .inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -442,7 +488,7 @@ struct MoveSheet: View {
         .onAppear(perform: {
             let allFolderURLs = Util.allFolderURLs()
             for url in allFolderURLs {
-                if url.lastPathComponent != recordings[idx].folderPath {
+                if url.lastPathComponent != recordings[idx].folderPath && url.lastPathComponent != currFolder {
                     allFolders.append(url.lastPathComponent)
                 }
             }
@@ -459,14 +505,11 @@ struct MoveSheet: View {
         let rawFolderURL = folderURL.appendingPathComponent("raw")
         let oldAudioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
         let oldFileURL = folderURL.appendingPathComponent(recording.filePath)
-        // implement moving the file here
         recording.folderPath = folder
-        
         let newFolderURL = Util.buildFolderURL(folder)
         let newRawFolderURL = newFolderURL.appendingPathComponent("raw")
         let newFileURL = newFolderURL.appendingPathComponent(recording.filePath)
         let newAudioURL = newRawFolderURL.appendingPathComponent(recording.audioPath)
-       
         do {
             let data = try encoder.encode(recording)
             try data.write(to: newFileURL)
@@ -482,7 +525,6 @@ struct MoveSheet: View {
         }
         // After moving, dismiss the view
         recordings.remove(at: idx)
-        presentationMode.wrappedValue.dismiss()
     }
 }
 

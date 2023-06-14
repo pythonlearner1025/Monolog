@@ -10,6 +10,7 @@ import UIKit
 import SwiftUI
 
 struct Util {
+    
     static func buildFolderURL(_ folderLastPathComponent: String) -> URL {
         let fileManager = FileManager.default
         let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -110,7 +111,7 @@ struct CameraButtonView: View {
             Circle()
                 .stroke(lineWidth: 4)
                 .foregroundColor(.white)
-                .frame(width: 63, height: 63)
+                .frame(width: 65, height: 65)
             
             RoundedRectangle(cornerRadius: recording ? 8 : self.innerCircleWidth / 2)
                 .foregroundColor(.red)

@@ -10,6 +10,7 @@ import SwiftUI
 import Combine
 import UIKit
 
+
 class FolderNavigationModel: ObservableObject {
     @Published var presentedItems: NavigationPath = NavigationPath()
     
@@ -83,7 +84,6 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable, Identifia
             hasher.combine(count)
     }
 }
-
 
 class Recording: ObservableObject, Codable, Equatable, Identifiable {
     @Published var audioPlayer: AudioPlayerModel?
@@ -164,6 +164,10 @@ class Outputs: ObservableObject, Codable {
        var container = encoder.container(keyedBy: CodingKeys.self)
        try container.encode(outputs, forKey: .outputs)
    }
+    
+    static var defaultOutputs: Outputs {
+        return  Outputs(outputs: [Output(type: .Title, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Transcript, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Summary, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Action, content: "Loading", settings: OutputSettings.defaultSettings)])
+    }
 }
 
 
