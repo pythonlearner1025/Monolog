@@ -164,29 +164,45 @@ struct HomeView: View {
     func deleteFolder(targetFolder: RecordingFolder) {
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
-
+        
+        let targetFolderURL = applicationSupportDirectory.appendingPathComponent( targetFolder.path)
+        let targetFolderRawURL = targetFolderURL.appendingPathComponent("raw")
         let recentlyDeletedFolderPath = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        let recentlyDeletedFolderRawPath = recentlyDeletedFolderPath.appendingPathComponent("raw")
 
         do {
-            // Get the contents of the target folder
-            let targetFolderContents = try fileManager.contentsOfDirectory(atPath: targetFolder.path)
-            
+           
             // Move each item to the 'Recently Deleted' folder
-
+            let targetFolderRawContents = try fileManager.contentsOfDirectory(at: targetFolderRawURL, includingPropertiesForKeys: nil)
+            for item in targetFolderRawContents {
+                let oldLocation = targetFolderRawURL.appendingPathComponent(item.lastPathComponent)
+                let newLocation = recentlyDeletedFolderRawPath.appendingPathComponent(item.lastPathComponent)
+                    try fileManager.moveItem(at: oldLocation, to: newLocation)
+            }
+            
+            // Get the contents of the target folder
+            let targetFolderContents = try fileManager.contentsOfDirectory(at: targetFolderURL, includingPropertiesForKeys: nil)
+            var deleted = 0
             for item in targetFolderContents {
-                let itemPath = URL(fileURLWithPath: targetFolder.path).appendingPathComponent(item)
-                let newLocation = recentlyDeletedFolderPath.appendingPathComponent(item)
+                if item.lastPathComponent == "raw" {
+                    continue
+                }
+                deleted += 1
+                let oldLocation = targetFolderURL.appendingPathComponent(item.lastPathComponent)
+                let newLocation = recentlyDeletedFolderPath.appendingPathComponent(item.lastPathComponent)
                 
                 // Check if the file already exists at the new location
                 if !fileManager.fileExists(atPath: newLocation.path) {
-                    try fileManager.moveItem(at: itemPath, to: newLocation)
+                    try fileManager.moveItem(at: oldLocation, to: newLocation)
                 } else {
                     print("Item already exists at \(newLocation), not moving it.")
                 }
             }
-
             // Delete the target folder
-            try fileManager.removeItem(atPath: targetFolder.path)
+            try fileManager.removeItem(at: targetFolderURL)
+            if let idx = folders.firstIndex(where: {$0.name == "Recently Deleted"}) {
+                folders[idx].count += deleted
+            }
         } catch {
             print("An error occurred while deleting folder \(targetFolder.name): \(error)")
         }

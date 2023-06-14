@@ -262,6 +262,9 @@ struct FolderView: View {
                 do {
                     let data = try Data(contentsOf: i)
                     let recording = try decoder.decode(Recording.self, from: data)
+                    if (folder.path == "Recently Deleted") {
+                        recording.folderPath = "Recently Deleted"
+                    }
                     recordings.append(recording)
                 } catch {
                     print("An error occurred while decoding the recording object: \(error)")
