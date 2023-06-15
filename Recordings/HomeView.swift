@@ -13,6 +13,7 @@ struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     @EnvironmentObject var folderNavigationModel: FolderNavigationModel
     @EnvironmentObject var audioRecorder: AudioRecorderModel
+    @EnvironmentObject var recordingsModel: RecordingsModel
     @State private var showAllFirst = true
     @State private var folders: [RecordingFolder] = []
     @State private var showAlert = false
@@ -57,6 +58,10 @@ struct HomeView: View {
                    .navigationDestination(for: RecordingFolder.self){ folder in
                        FolderView(folder: folder)
                            .environmentObject(audioRecorder)
+                           .environmentObject(recordingsModel)
+                   }
+                   .navigationDestination(for: Recording.self) { recording  in
+                       RecordingView(recording: recording, outputs: recording.outputs)
                    }
                    .navigationTitle("Folders")
                    .navigationBarItems(trailing:
@@ -99,7 +104,7 @@ struct HomeView: View {
     func setup() {
         //default settings
         let settings = Settings(outputs: [.Title, .Transcript, .Summary, .Action], length: .short, format: .bullet, tone: .casual)
-        let outputSettings = OutputSettings(length: .short, format: .bullet, tone: .casual,name: "", prompt: "")
+        let outputSettings = OutputSettings(length: .medium, format: .bullet, tone: .casual,name: "", prompt: "")
         UserDefaults.standard.storeSettings(settings, forKey: "Settings")
         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
         // default folders
@@ -165,7 +170,6 @@ struct HomeView: View {
         let recentlyDeletedFolderRawPath = recentlyDeletedFolderPath.appendingPathComponent("raw")
 
         do {
-           
             // Move each item to the 'Recently Deleted' folder
             let targetFolderRawContents = try fileManager.contentsOfDirectory(at: targetFolderRawURL, includingPropertiesForKeys: nil)
             for item in targetFolderRawContents {
