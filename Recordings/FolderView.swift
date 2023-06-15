@@ -158,7 +158,7 @@ struct FolderView: View {
             Button(action: {
                 isShowingPicker = true
             }) {
-                Image(systemName: "square.and.arrow.down")
+                Image(systemName: "plus")
             }
             Button(action: {isShowingSettings.toggle()}){
                 Image(systemName: "gearshape")
