@@ -9,9 +9,8 @@ import Foundation
 import UIKit
 
 struct RecordingView: View {
-    @ObservedObject var outputs: Outputs
     @ObservedObject var recording: Recording
-    var idx: Int
+    @ObservedObject var outputs: Outputs
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
@@ -21,15 +20,6 @@ struct RecordingView: View {
     @State private var customInput = ""
     @State private var showDelete: Bool = false
     @ObservedObject private var keyboardResponder = KeyboardResponder()
-    
-    init(recordings: Binding<[Recording]>, idx: Int){
-        print("==RecordingView INIT==")
-        print(idx)
-        print(recordings.wrappedValue)
-        self.idx = idx
-        self.recording = recordings.wrappedValue[idx]
-        self.outputs = recordings.wrappedValue[idx].outputs
-    }
     
     var body: some View {
         List{
@@ -373,5 +363,4 @@ struct CustomOutputSheet: View {
         }
     }
 }
-
 
