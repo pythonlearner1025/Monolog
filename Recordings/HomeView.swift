@@ -170,7 +170,6 @@ struct HomeView: View {
         let recentlyDeletedFolderRawPath = recentlyDeletedFolderPath.appendingPathComponent("raw")
 
         do {
-           
             // Move each item to the 'Recently Deleted' folder
             let targetFolderRawContents = try fileManager.contentsOfDirectory(at: targetFolderRawURL, includingPropertiesForKeys: nil)
             for item in targetFolderRawContents {

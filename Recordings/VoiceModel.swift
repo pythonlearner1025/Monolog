@@ -490,7 +490,7 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var currentTime: String = "00:00"
     var formatter : DateComponentsFormatter
     var timer: Timer? // Add this
-
+    var id = UUID()
         
     init(folderPath: String, audioPath: String){
         self.formatter = DateComponentsFormatter()
@@ -498,6 +498,17 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
         self.formatter.unitsStyle = .positional
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.audioPath = audioPath
+        do {
+            let folderURL = Util.buildFolderURL(folderPath)
+            let rawURL = folderURL.appendingPathComponent("raw", isDirectory: true)
+            let audioURL = rawURL.appendingPathComponent(audioPath)
+            self.audioPlayer = try AVAudioPlayer(contentsOf: audioURL)
+        } catch {
+            print("audioPlayerModel \(error)")
+        }
+    }
+    
+    func reinit(folderPath: String, audioPath: String) {
         do {
             let folderURL = Util.buildFolderURL(folderPath)
             let rawURL = folderURL.appendingPathComponent("raw", isDirectory: true)

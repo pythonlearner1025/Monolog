@@ -123,12 +123,9 @@ struct FolderView: View {
                     .tint(.green)
                 }
             }
-            .onDelete{indexSet in
-            }
-            .id(UUID())
+            .onDelete{indexSet in}
             .listRowSeparator(.hidden)
         }
-
         .onAppear {
             fetchAllRecording()
             formHasAppeared = true
@@ -230,6 +227,7 @@ struct FolderView: View {
     }
     
     private func outputsLoaded(_ recording: Recording) -> Bool {
+        if recording.folderPath == "Recently Deleted" {return true}
         for out in recording.outputs.outputs {
             if out.loading {
                 return false
@@ -239,9 +237,10 @@ struct FolderView: View {
     }
     
     func fetchAllRecording(){
-        if recordingsModel[folder.path].recordings.count > 0{
-           return
+        if recordingsModel[folder.path].recordings.count > 0 {
+            return
         }
+       
         var recordings = Recordings()
         let fileManager = FileManager.default
         let decoder = Util.decoder()
@@ -266,6 +265,7 @@ struct FolderView: View {
                     // fixing bug: when deleting folder, the folder attribute of recordings in it do not get updated
                     if (folder.path == "Recently Deleted") {
                         recording.folderPath = "Recently Deleted"
+                        recording.audioPlayer.reinit(folderPath: recording.folderPath, audioPath:  recording.audioPath)
                     }
                     recordings.recordings.append(recording)
                 } catch {
@@ -358,6 +358,7 @@ struct AudioControlView: View {
     @Binding var playingRecordingPath: String
     
     init(_ audioPlayer: AudioPlayerModel, playingRecordingPath: Binding<String>){
+        print("RERENDER")
         self.audioPlayer = audioPlayer
         _playingRecordingPath = playingRecordingPath
     }
