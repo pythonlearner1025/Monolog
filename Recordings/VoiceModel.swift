@@ -95,7 +95,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
             switch completion {
             case .failure(let error):
                 print("An error occurred while generating transcript: \(error)")
-                //self.updateErrorOutput(transcript_out.id.uuidString, settings: OutputSettings.defaultSettings, outputs: recording.outputs)
                 self.updateAllErrorOutput(outputs: recording.outputs)
                 
                 do {
@@ -119,7 +118,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 print("An error occurred while updating the recording object: \(error)")
             }
             if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
-                let outputSettings = OutputSettings(length: settings.length, format: settings.format, tone: settings.tone,  name: "Default Output", prompt: "")
+                let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") ?? UserDefaults.standard.defaultOutputSettings
                 print("== all settings outputs \(settings.outputs)==")
 
                 settings.outputs.forEach({ outputType in

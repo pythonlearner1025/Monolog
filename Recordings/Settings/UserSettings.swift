@@ -45,4 +45,9 @@ extension UserDefaults {
             return nil
         }
     }
+    
+    var defaultOutputSettings: OutputSettings {
+        return OutputSettings(length: .medium, format: .bullet, tone: .casual,  name: "Default Output", prompt: "")
+    }
+    
 }
