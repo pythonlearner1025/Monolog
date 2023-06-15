@@ -17,10 +17,11 @@ struct FolderView: View {
     @State private var recordingToMove: Recording?
     @State private var searchText = ""
     @State private var formHasAppeared = false
+    @State private var playingRecordingPath = ""
     @EnvironmentObject var audioRecorder: AudioRecorderModel
+    @EnvironmentObject var recordingsModel: RecordingsModel
     var folder: RecordingFolder
     var rawFolderURL: URL
-    @State var recordings: [Recording] = []
     
     init(folder: RecordingFolder) {
         print("INIT FOLDERVIEW")
@@ -56,7 +57,7 @@ struct FolderView: View {
                             Text("\(formatter.string(from: filteredItems[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
                         }.padding(.bottom, 10)
                         Spacer()
-                        NavigationLink(value: idx){
+                        NavigationLink(value: filteredItems[idx]){
                         }
                     }
                     if selection == .normal{
@@ -92,16 +93,16 @@ struct FolderView: View {
                             }
                         }
                     }
-                    AudioControlView(AudioPlayerModel(folderPath: filteredItems[idx].folderPath, audioPath: filteredItems[idx].audioPath))
+                    AudioControlView(filteredItems[idx].audioPlayer, playingRecordingPath: $playingRecordingPath)
                     Divider().padding(.vertical, 15)  // Add a divider here
                 }
                 .swipeActions(allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         if outputsLoaded(filteredItems[idx]) {
                             audioRecorder.cancelSave()
-                            filteredItems[idx].audioPlayer!.stopPlaying()
-                            filteredItems[idx].audioPlayer!.isPlaying = false
-                            deleteRecording(filteredItems[idx], filteredItems[idx].audioPath, filteredItems[idx].filePath)
+                            filteredItems[idx].audioPlayer.stopPlaying()
+                            filteredItems[idx].audioPlayer.isPlaying = false
+                            deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
                             removeRecording(idx: idx)
                         } else {
                             showLoadingAlert = true
@@ -127,9 +128,7 @@ struct FolderView: View {
             .id(UUID())
             .listRowSeparator(.hidden)
         }
-        .navigationDestination(for: Int.self){ [$recordings] idx in
-            RecordingView(recordings:$recordings, idx: idx)
-        }
+
         .onAppear {
             fetchAllRecording()
             formHasAppeared = true
@@ -139,12 +138,12 @@ struct FolderView: View {
             view.searchable(text: $searchText)
         }
         .sheet(item: $recordingToMove) { recording in
-            if let idx = recordings.firstIndex(where: {$0.id == recording.id}) {
-                MoveSheet($recordings, idx: idx, currFolder: folder.path)
-                    .onDisappear(perform: {
-                        fetchAllRecording()
-                        }
-                    )
+            if let idx = filteredItems.firstIndex(where: {$0.id == recording.id}) {
+                    MoveSheet($recordingsModel[folder.path].recordings, idx: idx, currFolder: folder.path)
+                        .onDisappear(perform: {
+                            fetchAllRecording()
+                            }
+                        )
             } else {
                 Text("Error")
             }
@@ -175,7 +174,7 @@ struct FolderView: View {
                 let importedAudioURL = try res.get()
                 if importedAudioURL.startAccessingSecurityScopedResource() {
                     let newAudioURL = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
-                    audioRecorder.saveImportedRecording(&recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path))
+                    audioRecorder.saveImportedRecording(&recordingsModel[folder.path].recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path))
                     importedAudioURL.stopAccessingSecurityScopedResource()
                 }
             } catch {
@@ -194,7 +193,7 @@ struct FolderView: View {
                 Spacer()
                CameraButtonView(action: { isRecording in
                    if isRecording {
-                       audioRecorder.stopRecording(&recordings, folderURL: Util.buildFolderURL(folder.path))
+                       audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path))
                    } else {
                        audioRecorder.startRecording(audioURL: rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a"))
                    }
@@ -209,21 +208,22 @@ struct FolderView: View {
     
     private func removeRecording(idx: Int) {
         let toDelete = filteredItems[idx]
-        if let toDeleteIdx = recordings.firstIndex(of: toDelete) {
-            recordings.remove(at: toDeleteIdx)
+        if let toDeleteIdx = recordingsModel[folder.path].recordings.firstIndex(of: toDelete) {
+            recordingsModel[folder.path].recordings.remove(at: toDeleteIdx)
         }
     }
     
     private func getOutput(idx: Int, type: OutputType) -> Output {
-        return recordings[idx].outputs.outputs.first(where: {$0.type == type})!
+        return recordingsModel[folder.path].recordings[idx].outputs.outputs.first(where: {$0.type == type})!
     }
 
     private var filteredItems: [Recording] {
+        print("filtering")
         if searchText.isEmpty {
-            return recordings
+            return recordingsModel[folder.path].recordings
         }
         else{
-            return recordings.filter {item in
+            return recordingsModel[folder.path].recordings.filter {item in
                 item.title.localizedCaseInsensitiveContains(searchText)
             }
         }
@@ -239,7 +239,10 @@ struct FolderView: View {
     }
     
     func fetchAllRecording(){
-        recordings = []
+        if recordingsModel[folder.path].recordings.count > 0{
+           return
+        }
+        var recordings = Recordings()
         let fileManager = FileManager.default
         let decoder = Util.decoder()
         let folderURL = Util.buildFolderURL(folder.path)
@@ -264,13 +267,14 @@ struct FolderView: View {
                     if (folder.path == "Recently Deleted") {
                         recording.folderPath = "Recently Deleted"
                     }
-                    recordings.append(recording)
+                    recordings.recordings.append(recording)
                 } catch {
                     print("An error occurred while decoding the recording object: \(error)")
                 }
             }
         }
-        recordings.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
+        recordings.recordings.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
+        recordingsModel[folder.path] = recordings
     }
     
     private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
@@ -351,33 +355,44 @@ struct OutputPreview: View {
 
 struct AudioControlView: View {
     @ObservedObject var audioPlayer: AudioPlayerModel
+    @Binding var playingRecordingPath: String
     
-    init(_ audioPlayer: AudioPlayerModel){
+    init(_ audioPlayer: AudioPlayerModel, playingRecordingPath: Binding<String>){
         self.audioPlayer = audioPlayer
+        _playingRecordingPath = playingRecordingPath
     }
     
     var body: some View {
-        HStack {
-            Text(audioPlayer.currentTime)
-                .font(.caption.monospacedDigit())
-            Slider(value: $audioPlayer.absProgress, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
-        }
-        .padding()
-        HStack{
-            Spacer()
-            Button(action: {
-                if audioPlayer.isPlaying == true {
-                    audioPlayer.stopPlaying()
-                }else{
-                    audioPlayer.startPlaying()
-                }}) {
-                    Image(systemName: audioPlayer.isPlaying ? "stop.fill" : "play.fill")
-                        .font(.title)
-                        .imageScale(.large)
-                        .foregroundColor(.primary)
-                }.buttonStyle(.borderless)
-            Spacer()
-        }
+        Group {
+            HStack {
+                Text(audioPlayer.currentTime)
+                    .font(.caption.monospacedDigit())
+                Slider(value: $audioPlayer.absProgress, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
+            }
+            .padding()
+            HStack{
+                Spacer()
+                Button(action: {
+                    if audioPlayer.isPlaying == true {
+                        audioPlayer.stopPlaying()
+                    }else{
+                        audioPlayer.startPlaying()
+                        playingRecordingPath = audioPlayer.audioPath
+                    }}) {
+                        Image(systemName: audioPlayer.isPlaying ? "stop.fill" : "play.fill")
+                            .font(.title)
+                            .imageScale(.large)
+                            .foregroundColor(.primary)
+                    }.buttonStyle(.borderless)
+                Spacer()
+            }
+        }.onChange(of: playingRecordingPath, perform: { path in
+            print("new recording playing at \(path)")
+            if audioPlayer.isPlaying && audioPlayer.audioPath != path {
+                print("stopping this recording \(audioPlayer.audioPath)")
+                audioPlayer.stopPlaying()
+            }
+        })
     }
     private let formatter: DateFormatter = {
          let formatter = DateFormatter()

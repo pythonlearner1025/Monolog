@@ -85,8 +85,8 @@ class RecordingFolder: ObservableObject, Codable, Equatable, Hashable, Identifia
     }
 }
 
-class Recording: ObservableObject, Codable, Equatable, Identifiable {
-    @Published var audioPlayer: AudioPlayerModel?
+class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
+    @Published var audioPlayer: AudioPlayerModel
     @Published var folderPath: String
     @Published var audioPath: String
     @Published var filePath: String
@@ -94,7 +94,7 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable {
     @Published var title: String
     @Published var outputs: Outputs
     var id: UUID = UUID()
-
+    private var cancellables = Set<AnyCancellable>()
 
     enum CodingKeys: CodingKey {
         case filePath, createdAt, audioPath, title, outputs, folderPath, id
@@ -106,10 +106,11 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         title = try container.decode(String.self, forKey: .title)
         outputs = try container.decode(Outputs.self, forKey: .outputs)
-        audioPath = try container.decode(String.self, forKey: .audioPath)
         folderPath = try container.decode(String.self, forKey: .folderPath)
+        audioPath = try container.decode(String.self, forKey: .audioPath)
         id = try container.decode(UUID.self, forKey: .id)
-        audioPlayer = AudioPlayerModel(folderPath: Util.buildFolderURL(folderPath).path, audioPath: audioPath)
+        audioPlayer = AudioPlayerModel(folderPath: try container.decode(String.self, forKey: .folderPath), audioPath: try container.decode(String.self, forKey: .audioPath))
+        //setupPublishers()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -125,23 +126,91 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable {
     }
 
     // your initializer here
-    init (folderPath: String, audioPath: String, filePath: String, createdAt: Date, isPlaying: Bool, title: String, outputs: Outputs){
+    init (folderPath: String, audioPath: String, filePath: String, createdAt: Date, title: String, outputs: Outputs){
         self.audioPath = audioPath
         self.filePath = filePath
         self.createdAt = createdAt
         self.title = title
         self.outputs = outputs
         self.folderPath = folderPath
-        self.audioPlayer = AudioPlayerModel(folderPath: Util.buildFolderURL(folderPath).path, audioPath: audioPath)
+        self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
+        //setupPublishers()
+    }
+    
+    private func setupPublishers() {
+       cancellables.removeAll()
+       audioPlayer.objectWillChange
+           .sink { [weak self] _ in
+               self?.objectWillChange.send()
+           }
+           .store(in: &cancellables)
     }
     
     static func == (lhs: Recording, rhs: Recording) -> Bool {
-           return lhs.id == rhs.id
-       }
+        return lhs.id == rhs.id
+    }
+    
+    func copy() -> Recording {
+        return Recording(folderPath: folderPath, audioPath: audioPath, filePath: filePath, createdAt: createdAt, title: title, outputs: outputs)
+    }
+    
+    func hash(into hasher: inout Hasher) {
+            hasher.combine(id)
+    }
+    
 }
 
+class RecordingsModel: ObservableObject {
+    var cancellables = Set<AnyCancellable>()
+    @Published var folderRecordings: [String: Recordings] = [:] {
+        didSet {
+            cancellables.removeAll()
+            for (_, recordings) in folderRecordings {
+                recordings.objectWillChange
+                    .sink { [weak self] _ in
+                        self?.objectWillChange.send()
+                    }
+                    .store(in: &cancellables)
+            }
+        }
+    }
+
+    subscript(key: String) -> Recordings {
+        get {
+            if folderRecordings[key] != nil {
+                return folderRecordings[key]!
+            }
+            return Recordings()
+        }
+        set(newValue) {
+            folderRecordings[key] = newValue
+        }
+    }
+}
+
+
 class Recordings: ObservableObject {
-    @Published var recordings = [Recording]()
+    var cancellables = Set<AnyCancellable>()
+    @Published var recordings = [Recording]() {
+        didSet{
+            cancellables.removeAll()
+            for recording in recordings {
+                recording.objectWillChange.sink{ [weak self] _ in
+                    self?.objectWillChange.send()
+                }
+                .store(in: &cancellables)
+            }
+        }
+    }
+    
+    subscript(idx: Int) -> Recording {
+        get {
+            return recordings[idx]
+        }
+        set(newValue) {
+            recordings[idx] = newValue
+        }
+    }
 }
 
 class Outputs: ObservableObject, Codable {
@@ -168,6 +237,15 @@ class Outputs: ObservableObject, Codable {
     static var defaultOutputs: Outputs {
         return  Outputs(outputs: [Output(type: .Title, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Transcript, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Summary, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Action, content: "Loading", settings: OutputSettings.defaultSettings)])
     }
+    subscript(idx: Int) -> Output {
+        get {
+            return outputs[idx]
+        }
+        set(newValue) {
+            outputs[idx] = newValue
+        }
+    }
+
 }
 
 

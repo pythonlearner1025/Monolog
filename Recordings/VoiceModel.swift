@@ -56,7 +56,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         // write Recordings to localStorage as well.
         let audioURL = audioRecorder.url
         let filePath = "\(audioURL.lastPathComponent).json"
-        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), isPlaying: false, title: "Untitled", outputs: Outputs.defaultOutputs)
+        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), title: "Untitled", outputs: Outputs.defaultOutputs)
         recordings.insert(recording, at: 0)
         generateAll(recording: recording, audioURL: audioURL)
     }
@@ -69,7 +69,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
             print("An error occurred while copying the file: \(error)")
         }
         let filePath = "\(newAudioURL.lastPathComponent).json"
-        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), isPlaying: false, title: "Untitled", outputs: Outputs.defaultOutputs)
+        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), title: "Untitled", outputs: Outputs.defaultOutputs)
         recordings.insert(recording, at: 0)
         generateAll(recording: recording, audioURL: newAudioURL)
     }
@@ -480,16 +480,17 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
 }
 
-class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
+class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var audioPlayer : AVAudioPlayer!
     @Published var isPlaying : Bool = false
     var indexOfPlayer = 0
     let audioPath: String
-    
     @Published var progress: CGFloat = 0.0
     @Published var absProgress: Double = 0.0
     @Published var currentTime: String = "00:00"
     var formatter : DateComponentsFormatter
+    var timer: Timer? // Add this
+
         
     init(folderPath: String, audioPath: String){
         self.formatter = DateComponentsFormatter()
@@ -524,18 +525,19 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
             audioPlayer.prepareToPlay()
             audioPlayer.currentTime = absProgress
             audioPlayer.play()
-            Timer.scheduledTimer(withTimeInterval: 0.01, repeats: audioPlayer.isPlaying){ _ in
-                if(self.isPlaying){
+            timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                if self.isPlaying {
                     self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
                     self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
                     self.absProgress = self.audioPlayer.currentTime
-                    if (self.audioPlayer.currentTime >= self.audioPlayer.duration) {
-                        self.absProgress = 0.0
-                        self.progress = 0
-                        self.currentTime = self.formatter.string(from: TimeInterval(0.0))!
+                    if !self.audioPlayer.isPlaying {
+                        self.stopPlaying()
+                        self.timer?.invalidate() // Terminate timer
                     }
+                    self.objectWillChange.send()
+                }
             }
-        }
             
         } catch {
             print("Audioplayer failed: \(error)")
@@ -545,7 +547,7 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
     
     func stopPlaying() {
         if(isPlaying){
-            audioPlayer.pause()
+            audioPlayer.stop()
             isPlaying = false
         }
     }
@@ -593,3 +595,4 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate{
     }
     
 }
+
