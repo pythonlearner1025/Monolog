@@ -9,7 +9,6 @@
 import SwiftUI
 import AVFoundation
 struct FolderView: View {
-    @State private var keyboardResponder = KeyboardResponder()
     @State var selection: FolderPageEnum = .normal
     @State private var showLoadingAlert = false
     @State private var isShowingSettings = false
@@ -93,7 +92,7 @@ struct FolderView: View {
                             }
                         }
                     }
-                    AudioControlView(folderPath: filteredItems[idx].folderPath, audioPath: filteredItems[idx].audioPath).environmentObject(audioRecorder)
+                    AudioControlView(AudioPlayerModel(folderPath: filteredItems[idx].folderPath, audioPath: filteredItems[idx].audioPath))
                     Divider().padding(.vertical, 15)  // Add a divider here
                 }
                 .swipeActions(allowsFullSwipe: false) {
@@ -135,13 +134,10 @@ struct FolderView: View {
             fetchAllRecording()
             formHasAppeared = true
             recordingToMove = nil
-            print("fully fetched recordings:")
-            print(recordings)
         }
         .if(formHasAppeared) { view in
             view.searchable(text: $searchText)
         }
-        // TODO: bug
         .sheet(item: $recordingToMove) { recording in
             if let idx = recordings.firstIndex(where: {$0.id == recording.id}) {
                 MoveSheet($recordings, idx: idx, currFolder: folder.path)
@@ -150,12 +146,14 @@ struct FolderView: View {
                         }
                     )
             } else {
-                Text("Fok")
+                Text("Error")
             }
         }
         .sheet(isPresented: $isShowingSettings){
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
                 SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
+            } else {
+                Text("Error")
             }
         }
         .navigationTitle("\(folder.name)")
@@ -164,7 +162,7 @@ struct FolderView: View {
             Button(action: {
                 isShowingPicker = true
             }) {
-                Image(systemName: "square.and.arrow.down") // This is a system symbol for uploading.
+                Image(systemName: "square.and.arrow.down")
             }
             Button(action: {isShowingSettings.toggle()}){
                 Image(systemName: "gearshape")
@@ -188,10 +186,8 @@ struct FolderView: View {
             Alert(title: Text("Error Editing"), message: Text("Please wait until the recording has fully loaded"),
                   dismissButton: .default(Text("OK")) {
                 showLoadingAlert=false
-            }
-                  )
+            })
         }
-    
 
         if (folder.name != "Recently Deleted") {
             HStack {
@@ -205,7 +201,7 @@ struct FolderView: View {
                })
                 Spacer()
            }
-           .background(Color(.secondarySystemBackground)) // Background color of the toolbar
+           .background(Color(.secondarySystemBackground))
            .edgesIgnoringSafeArea(.bottom)
            .padding(.top, -10)
         }
@@ -245,9 +241,10 @@ struct FolderView: View {
     func fetchAllRecording(){
         recordings = []
         let fileManager = FileManager.default
-        let folderURL = Util.buildFolderURL(folder.path)
-        var directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
         let decoder = Util.decoder()
+        let folderURL = Util.buildFolderURL(folder.path)
+        
+        var directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
         if (folder.path == "All") {
             let folderURLs = Util.allFolderURLs()
             for f in folderURLs {
@@ -257,11 +254,13 @@ struct FolderView: View {
                 }
             }
         }
+        
         for i in directoryContents {
             if (i.lastPathComponent != "raw") {
                 do {
                     let data = try Data(contentsOf: i)
                     let recording = try decoder.decode(Recording.self, from: data)
+                    // fixing bug: when deleting folder, the folder attribute of recordings in it do not get updated
                     if (folder.path == "Recently Deleted") {
                         recording.folderPath = "Recently Deleted"
                     }
@@ -277,6 +276,7 @@ struct FolderView: View {
     private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
         let fileManager = FileManager.default
         let encoder = Util.encoder()
+        
         let rawFolderURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent("raw")
         let oldAudioURL = rawFolderURL.appendingPathComponent(audioPath)
         let oldFileURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent(filePath)
@@ -297,7 +297,7 @@ struct FolderView: View {
             }
             return
         }
-        // move to recently deleted
+        // else, move to recently deleted
         recording.folderPath = "Recently Deleted"
         let recentlyDeletedRawFolder = recentlyDeletedFolder.appendingPathComponent("raw")
         let newAudioURL = recentlyDeletedRawFolder.appendingPathComponent(audioPath)
@@ -316,6 +316,7 @@ struct FolderView: View {
             print("can't move meta\(error)")
         }
     }
+    
     private let formatter: DateFormatter = {
          let formatter = DateFormatter()
          formatter.dateFormat = "EEEE, MMMM d, yyyy"
@@ -328,15 +329,15 @@ struct OutputPreview: View {
     var body: some View {
         if output.error {
             HStack{
-                // TODO: show error sign
                 Image(systemName: "exclamationmark.arrow.circlepath")
                 ZStack {
                     Text(output.content).foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
                 }
             }
         } else if output.loading && output.content == "Loading" {
+            // TODO: adjust spinner gap with title when output.type is Title
             HStack{
-                ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5) // Scale effect to make spinner a bit larger
+                ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
                 ZStack {
                     Text(output.content)
                         .font(.body).foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
@@ -348,15 +349,11 @@ struct OutputPreview: View {
     }
 }
 
-//TODO: Ideally, audioPlayer would persist in memory even through navigations
-// have one audioPlayer
-// that loads 
 struct AudioControlView: View {
     @ObservedObject var audioPlayer: AudioPlayerModel
-    @EnvironmentObject var audioRecorder: AudioRecorderModel
     
-    init(folderPath: String, audioPath: String){
-        self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
+    init(_ audioPlayer: AudioPlayerModel){
+        self.audioPlayer = audioPlayer
     }
     
     var body: some View {
@@ -364,9 +361,6 @@ struct AudioControlView: View {
             Text(audioPlayer.currentTime)
                 .font(.caption.monospacedDigit())
             Slider(value: $audioPlayer.absProgress, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
-            // TODO: format duration
-            //Text(formatter.string(from: TimeInterval(audioPlayer.audioPlayer!.duration)))
-                //.font(.caption.monospacedDigit())
         }
         .padding()
         HStack{
@@ -502,7 +496,6 @@ struct MoveSheet: View {
         })
     }
     
-
     private func moveItem(_ folder: String) {
         print("moving item")
         let fileManager = FileManager.default
@@ -537,7 +530,6 @@ struct MoveSheet: View {
 
 struct MoveFolderInnerView: View {
     var name: String
-    
     var body: some View {
         HStack{
             if name == "Recently Deleted" {

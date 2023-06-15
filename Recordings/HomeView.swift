@@ -13,7 +13,6 @@ struct HomeView: View {
     @AppStorage("isFirstLaunch") var isFirstLaunch: Bool = true
     @EnvironmentObject var folderNavigationModel: FolderNavigationModel
     @EnvironmentObject var audioRecorder: AudioRecorderModel
-    //var isFirstLaunch = true
     @State private var showAllFirst = true
     @State private var folders: [RecordingFolder] = []
     @State private var showAlert = false
@@ -24,7 +23,6 @@ struct HomeView: View {
         if isFirstLaunch {
             setup()
             loadFolders()
-            print(folders.count)
             isFirstLaunch = false
         }
       }
@@ -98,8 +96,6 @@ struct HomeView: View {
            }
          }
 
-
-
     func setup() {
         //default settings
         let settings = Settings(outputs: [.Title, .Transcript, .Summary, .Action], length: .short, format: .bullet, tone: .casual)
@@ -126,8 +122,6 @@ struct HomeView: View {
             print("An error occurred while creating the 'All' directory: \(error)")
         }
     }
-    
-
     
     func loadFolders() {
         let fileManager = FileManager.default
@@ -213,10 +207,10 @@ struct HomeView: View {
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
         let newFolderPath = applicationSupportDirectory.appendingPathComponent(title)
-        let newAudioFolderPath = newFolderPath.appendingPathComponent("raw")
+        let newFolderRawPath = newFolderPath.appendingPathComponent("raw")
         do {
             try fileManager.createDirectory(at: newFolderPath, withIntermediateDirectories: true, attributes: nil)
-            try fileManager.createDirectory(at: newAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: newFolderRawPath, withIntermediateDirectories: true, attributes: nil)
         } catch {
             print("An error occurred while creating the 'All' directory: \(error)")
         }
@@ -226,7 +220,6 @@ struct HomeView: View {
             folders.append(newFolder)
         }
     }
-
 }
 
 struct FolderInnerView: View {

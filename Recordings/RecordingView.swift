@@ -66,60 +66,60 @@ struct RecordingView: View {
                 .listRowBackground(Color(.systemBackground))
             }
         }
-            .navigationBarItems(trailing:
-            HStack{
-                if keyboardResponder.currentHeight != 0 {
-                    Spacer()
-                    Button(action: hideKeyboard) {
+        .navigationBarItems(trailing:
+        HStack{
+            if keyboardResponder.currentHeight != 0 {
+                Spacer()
+                Button(action: hideKeyboard) {
+                    Text("Done")
+                }
+            } else {
+                Menu {
+                    Button(action: exportText) {
+                        Label("Export Text", systemImage: "doc.text")
+                    }
+                    Button(action: exportAudio) {
+                        Label("Export Audio", systemImage: "waveform")
+                    }
+                }
+                label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Button(action: {
+                    isShowingCustomOutput.toggle()
+                }) {
+                    Image(systemName: "sparkles")
+                }
+                Button(action: {
+                    showDelete.toggle()
+                }){
+                    if !showDelete {
+                        Text("Edit")
+                    } else {
                         Text("Done")
                     }
-                } else {
-                    Menu {
-                        Button(action: exportText) {
-                            Label("Export Text", systemImage: "doc.text")
-                        }
-                        Button(action: exportAudio) {
-                            Label("Export Audio", systemImage: "waveform")
-                        }
-                    }
-                    label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    Button(action: {
-                        isShowingCustomOutput.toggle()
-                    }) {
-                        Image(systemName: "sparkles")
-                    }
-                    Button(action: {
-                        showDelete.toggle()
-                    }){
-                        if !showDelete {
-                            Text("Edit")
-                        } else {
-                            Text("Done")
-                        }
-                    }
-                }
-            })
-            .listStyle(.plain)
-            .sheet(isPresented: $isShowingCustomOutput){
-                CustomOutputSheet(recording: recording)
-            }
-            .sheet(isPresented: $isShowingSettings) {
-                if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                    SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
                 }
             }
-            .sheet(item: $activeSheet) {item in
-                switch item {
-                    case .exportText(let url):
-                        ShareSheet(items: [url])
-                    case .exportAudio(let url):
-                        ShareSheet(items: [url])
-                }
+        })
+        .listStyle(.plain)
+        .sheet(isPresented: $isShowingCustomOutput){
+            CustomOutputSheet(recording: recording)
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                SettingsView(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
             }
-            .onReceive(outputs.$outputs){ outputs in
+        }
+        .sheet(item: $activeSheet) {item in
+            switch item {
+                case .exportText(let url):
+                    ShareSheet(items: [url])
+                case .exportAudio(let url):
+                    ShareSheet(items: [url])
             }
+        }
+        .onReceive(outputs.$outputs){ outputs in
+        }
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
@@ -130,7 +130,6 @@ struct RecordingView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
-    // TODO: fix filePath is differen on each load - build folderPath again, from scratch.
     private func deleteOutput(_ output: Output){
         if let idxToDelete = outputs.outputs.firstIndex(where: {$0.id == output.id}) {
             outputs.outputs.remove(at: idxToDelete)
@@ -165,7 +164,6 @@ struct RecordingView: View {
         activeSheet = .exportText(fileURL)
     }
 
-    
     private func exportAudio(){
         let originalURL = URL(fileURLWithPath: recording.audioPath)
         let filename = "\(recording.title).m4a"
@@ -186,7 +184,6 @@ struct RecordingView: View {
      
 }
 
-// TODO: add Recording
 struct OutputView: View {
     @ObservedObject var output: Output
     @State var isMinimized: Bool = false // Add this state variable
@@ -255,7 +252,6 @@ struct OutputView: View {
                 })
             }
         }
-       
     }
     
     private func getCustomOutputName(_ output: Output) -> String{
@@ -322,8 +318,6 @@ struct TitleView: View {
         do {
             let data = try encoder.encode(recording)
             let folderURL = Util.buildFolderURL(recording.folderPath)
-            print("saving at this folder:")
-            print(recording.folderPath)
             try data.write(to: folderURL.appendingPathComponent(recording.filePath))
         } catch {
             print("An error occurred while saving the recording object: \(error)")
@@ -341,7 +335,6 @@ struct CustomOutputSheet: View {
     var body: some View{
         NavigationStack {
             Form {
-                
                 Section(header: Text("Text Name")) {
                     TextEditor(text: $customName)
                 }
@@ -350,7 +343,6 @@ struct CustomOutputSheet: View {
                     TextEditor(text: $customPrompt)
                         .frame(height: 120)
                 }
-                
                 Button("Generate") {
                     if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
                         let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone ,name: customName,  prompt: customPrompt)
