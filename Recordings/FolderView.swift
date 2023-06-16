@@ -368,7 +368,7 @@ struct AudioControlView: View {
             HStack {
                 Text(audioPlayer.currentTime)
                     .font(.caption.monospacedDigit())
-                Slider(value: $audioPlayer.absProgress, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
+                Slider(value: $audioPlayer.audioPlayer.currentTime, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
             }
             .padding()
             HStack{
