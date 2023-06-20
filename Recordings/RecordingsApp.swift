@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 @main
 struct RecordingsApp: App {
     @AppStorage("isNewLaunch") var isNewLaunch: Bool = true
@@ -21,16 +20,16 @@ struct RecordingsApp: App {
                .environmentObject(audioRecorder)
                .environmentObject(recordingsModel)
                .onAppear(perform: {
-                              if isNewLaunch {
-                                  let fileManager = FileManager.default
-                                  let allFolder = Util.buildFolderURL("All")
-                                  let allContents = try! fileManager.contentsOfDirectory(at: allFolder, includingPropertiesForKeys: nil)
-                                  let fileCount = allContents.count == 0 ? allContents.count : allContents.count-1
-                                  let all = RecordingFolder(name: "All", path: "All", count: fileCount)
-                                  folderNavigationModel.addAllFolderView(all)
-                                  isNewLaunch = false
-                          }
-                         })
+                  if isNewLaunch {
+                      let fileManager = FileManager.default
+                      let allFolder = Util.buildFolderURL("All")
+                      let allContents = try! fileManager.contentsOfDirectory(at: allFolder, includingPropertiesForKeys: nil)
+                      let fileCount = allContents.count == 0 ? allContents.count : allContents.count-1
+                      let all = Folder(name: "All", path: "All", count: fileCount)
+                      folderNavigationModel.addAllFolderView(all)
+                      isNewLaunch = false
+                  }
+             })
         }
     }
 }
