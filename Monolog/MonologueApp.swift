@@ -13,12 +13,16 @@ struct RecordingsApp: App {
     @StateObject var folderNavigationModel = FolderNavigationModel()
     @StateObject var audioRecorder: AudioRecorderModel = AudioRecorderModel()
     @StateObject var recordingsModel: RecordingsModel = RecordingsModel()
+    @StateObject var useTranscriptModel: UseTranscriptModel = UseTranscriptModel()
+    @StateObject var storeModel = StoreModel()
     var body: some Scene {
         WindowGroup {
             HomeView()
                .environmentObject(folderNavigationModel)
                .environmentObject(audioRecorder)
                .environmentObject(recordingsModel)
+               .environmentObject(useTranscriptModel)
+               .environmentObject(storeModel)
                .onAppear(perform: {
                   if isNewLaunch {
                       let fileManager = FileManager.default

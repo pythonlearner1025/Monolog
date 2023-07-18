@@ -18,6 +18,7 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
     @Published var createdAt: Date
     @Published var title: String
     @Published var outputs: Outputs
+    @Published var generateText: Bool
     var id: UUID = UUID()
     private var cancellables = Set<AnyCancellable>()
 
@@ -33,6 +34,7 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
         outputs = try container.decode(Outputs.self, forKey: .outputs)
         folderPath = try container.decode(String.self, forKey: .folderPath)
         audioPath = try container.decode(String.self, forKey: .audioPath)
+        generateText = try container.decode(Bool.self, forKey: .generateText)
         id = try container.decode(UUID.self, forKey: .id)
         audioPlayer = AudioPlayerModel(folderPath: try container.decode(String.self, forKey: .folderPath), audioPath: try container.decode(String.self, forKey: .audioPath))
         //setupPublishers()
@@ -48,10 +50,11 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
         try container.encode(title, forKey: .title)
         try container.encode(audioPath, forKey: .audioPath)
         try container.encode(id, forKey: .id)
+        try container.encode(generateText, forKey: .generateText)
     }
 
     // your initializer here
-    init (folderPath: String, audioPath: String, filePath: String, createdAt: Date, title: String, outputs: Outputs){
+    init (folderPath: String, audioPath: String, filePath: String, createdAt: Date, title: String, outputs: Outputs, generateText: Bool){
         self.audioPath = audioPath
         self.filePath = filePath
         self.createdAt = createdAt
@@ -59,6 +62,7 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
         self.outputs = outputs
         self.folderPath = folderPath
         self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
+        self.generateText = generateText
         //setupPublishers()
     }
     
@@ -76,11 +80,11 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
     }
     
     func copy() -> Recording {
-        return Recording(folderPath: folderPath, audioPath: audioPath, filePath: filePath, createdAt: createdAt, title: title, outputs: outputs)
+        return Recording(folderPath: folderPath, audioPath: audioPath, filePath: filePath, createdAt: createdAt, title: title, outputs: outputs, generateText: generateText)
     }
     
     func hash(into hasher: inout Hasher) {
-            hasher.combine(id)
+        hasher.combine(id)
     }
     
 }

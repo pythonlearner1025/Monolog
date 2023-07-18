@@ -83,7 +83,7 @@ struct MoveSheet: View {
     }
     
     var body: some View {
-        NavigationView{
+        NavigationStack{
             Form {
                 Section(header: Text("Selected Recording")) {
                     Text(idx < recordings.count ? recordings[idx].title : "loading")
@@ -200,3 +200,79 @@ struct CustomOutputSheet: View {
     }
 }
 
+
+// TODO: should be part of RecordingView. Using sheet to check functionality
+struct RegenAllSheet: View {
+    @Environment(\.presentationMode) var presentationMode
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    let recording: Recording
+    
+    var body: some View {
+        NavigationStack{
+            Form{
+                Button(action: {
+                    audioAPI.regenerateAll(recording: recording)
+                }) {
+                    Text("Regenerate All")
+                }
+            }
+            .navigationBarTitle("Error Transcribing", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// TODO: should be part of RecordingView. Using sheet to check functionality
+struct BuyTranscriptSheet: View {
+    @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var storeModel: StoreModel
+   // @State private var isPurchased: Bool = false
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    let recording: Recording
+    
+    var body: some View {
+        NavigationStack{
+            Form{
+                //Section(header: Text("Upgrade to "))
+                ForEach(storeModel.subscriptions) {product in
+                    Button(action: {
+                       // show product view screen -
+                    https://www.youtube.com/watch?v=vk6B79dE3Lw&t=920s&ab_channel=JustAnotherDangHowToChannel
+                        Task {
+                            await buy(product)
+                        }
+                       
+                    }) {
+                        Text(product.displayPrice)
+                        Text(product.description)
+                    }
+                }
+            }
+            .navigationBarTitle("Upgrade to Transcribe", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    func buy(_ product: Product) async {
+        do {
+            if try await storeModel.purchase(product) != nil {
+                audioAPI.regenerateAll(recording: recording)
+                presentationMode.wrappedValue.dismiss()
+            }
+        } catch {
+            print("purchase failed")
+        }
+    }
+}

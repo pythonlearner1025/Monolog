@@ -21,6 +21,7 @@ struct FolderView: View {
     @State private var playingRecordingPath = ""
     @EnvironmentObject var audioRecorder: AudioRecorderModel
     @EnvironmentObject var recordingsModel: RecordingsModel
+    @EnvironmentObject var useTranscriptModel: UseTranscriptModel
     var folder: Folder
     var rawFolderURL: URL
     
@@ -158,7 +159,14 @@ struct FolderView: View {
                 let importedAudioURL = try res.get()
                 if importedAudioURL.startAccessingSecurityScopedResource() {
                     let newAudioURL = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
-                    audioRecorder.saveImportedRecording(&recordingsModel[folder.path].recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path))
+                    if !useTranscriptModel.isEmpty() {
+                        // transcript gen
+                        audioRecorder.saveImportedRecording(&recordingsModel[folder.path].recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path), generateText: true)
+                        useTranscriptModel.useTranscript()
+                    } else {
+                        // no transcript gen
+                        audioRecorder.saveImportedRecording(&recordingsModel[folder.path].recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path), generateText: false)
+                    }
                     importedAudioURL.stopAccessingSecurityScopedResource()
                 }
             } catch {
@@ -177,7 +185,14 @@ struct FolderView: View {
                 Spacer()
                CameraButtonView(action: { isRecording in
                    if isRecording {
-                       audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path))
+                       if !useTranscriptModel.isEmpty() {
+                           // transcript gen
+                           audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: true)
+                           useTranscriptModel.useTranscript()
+                       } else {
+                           // no transcript gen
+                           audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: false)
+                       }
                    } else {
                        audioRecorder.startRecording(audioURL: rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a"))
                    }

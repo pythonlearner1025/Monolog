@@ -11,6 +11,8 @@ import UIKit
 struct RecordingView: View {
     @ObservedObject var recording: Recording
     @ObservedObject var outputs: Outputs
+    @State private var isShowingBuyTranscripts = false
+    @State private var isShowingRegenerateAll = false
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
@@ -20,6 +22,12 @@ struct RecordingView: View {
     @State private var customInput = ""
     @State private var showDelete: Bool = false
     @ObservedObject private var keyboardResponder = KeyboardResponderModel()
+    @EnvironmentObject private var storeModel: StoreModel
+  
+    // eventually view should case for these 3
+    // case 1: generateText = false, ran out of free transcripts. Prompt to buy more to regen
+    // case 2: error generating all three outputs. Prompt to retry
+    // case 3: all other outputs combinations
     
     var body: some View {
         List{
@@ -108,8 +116,31 @@ struct RecordingView: View {
                     ShareSheet(items: [url])
             }
         }
+        .sheet(item: $isShowingRegenerateAll) {
+            RegenAllSheet(recording: recording)
+        }
+        .sheet(item: $isShowingBuyTranscripts) {
+            BuyTranscriptSheet(recording: recording)
+        }
         .onReceive(outputs.$outputs){ outputs in
         }
+        .onAppear(perform: {
+            if !recording.generateText {
+                isShowingBuyTranscripts = true
+            } else if allError(outputs){
+                isShowingRegenerateAll = true
+            }
+            
+        })
+    }
+    
+    func allError(_ outputs: [Output]) -> Bool {
+        for output in outputs {
+            if !output.error {
+                return false
+            }
+        }
+        return true
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
