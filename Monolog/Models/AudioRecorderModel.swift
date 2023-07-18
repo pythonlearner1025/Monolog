@@ -52,17 +52,29 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }
     }
     
-    func stopRecording(_ recordings: inout [Recording], folderURL: URL) {
+    func stopRecording(_ recordings: inout [Recording], folderURL: URL, generateText: Bool) {
         audioRecorder.stop()
         // write Recordings to localStorage as well.
         let audioURL = audioRecorder.url
         let filePath = "\(audioURL.lastPathComponent).json"
-        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), title: "Untitled", outputs: Outputs.defaultOutputs)
+        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), title: "Untitled", outputs: Outputs.defaultOutputs, generateText: true)
         recordings.insert(recording, at: 0)
-        generateAll(recording: recording, audioURL: audioURL)
+        if generateText {
+            generateAll(recording: recording, audioURL: audioURL)
+        } else {
+            recording.generateText = false
+            let folderURL = Util.buildFolderURL(recording.folderPath)
+            let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
+            do {
+                let data = try encoder.encode(recording)
+                try data.write(to: fileURL)
+            } catch {
+                print("An error occurred while saving the recording object: \(error)")
+            }
+        }
     }
     
-    func saveImportedRecording(_ recordings: inout [Recording], oldAudioURL: URL, newAudioURL: URL, folderURL: URL){
+    func saveImportedRecording(_ recordings: inout [Recording], oldAudioURL: URL, newAudioURL: URL, folderURL: URL, generateText: Bool){
         let fileManager = FileManager.default
         do {
             try fileManager.copyItem(at: oldAudioURL, to: newAudioURL)
@@ -70,9 +82,21 @@ class AudioRecorderModel : NSObject, ObservableObject {
             print("An error occurred while copying the file: \(error)")
         }
         let filePath = "\(newAudioURL.lastPathComponent).json"
-        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), title: "Untitled", outputs: Outputs.defaultOutputs)
+        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), title: "Untitled", outputs: Outputs.defaultOutputs, generateText: true)
         recordings.insert(recording, at: 0)
-        generateAll(recording: recording, audioURL: newAudioURL)
+        if generateText {
+            generateAll(recording: recording, audioURL: audioURL)
+        } else {
+            recording.generateText = false
+            let folderURL = Util.buildFolderURL(recording.folderPath)
+            let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
+            do {
+                let data = try encoder.encode(recording)
+                try data.write(to: fileURL)
+            } catch {
+                print("An error occurred while saving the recording object: \(error)")
+            }
+        }
     }
     
     func generateAll(recording: Recording, audioURL: URL) {
@@ -205,14 +229,13 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }).store(in: &self.cancellables)
     }
     
-  
+    func regenerateAll(recording: Recording) {
+        updateAllLoadingOutput(outputs: recording.outputs)
+        generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
+    }
+    
+    // pass output of type Transcript to regen all
     func regenerateOutput(recording: Recording, output: Output) {
-        // should immediately show loading
-        if output.type == .Transcript {
-            updateAllLoadingOutput(outputs: recording.outputs)
-            generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
-            return
-        }
         output.content = "Loading"
         output.error = false
         output.loading = true

@@ -12,7 +12,6 @@ import StoreKit
 typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo //The Product.SubscriptionInfo.RenewalInfo provides information about the next subscription renewal period.
 typealias RenewalState = StoreKit.Product.SubscriptionInfo.RenewalState // the renewal states of auto-renewable subscriptions.
 
-
 class StoreModel: ObservableObject {
     @Published private(set) var subscriptions: [Product] = []
     @Published private(set) var purchasedSubscriptions: [Product] = []
@@ -124,9 +123,7 @@ class StoreModel: ObservableObject {
             }
         }
     }
-
 }
-
 
 public enum StoreError: Error {
     case failedVerification
