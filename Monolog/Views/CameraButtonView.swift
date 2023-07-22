@@ -16,11 +16,9 @@ struct CameraButtonView: View {
                 .stroke(lineWidth: 4)
                 .foregroundColor(.white)
                 .frame(width: 65, height: 65)
-            
             RoundedRectangle(cornerRadius: recording ? 8 : self.innerCircleWidth / 2)
                 .foregroundColor(.red)
                 .frame(width: self.innerCircleWidth, height: self.innerCircleWidth)
-
         }
         .animation(.linear(duration: 0.2))
         .padding(.top, 30)

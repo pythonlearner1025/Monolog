@@ -10,6 +10,7 @@ import UIKit
 import StoreKit
 
 struct RecordingView: View {
+    @Environment(\.colorScheme) var colorScheme
     @ObservedObject var recording: Recording
     @ObservedObject var outputs: Outputs
     @State private var isShowingUpgrade = false
@@ -140,7 +141,7 @@ struct RecordingView: View {
                     Text("Upgrade to Transcribe")
                 }
                 .padding()
-                .background(Color(red: 0, green: 0, blue: 0.5))
+                .background(colorScheme == .dark ? Color(red: 0, green: 0, blue: 0.5) : .white)
                 //.foregroundColor(.black)
                 .clipShape(Capsule())
             }
