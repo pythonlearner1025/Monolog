@@ -59,8 +59,8 @@ class StoreModel: ObservableObject {
             // request from the app store using the product ids (hardcoded)
             subscriptions = try await Product.products(for: productIds)
             selectedProduct = subscriptions.first
-            print("SUBSCRIPTIONS")
-            print(subscriptions)
+            //print("SUBSCRIPTIONS")
+            //print(subscriptions)
         } catch {
             print("Failed product request from app store server: \(error)")
         }

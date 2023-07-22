@@ -108,8 +108,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
        let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
        do {
            let data = try encoder.encode(recording)
-           print("Saving generateALL results here:")
-           print(fileURL)
+         //  print("Saving generateALL results here:")
+          // print(fileURL)
            try data.write(to: fileURL)
        } catch {
            print("An error occurred while saving the recording object: \(error)")
@@ -127,8 +127,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 self.updateAllErrorOutput(outputs: recording.outputs)
                 
                 do {
-                    print("-- saving transcript error data --")
-                    print(recording)
+                    //print("-- saving transcript error data --")
+                    //print(recording)
                     let updatedData = try self.encoder.encode(recording)
                     try updatedData.write(to: fileURL)
                 } catch {
@@ -138,7 +138,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 break
             }
         }, receiveValue: { update in
-            print("* update: Transcript **")
+           // print("* update: Transcript **")
             self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
             do {
                 let updatedData = try self.encoder.encode(recording)
@@ -148,7 +148,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
             }
             if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
                 var outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") ?? UserDefaults.standard.defaultOutputSettings
-                print("== all settings outputs \(settings.outputs)==")
+               // print("== all settings outputs \(settings.outputs)==")
                 // name & prompt only for custom...
                 outputSettings.name = ""
                 outputSettings.prompt = ""
@@ -199,7 +199,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     .sink(receiveCompletion: { _ in}, receiveValue: { update in
                         switch update.type {
                             case .Summary:
-                                print("** update: summary **")
+                                //print("** update: summary **")
                                 let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Summary})
                                 let out = recording.outputs.outputs[out_idx!]
                                 out.loading = false
@@ -207,7 +207,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 out.content = update.content
                                 out.settings = update.settings
                             case .Title:
-                                print("** update: Title **")
+                                //print("** update: Title **")
                                 recording.title = update.content
                                 let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Title})
                                 let out = recording.outputs.outputs[out_idx!]
@@ -250,7 +250,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
             receiveCompletion: { completion in
                 switch (completion) {
                 case .failure(let error):
-                    print("failed to regenerate \(error)")
+                    //print("failed to regenerate \(error)")
                     output.content = "Error, tap to retry"
                     output.loading = false
                     output.error = true
@@ -261,11 +261,11 @@ class AudioRecorderModel : NSObject, ObservableObject {
             receiveValue:{ update in
                 switch update.type {
                     case .Summary:
-                        print("** update: summary **")
+                        //print("** update: summary **")
                         self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
                     case .Title:
-                        print("** update: Title **")
+                        //print("** update: Title **")
                         recording.title = update.content
                         self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
@@ -295,7 +295,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     case .failure(_):
                     self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: recording.outputs)
                         do {
-                            print("-- saving custom output error data --")
+                            //print("-- saving custom output error data --")
                             let updatedData = try self.encoder.encode(recording)
                             try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
                         }
@@ -323,13 +323,13 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
     func generateOutput(transcript: String, outputType: OutputType, outputSettings: OutputSettings) -> Future<Update, OutputGenerationError> {
         return Future { promise in
-            print("== Generating for \(outputType.rawValue) ==")
+            //print("== Generating for \(outputType.rawValue) ==")
             let url = self.baseURL + "generate_output"
             
             do {
                 let encodedSettings = try self.encoder.encode(outputSettings)
                 let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
-                print("settings dict \(settingsDictionary!)")
+                //print("settings dict \(settingsDictionary!)")
                 let parameters: [String: Any] = [
                     "type": outputType.rawValue,
                     "transcript": transcript,
@@ -379,7 +379,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 let fileData = try Data(contentsOf: audioURL)
                 data.append(fileData)
             } catch {
-                print("Failed to read file data: \(error)")
+                //print("Failed to read file data: \(error)")
                 promise(.failure(error))
                 return
             }
@@ -397,7 +397,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 }
                 
                 if let dataString = String(data: data, encoding: .utf8) {
-                       print("Data received: \(dataString)")
+                       //print("Data received: \(dataString)")
                    } else {
                        print("Unable to convert data to text")
                    }

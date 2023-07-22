@@ -51,7 +51,7 @@ struct SettingsSheet: View {
                         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
                         presentationMode.wrappedValue.dismiss()
                     } else {
-                        print("err")
+                      //  print("err")
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
@@ -121,7 +121,7 @@ struct MoveSheet: View {
     }
     
     private func moveItem(_ folder: String) {
-        print("moving item")
+    //    print("moving item")
         let fileManager = FileManager.default
         let recording = recordings[idx]
         let encoder = Util.encoder()
