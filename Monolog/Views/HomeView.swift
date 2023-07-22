@@ -143,7 +143,7 @@ struct HomeView: View {
                 let folderName = url.lastPathComponent
                 let folderPath = url.path
                 do {
-                    print("loaded folder \(url.path)")
+                    //print("loaded folder \(url.path)")
                     let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
                     let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
                     if (folderName != "Recently Deleted") {

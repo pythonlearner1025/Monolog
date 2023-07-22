@@ -42,9 +42,9 @@ struct AudioControlView: View {
                 Spacer()
             }
         }.onChange(of: playingRecordingPath, perform: { path in
-            print("new recording playing at \(path)")
+           // print("new recording playing at \(path)")
             if audioPlayer.isPlaying && audioPlayer.audioPath != path {
-                print("stopping this recording \(audioPlayer.audioPath)")
+            //    print("stopping this recording \(audioPlayer.audioPath)")
                 audioPlayer.stopPlaying()
             }
         })

@@ -27,7 +27,7 @@ struct FolderView: View {
     var rawFolderURL: URL
     
     init(folder: Folder) {
-        print("INIT FOLDERVIEW")
+        //print("INIT FOLDERVIEW")
         self.folder = folder
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
@@ -218,7 +218,7 @@ struct FolderView: View {
     }
 
     private var filteredItems: [Recording] {
-        print("filtering")
+        //print("filtering")
         if searchText.isEmpty {
             return recordingsModel[folder.path].recordings
         }
