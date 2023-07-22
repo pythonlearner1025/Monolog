@@ -16,16 +16,15 @@ class StoreModel: ObservableObject {
     @Published private(set) var subscriptions: [Product] = []
     @Published private(set) var purchasedSubscriptions: [Product] = []
     @Published private(set) var subscriptionGroupStatus: RenewalState?
+    @Published var selectedProduct: Product?
     
-    private let productIds: [String] = ["subscription.yearly", "subscription.monthly"]
+    private let productIds: [String] = ["premium_monthly", "premium_annual"]
     
     var updateListenerTask : Task<Void, Error>? = nil
 
     init() {
-        
         //start a transaction listern as close to app launch as possible so you don't miss a transaction
         updateListenerTask = listenForTransactions()
-        
         Task {
             await requestProducts()
             await updateCustomerProductStatus()
@@ -59,6 +58,8 @@ class StoreModel: ObservableObject {
         do {
             // request from the app store using the product ids (hardcoded)
             subscriptions = try await Product.products(for: productIds)
+            selectedProduct = subscriptions.first
+            print("SUBSCRIPTIONS")
             print(subscriptions)
         } catch {
             print("Failed product request from app store server: \(error)")

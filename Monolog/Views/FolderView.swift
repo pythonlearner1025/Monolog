@@ -21,7 +21,8 @@ struct FolderView: View {
     @State private var playingRecordingPath = ""
     @EnvironmentObject var audioRecorder: AudioRecorderModel
     @EnvironmentObject var recordingsModel: RecordingsModel
-    @EnvironmentObject var useTranscriptModel: UseTranscriptModel
+    @EnvironmentObject var consumableModel: ConsumableModel
+    @EnvironmentObject var storeModel: StoreModel
     var folder: Folder
     var rawFolderURL: URL
     
@@ -159,10 +160,10 @@ struct FolderView: View {
                 let importedAudioURL = try res.get()
                 if importedAudioURL.startAccessingSecurityScopedResource() {
                     let newAudioURL = rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a")
-                    if !useTranscriptModel.isEmpty() {
+                    if !consumableModel.isTranscriptEmpty() || storeModel.purchasedSubscriptions.count > 0 {
                         // transcript gen
                         audioRecorder.saveImportedRecording(&recordingsModel[folder.path].recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path), generateText: true)
-                        useTranscriptModel.useTranscript()
+                        consumableModel.useTranscript()
                     } else {
                         // no transcript gen
                         audioRecorder.saveImportedRecording(&recordingsModel[folder.path].recordings, oldAudioURL: importedAudioURL, newAudioURL: newAudioURL, folderURL: Util.buildFolderURL(folder.path), generateText: false)
@@ -174,7 +175,7 @@ struct FolderView: View {
             }
         }
         .alert(isPresented: $showLoadingAlert) {
-            Alert(title: Text("Error Editing"), message: Text("Please wait until the recording has fully loaded"),
+            Alert(title: Text("Cannot Edit"), message: Text("Please try again after all text completes loading"),
                   dismissButton: .default(Text("OK")) {
                 showLoadingAlert=false
             })
@@ -185,10 +186,10 @@ struct FolderView: View {
                 Spacer()
                CameraButtonView(action: { isRecording in
                    if isRecording {
-                       if !useTranscriptModel.isEmpty() {
+                       if !consumableModel.isTranscriptEmpty() || storeModel.purchasedSubscriptions.count > 0 {
                            // transcript gen
                            audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: true)
-                           useTranscriptModel.useTranscript()
+                           consumableModel.useTranscript()
                        } else {
                            // no transcript gen
                            audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: false)

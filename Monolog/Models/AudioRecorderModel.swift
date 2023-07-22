@@ -57,12 +57,14 @@ class AudioRecorderModel : NSObject, ObservableObject {
         // write Recordings to localStorage as well.
         let audioURL = audioRecorder.url
         let filePath = "\(audioURL.lastPathComponent).json"
-        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), title: "Untitled", outputs: Outputs.defaultOutputs, generateText: true)
+        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: audioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: audioURL), title: "Untitled", outputs: Outputs.defaultOutputs, generateText: generateText)
         recordings.insert(recording, at: 0)
         if generateText {
             generateAll(recording: recording, audioURL: audioURL)
         } else {
-            recording.generateText = false
+            for output in recording.outputs.outputs {
+                output.error = true
+            }
             let folderURL = Util.buildFolderURL(recording.folderPath)
             let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
             do {
@@ -82,14 +84,16 @@ class AudioRecorderModel : NSObject, ObservableObject {
             print("An error occurred while copying the file: \(error)")
         }
         let filePath = "\(newAudioURL.lastPathComponent).json"
-        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), title: "Untitled", outputs: Outputs.defaultOutputs, generateText: true)
+        let recording = Recording(folderPath: folderURL.lastPathComponent, audioPath: newAudioURL.lastPathComponent, filePath: filePath, createdAt: getFileDate(for: oldAudioURL), title: "Untitled", outputs: Outputs.defaultOutputs, generateText: generateText)
         recordings.insert(recording, at: 0)
         if generateText {
-            generateAll(recording: recording, audioURL: audioURL)
+            generateAll(recording: recording, audioURL: newAudioURL)
         } else {
-            recording.generateText = false
+            for output in recording.outputs.outputs {
+                output.error = true
+            }
             let folderURL = Util.buildFolderURL(recording.folderPath)
-            let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
+            let fileURL = folderURL.appendingPathComponent("\(newAudioURL.lastPathComponent).json")
             do {
                 let data = try encoder.encode(recording)
                 try data.write(to: fileURL)
@@ -143,9 +147,11 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 print("An error occurred while updating the recording object: \(error)")
             }
             if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
-                let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") ?? UserDefaults.standard.defaultOutputSettings
+                var outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") ?? UserDefaults.standard.defaultOutputSettings
                 print("== all settings outputs \(settings.outputs)==")
-
+                // name & prompt only for custom...
+                outputSettings.name = ""
+                outputSettings.prompt = ""
                 settings.outputs.forEach({ outputType in
                     if outputType != .Transcript {
                         self.addLoadingOutput(type: outputType, settings: outputSettings, outputs:  recording.outputs)
@@ -426,12 +432,13 @@ class AudioRecorderModel : NSObject, ObservableObject {
 extension AudioRecorderModel {
     private func addLoadingOutput(type: OutputType, settings: OutputSettings, outputs: Outputs) -> Output {
         if let index = outputs.outputs.firstIndex(where: { $0.type == type }) {
-            return outputs.outputs[index]
-        } else {
-             let newOutput = Output(type: type, content: "Loading", settings: settings)
-            outputs.outputs.append(newOutput)
-            return newOutput
+            if type != .Custom {
+                return outputs.outputs[index]
+            }
         }
+        let newOutput = Output(type: type, content: "Loading", settings: settings)
+        outputs.outputs.append(newOutput)
+        return newOutput
     }
     
     private func updateOutput(_ id: String, content: String,  settings: OutputSettings, outputs: Outputs){

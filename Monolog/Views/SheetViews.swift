@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 
 struct SettingsSheet: View {
     @Environment(\.presentationMode) var presentationMode
@@ -157,6 +158,8 @@ struct CustomOutputSheet: View {
     @State private var customPrompt: String = ""
     @State private var customName: String = ""
     let recording: Recording
+    @EnvironmentObject var consumableModel: ConsumableModel
+    @EnvironmentObject var storeModel: StoreModel
 
     var body: some View{
         NavigationStack {
@@ -170,14 +173,17 @@ struct CustomOutputSheet: View {
                         .frame(height: 120)
                 }
                 Button("Generate") {
-                    if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                        let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone ,name: customName,  prompt: customPrompt)
-                        audioAPI.generateCustomOutput(recording: recording, outputSettings: currentOutputSettings)
-                        UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
-                        presentationMode.wrappedValue.dismiss()
-                    } else {
-                        print("err")
-                        presentationMode.wrappedValue.dismiss()
+                    if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
+                        if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                            let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone, name: customName,  prompt: customPrompt)
+                            audioAPI.generateCustomOutput(recording: recording, outputSettings: currentOutputSettings)
+                            UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
+                            presentationMode.wrappedValue.dismiss()
+                        } else {
+                            print("err")
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                        consumableModel.useOutput()
                     }
                 }
             }
@@ -192,7 +198,6 @@ struct CustomOutputSheet: View {
         }
         .onAppear {
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings"){
-         
                 self.customPrompt = outputSettings.prompt
                 self.customName = outputSettings.name
             }
@@ -200,10 +205,8 @@ struct CustomOutputSheet: View {
     }
 }
 
-
 // TODO: should be part of RecordingView. Using sheet to check functionality
-struct RegenAllSheet: View {
-    @Environment(\.presentationMode) var presentationMode
+struct RegenView: View {
     let audioAPI: AudioRecorderModel = AudioRecorderModel()
     let recording: Recording
     
@@ -217,44 +220,45 @@ struct RegenAllSheet: View {
                 }
             }
             .navigationBarTitle("Error Transcribing", displayMode: .inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-            }
         }
     }
 }
 
-// TODO: should be part of RecordingView. Using sheet to check functionality
-struct BuyTranscriptSheet: View {
+struct UpgradeSheet: View {
     @Environment(\.presentationMode) var presentationMode
-    @EnvironmentObject var storeModel: StoreModel
-   // @State private var isPurchased: Bool = false
-    let audioAPI: AudioRecorderModel = AudioRecorderModel()
     let recording: Recording
+    let context: UpgradeContext
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    @EnvironmentObject var storeModel: StoreModel
     
     var body: some View {
-        NavigationStack{
-            Form{
-                //Section(header: Text("Upgrade to "))
-                ForEach(storeModel.subscriptions) {product in
-                    Button(action: {
-                       // show product view screen -
-                    https://www.youtube.com/watch?v=vk6B79dE3Lw&t=920s&ab_channel=JustAnotherDangHowToChannel
-                        Task {
-                            await buy(product)
+        NavigationStack {
+            Form {
+                Section(header: Text("Subscription Plans")) {
+                    Picker("", selection: $storeModel.selectedProduct) {
+                        ForEach(storeModel.subscriptions) { product in
+                            HStack {
+                                Text(product.displayName)
+                                Spacer()
+                                Text(product.description)
+                            }.tag(product as Product?)
                         }
-                       
-                    }) {
-                        Text(product.displayPrice)
-                        Text(product.description)
+                    }
+                    .pickerStyle(WheelPickerStyle())
+                    .frame(height: 100)
+                }
+                
+                Section(header: Text("Enjoy unlimited transcriptions & Generations")) {
+                    Button("Subscribe") {
+                        Task {
+                            if let selectedProduct = storeModel.selectedProduct {
+                                await buy(product: selectedProduct)
+                            }
+                        }
                     }
                 }
             }
-            .navigationBarTitle("Upgrade to Transcribe", displayMode: .inline)
+            .navigationBarTitle("Go UNLIMITED")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -265,10 +269,14 @@ struct BuyTranscriptSheet: View {
         }
     }
     
-    func buy(_ product: Product) async {
+    func buy(product: Product) async {
         do {
             if try await storeModel.purchase(product) != nil {
-                audioAPI.regenerateAll(recording: recording)
+                // regnerate all
+                if context == .TranscriptUnlock {
+                    recording.generateText = true
+                    audioAPI.regenerateAll(recording: recording)
+                }
                 presentationMode.wrappedValue.dismiss()
             }
         } catch {

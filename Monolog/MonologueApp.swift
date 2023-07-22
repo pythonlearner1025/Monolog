@@ -13,7 +13,7 @@ struct RecordingsApp: App {
     @StateObject var folderNavigationModel = FolderNavigationModel()
     @StateObject var audioRecorder: AudioRecorderModel = AudioRecorderModel()
     @StateObject var recordingsModel: RecordingsModel = RecordingsModel()
-    @StateObject var useTranscriptModel: UseTranscriptModel = UseTranscriptModel()
+    @StateObject var consumableModel: ConsumableModel = ConsumableModel()
     @StateObject var storeModel = StoreModel()
     var body: some Scene {
         WindowGroup {
@@ -21,7 +21,7 @@ struct RecordingsApp: App {
                .environmentObject(folderNavigationModel)
                .environmentObject(audioRecorder)
                .environmentObject(recordingsModel)
-               .environmentObject(useTranscriptModel)
+               .environmentObject(consumableModel)
                .environmentObject(storeModel)
                .onAppear(perform: {
                   if isNewLaunch {
