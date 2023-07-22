@@ -42,8 +42,7 @@ class Outputs: ObservableObject, Codable {
 
 }
 
-
-class Output: ObservableObject, Codable, Identifiable, Equatable {
+class Output: ObservableObject, Codable, Identifiable, Equatable, CustomStringConvertible {
     var id = UUID()
     var type: OutputType
     @Published var content: String
@@ -83,9 +82,12 @@ class Output: ObservableObject, Codable, Identifiable, Equatable {
 
     }
     
-    
     static func == (lhs: Output, rhs: Output) -> Bool{
         return lhs.id == rhs.id
+    }
+    
+    var description: String {
+        return "Output(name: \(self.settings.name), content: \(self.content), type: \(self.type))"
     }
 }
 

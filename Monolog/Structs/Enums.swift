@@ -62,3 +62,8 @@ enum FolderPageEnum: String, CaseIterable {
     case normal = "Transcript"
     case summary = "Summary"
 }
+
+enum UpgradeContext: String, Codable, CaseIterable {
+    case TranscriptUnlock
+    case GenerationUnlock
+}

@@ -14,7 +14,7 @@ struct HomeView: View {
     @EnvironmentObject var folderNavigationModel: FolderNavigationModel
     @EnvironmentObject var audioRecorder: AudioRecorderModel
     @EnvironmentObject var recordingsModel: RecordingsModel
-    @EnvironmentObject var useTranscriptModel: UseTranscriptModel
+    @EnvironmentObject var consumableModel: ConsumableModel
     @EnvironmentObject var storeModel: StoreModel
     @State private var showAllFirst = true
     @State private var folders: [Folder] = []
@@ -61,11 +61,12 @@ struct HomeView: View {
                        FolderView(folder: folder)
                            .environmentObject(audioRecorder)
                            .environmentObject(recordingsModel)
-                           .environmentObject(useTranscriptModel)
+                           .environmentObject(consumableModel)
                    }
                    .navigationDestination(for: Recording.self) { recording  in
                        RecordingView(recording: recording, outputs: recording.outputs)
                            .environmentObject(storeModel)
+                           .environmentObject(consumableModel)
                    }
                    .navigationTitle("Folders")
                    .navigationBarItems(trailing:
