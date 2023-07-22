@@ -258,7 +258,7 @@ struct UpgradeSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Go UNLIMITED")
+            .navigationBarTitle("Get UNLIMITED")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

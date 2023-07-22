@@ -137,8 +137,12 @@ struct RecordingView: View {
             // view of Subscription types
             Group {
                 Button(action: {isShowingUpgrade = true}) {
-                    Text("Upgrade to transcribe")
+                    Text("Upgrade to Transcribe")
                 }
+                .padding()
+                .background(Color(red: 0, green: 0, blue: 0.5))
+                //.foregroundColor(.black)
+                .clipShape(Capsule())
             }
             .navigationBarItems(trailing:
                 HStack{
@@ -155,6 +159,14 @@ struct RecordingView: View {
                 UpgradeSheet(recording: recording, context: .TranscriptUnlock)
                     .environmentObject(storeModel)
                     .presentationDetents([.medium])
+            }
+            .sheet(item: $activeSheet) {item in
+                switch item {
+                    case .exportText(let url):
+                        ShareSheet(items: [url])
+                    case .exportAudio(let url):
+                        ShareSheet(items: [url])
+                }
             }
         }
     }
