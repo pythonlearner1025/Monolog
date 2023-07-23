@@ -169,6 +169,14 @@ struct RecordingView: View {
                         ShareSheet(items: [url])
                 }
             }
+            .onAppear(perform: {
+                Task {
+                    if storeModel.purchasedSubscriptions.count > 0 {
+                        recording.generateText = true
+                        audioAPI.regenerateAll(recording: recording)
+                    }
+                }
+            })
         }
     }
     
