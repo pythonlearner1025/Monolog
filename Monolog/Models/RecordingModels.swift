@@ -23,7 +23,7 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
     private var cancellables = Set<AnyCancellable>()
 
     enum CodingKeys: CodingKey {
-        case filePath, createdAt, audioPath, title, outputs, folderPath, id
+        case filePath, createdAt, audioPath, title, outputs, folderPath, id, generateText
     }
 
     required init(from decoder: Decoder) throws {

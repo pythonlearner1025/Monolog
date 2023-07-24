@@ -7,12 +7,13 @@
 import SwiftUI
 import Foundation
 import UIKit
+import StoreKit
 
 struct RecordingView: View {
+    @Environment(\.colorScheme) var colorScheme
     @ObservedObject var recording: Recording
     @ObservedObject var outputs: Outputs
-    @State private var isShowingBuyTranscripts = false
-    @State private var isShowingRegenerateAll = false
+    @State private var isShowingUpgrade = false
     @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
@@ -23,115 +24,160 @@ struct RecordingView: View {
     @State private var showDelete: Bool = false
     @ObservedObject private var keyboardResponder = KeyboardResponderModel()
     @EnvironmentObject private var storeModel: StoreModel
+    @EnvironmentObject private var consumableModel: ConsumableModel
+    let audioAPI: AudioRecorderModel = AudioRecorderModel()
   
-    // eventually view should case for these 3
-    // case 1: generateText = false, ran out of free transcripts. Prompt to buy more to regen
-    // case 2: error generating all three outputs. Prompt to retry
-    // case 3: all other outputs combinations
-    
     var body: some View {
-        List{
-            if outputs.outputs.first(where: {$0.type == .Title}) != nil {
-                TitleView(output: recording.outputs.outputs.first(where: {$0.type == .Title})!, recording: recording)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color(.systemBackground))
-            }
-            ForEach(sortOutputs(outputs.outputs).filter { $0.type != .Title}) { output in
-                HStack{
-                    Group{
-                        if output.type != .Transcript && showDelete {
-                            VStack{
-                                Button(action: {
-                                    deleteOutput(output)
-                                }) {
-                                    ZStack{
-                                        Image(systemName:"minus.circle")
-                                            .font(.system(size: 25))
-                                            .foregroundColor(.white)
-                                        Image(systemName: "minus.circle.fill")
-                                            .font(.system(size: 25))
-                                            .foregroundColor(.red)
+        if recording.generateText {
+            List{
+                if allError(outputs.outputs) {
+                    RegenView(recording: recording)
+                } else {
+                     if outputs.outputs.first(where: {$0.type == .Title}) != nil {
+                        TitleView(output: recording.outputs.outputs.first(where: {$0.type == .Title})!, recording: recording)
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color(.systemBackground))
+                     }
+                    ForEach(sortOutputs(outputs.outputs).filter { $0.type != .Title}) { output in
+                        HStack{
+                            Group{
+                                if output.type != .Transcript && showDelete {
+                                    VStack{
+                                        Button(action: {
+                                            deleteOutput(output)
+                                        }) {
+                                            ZStack{
+                                                Image(systemName:"minus.circle")
+                                                    .font(.system(size: 25))
+                                                    .foregroundColor(.white)
+                                                Image(systemName: "minus.circle.fill")
+                                                    .font(.system(size: 25))
+                                                    .foregroundColor(.red)
+                                            }
+                                        }
+                                        .padding(.top, 10)
+                                        Spacer()
                                     }
                                 }
-                                .padding(.top, 10)
-                                Spacer()
+                            }
+                            OutputView(output, recording: recording)
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color(.systemBackground))
+                    }
+                }
+            }
+            .navigationBarItems(trailing:
+                HStack{
+                    if keyboardResponder.currentHeight != 0 {
+                        Spacer()
+                        Button(action: hideKeyboard) {
+                            Text("Done")
+                        }
+                    } else {
+                        Menu {
+                            Button(action: exportText) {
+                                Label("Export Text", systemImage: "doc.text")
+                            }
+                            Button(action: exportAudio) {
+                                Label("Export Audio", systemImage: "waveform")
+                            }
+                        }
+                        label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        Button(action: {
+                            if !consumableModel.isOutputEmpty() || storeModel.purchasedSubscriptions.count > 0 {
+                                isShowingCustomOutput.toggle()
+                            } else {
+                                isShowingUpgrade.toggle()
+                            }
+                        }) {
+                            Image(systemName: "sparkles")
+                        }
+                        Button(action: {
+                            showDelete.toggle()
+                        }){
+                            if !showDelete {
+                                Text("Edit")
+                            } else {
+                                Text("Done")
                             }
                         }
                     }
-                    OutputView(output, recording: recording)
                 }
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color(.systemBackground))
+            )
+            .listStyle(.plain)
+            .sheet(isPresented: $isShowingCustomOutput){
+                CustomOutputSheet(recording: recording)
+                    .environmentObject(consumableModel)
+                    .environmentObject(storeModel)
             }
-        }
-        .navigationBarItems(trailing:
-        HStack{
-            if keyboardResponder.currentHeight != 0 {
-                Spacer()
-                Button(action: hideKeyboard) {
-                    Text("Done")
-                }
-            } else {
-                Menu {
-                    Button(action: exportText) {
-                        Label("Export Text", systemImage: "doc.text")
-                    }
-                    Button(action: exportAudio) {
-                        Label("Export Audio", systemImage: "waveform")
-                    }
-                }
-                label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                Button(action: {
-                    isShowingCustomOutput.toggle()
-                }) {
-                    Image(systemName: "sparkles")
-                }
-                Button(action: {
-                    showDelete.toggle()
-                }){
-                    if !showDelete {
-                        Text("Edit")
-                    } else {
-                        Text("Done")
-                    }
+            .sheet(isPresented: $isShowingSettings) {
+                if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                    SettingsSheet(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
                 }
             }
-        })
-        .listStyle(.plain)
-        .sheet(isPresented: $isShowingCustomOutput){
-            CustomOutputSheet(recording: recording)
-        }
-        .sheet(isPresented: $isShowingSettings) {
-            if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                SettingsSheet(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
+            .sheet(item: $activeSheet) {item in
+                switch item {
+                    case .exportText(let url):
+                        ShareSheet(items: [url])
+                    case .exportAudio(let url):
+                        ShareSheet(items: [url])
+                }
             }
-        }
-        .sheet(item: $activeSheet) {item in
-            switch item {
-                case .exportText(let url):
-                    ShareSheet(items: [url])
-                case .exportAudio(let url):
-                    ShareSheet(items: [url])
+            .sheet(isPresented: $isShowingUpgrade) {
+                UpgradeSheet(recording: recording, context: .GenerationUnlock)
+                    .environmentObject(storeModel)
+                    .presentationDetents([.medium])
             }
-        }
-        .sheet(item: $isShowingRegenerateAll) {
-            RegenAllSheet(recording: recording)
-        }
-        .sheet(item: $isShowingBuyTranscripts) {
-            BuyTranscriptSheet(recording: recording)
-        }
-        .onReceive(outputs.$outputs){ outputs in
-        }
-        .onAppear(perform: {
-            if !recording.generateText {
-                isShowingBuyTranscripts = true
-            } else if allError(outputs){
-                isShowingRegenerateAll = true
+            .onReceive(outputs.$outputs){ outputs in
             }
             
-        })
+        } else {
+            // view of Subscription types
+            Group {
+                Button(action: {isShowingUpgrade = true}) {
+                    Text("Upgrade to Transcribe")
+                }
+                .padding()
+                .background(colorScheme == .dark ? Color(red: 0, green: 0, blue: 0.5) : .white)
+                //.foregroundColor(.black)
+                .clipShape(Capsule())
+            }
+            .navigationBarItems(trailing:
+                HStack{
+                    Menu {
+                        Button(action: exportAudio) {
+                            Label("Export Audio", systemImage: "waveform")
+                        }
+                    }
+                    label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+            })
+            .sheet(isPresented: $isShowingUpgrade) {
+                UpgradeSheet(recording: recording, context: .TranscriptUnlock)
+                    .environmentObject(storeModel)
+                    .presentationDetents([.medium])
+            }
+            .sheet(item: $activeSheet) {item in
+                switch item {
+                    case .exportText(let url):
+                        ShareSheet(items: [url])
+                    case .exportAudio(let url):
+                        ShareSheet(items: [url])
+                }
+            }
+            .onAppear(perform: {
+                Task {
+                    if storeModel.purchasedSubscriptions.count > 0 {
+                        recording.generateText = true
+                        audioAPI.regenerateAll(recording: recording)
+                    }
+                }
+            })
+        }
     }
     
     func allError(_ outputs: [Output]) -> Bool {
@@ -141,6 +187,18 @@ struct RecordingView: View {
             }
         }
         return true
+    }
+    
+    func buy(product: Product) async {
+        do {
+            if try await storeModel.purchase(product) != nil {
+                // regnerate all
+                recording.generateText = true
+                audioAPI.regenerateAll(recording: recording)
+            }
+        } catch {
+            print("purchase failed")
+        }
     }
     
     func sortOutputs(_ outputs: [Output]) -> [Output] {
@@ -186,21 +244,35 @@ struct RecordingView: View {
     }
 
     private func exportAudio(){
-        let originalURL = URL(fileURLWithPath: recording.audioPath)
-        let filename = "\(recording.title).m4a"
-        let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let newURL = tempDirectoryURL.appendingPathComponent(filename)
-        
-        do {
-            let fileManager = FileManager.default
-            if fileManager.fileExists(atPath: originalURL.path) {
-                try fileManager.copyItem(at: originalURL, to: newURL)
+        DispatchQueue.global(qos: .userInitiated).async {
+            let audioFolderURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent("raw")
+            let originalURL = audioFolderURL.appendingPathComponent(recording.audioPath)
+            let filename = "\(recording.title).m4a"
+            let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            let newURL = tempDirectoryURL.appendingPathComponent(filename)
+            do {
+                let fileManager = FileManager.default
+
+                // Remove the file at the destination URL if it exists
+                if fileManager.fileExists(atPath: newURL.path) {
+                    try fileManager.removeItem(at: newURL)
+                }
+
+                // Check if the original file exists
+                if fileManager.fileExists(atPath: originalURL.path) {
+                    try fileManager.copyItem(at: originalURL, to: newURL)
+
+                    DispatchQueue.main.async {
+                        activeSheet = .exportAudio(newURL)
+                    }
+                } else {
+                    print("File not found at path: \(originalURL.path)")
+                }
+            } catch {
+                print("Failed to handle the file. Error: \(error)")
             }
-        } catch {
-            print("Failed to rename file")
-            print("\(error)")
         }
-        activeSheet = .exportAudio(newURL)
     }
+
      
 }

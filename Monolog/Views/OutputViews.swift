@@ -80,11 +80,12 @@ struct OutputView: View {
     private func getCustomOutputName(_ output: Output) -> String{
         let outputs = recording.outputs.outputs
         let dupes = outputs.filter{ $0.settings.name == output.settings.name}
+        //print(dupes)
         let pos = dupes.firstIndex(where: {$0.id.uuidString == output.id.uuidString})
         if pos == 0 {
             return output.settings.name
         } else {
-            return "\(output.settings.name)(\(pos!.description))"
+            return "\(output.settings.name) (\(pos!.description))"
         }
     }
     

@@ -20,7 +20,7 @@ struct AudioControlView: View {
     var body: some View {
         Group {
             HStack {
-                Text(audioPlayer.currentTime)
+                Text(Duration(secondsComponent: Int64(audioPlayer.audioPlayer.currentTime), attosecondsComponent: 0).formatted(.time(pattern: .minuteSecond)))
                     .font(.caption.monospacedDigit())
                 Slider(value: $audioPlayer.audioPlayer.currentTime, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
             }
@@ -42,9 +42,9 @@ struct AudioControlView: View {
                 Spacer()
             }
         }.onChange(of: playingRecordingPath, perform: { path in
-            print("new recording playing at \(path)")
+           // print("new recording playing at \(path)")
             if audioPlayer.isPlaying && audioPlayer.audioPath != path {
-                print("stopping this recording \(audioPlayer.audioPath)")
+            //    print("stopping this recording \(audioPlayer.audioPath)")
                 audioPlayer.stopPlaying()
             }
         })

@@ -6,23 +6,25 @@
 //
 
 import Foundation
+import KeychainSwift
 import SwiftUI
 
-class UseTranscriptModel {
-    private let maxTranscripts: Int = 20
+class ConsumableModel: ObservableObject {
+    private let maxTranscripts: Int = 1
+    private let maxOutputs: Int = 10
     
-    init {
-        let keychain = KeyChainSwift()
+    init (){
+        let keychain = KeychainSwift()
         
         if keychain.get("isFirstLaunch") == nil {
             keychain.set("0", forKey: "transcripts")
+            keychain.set("0", forKey: "outputs")
             keychain.set("false", forKey: "isFirstLaunch")
         }
     }
     
     func useTranscript() {
         let keychain = KeychainSwift()
-
         if let currentTranscripts = keychain.get("transcripts") {
             if let currentTranscriptsInt = Int(currentTranscripts), currentTranscriptsInt < maxTranscripts {
                 let newTranscripts = currentTranscriptsInt + 1
@@ -32,16 +34,44 @@ class UseTranscriptModel {
             }
         }
     }
-
-    func isEmpty() -> Int {
+    
+    func useOutput() {
         let keychain = KeychainSwift()
+        if let currentOutputs = keychain.get("outputs") {
+            if let currentOutputsInt = Int(currentOutputs), currentOutputsInt < maxOutputs {
+                let newOutputs = currentOutputsInt + 1
+                keychain.set(String(newOutputs), forKey: "outputs")
+            } else {
+                print("No outputs left to consume")
+            }
+        }
+    }
 
-        if let currentTranscripts = Int(keychain.get("transcripts")) {
-           return currentTranscripts < maxTranscripts
+    func isTranscriptEmpty() -> Bool {
+        let keychain = KeychainSwift()
+        
+        if let currentTranscripts = keychain.get("transcripts") {
+            if let currentTranscriptsInt = Int(currentTranscripts), currentTranscriptsInt < maxTranscripts {
+                return false
+            } else {
+                return true
+            }
         } else {
             return false
         }
     }
+    
+    func isOutputEmpty() -> Bool {
+        let keychain = KeychainSwift()
+        if let currentOutputs = keychain.get("outputs") {
+            if let currentOutputsInt = Int(currentOutputs), currentOutputsInt < maxOutputs {
+                return false
+            } else {
+                return true
+            }
+        } else {
+            return false
+        }
+
+    }
 }
-
-

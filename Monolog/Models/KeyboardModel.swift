@@ -20,14 +20,14 @@ class KeyboardResponderModel: ObservableObject {
         keyboardShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
             .map {
                 let height = ($0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect)?.height ?? 0
-                print("Keyboard will show, height: \(height)")
+                //print("Keyboard will show, height: \(height)")
                 return height
             }
             .assign(to: \.currentHeight, on: self)
         
         keyboardHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
             .map { _ in
-                print("Keyboard will hide")
+                //print("Keyboard will hide")
                 return 0
             }
             .assign(to: \.currentHeight, on: self)

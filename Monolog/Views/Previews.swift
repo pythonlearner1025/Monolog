@@ -56,10 +56,10 @@ struct OutputPreview: View {
             HStack{
                 Image(systemName: "exclamationmark.arrow.circlepath")
                 ZStack {
-                    Text(output.content).foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
+                    Text("Error").foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
                 }
             }
-        } else if output.loading && output.content == "Loading" {
+        } else if output.loading {
             // TODO: adjust spinner gap with title when output.type is Title
             HStack{
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)

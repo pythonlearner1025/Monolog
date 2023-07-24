@@ -139,9 +139,10 @@ async def generate_output(load: OutputLoad):
     else:
         print(load.type)
         gpt = CompletionAI(
-            get_custom_out, 
+            get_transformation, 
             load.transcript, 
-            prompt=load.settings.prompt, 
+            name=load.settings.name, 
+            description=load.settings.prompt,
             length=load.settings.length, 
             tone=load.settings.tone, 
             format=load.settings.format
