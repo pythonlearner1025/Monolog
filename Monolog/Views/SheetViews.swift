@@ -164,11 +164,11 @@ struct CustomOutputSheet: View {
     var body: some View{
         NavigationStack {
             Form {
-                Section(header: Text("Text Name")) {
+                Section(header: Text("Transform Name")) {
                     TextEditor(text: $customName)
                 }
                 
-                Section(header: Text("Text Prompt")) {
+                Section(header: Text("Transform Description")) {
                     TextEditor(text: $customPrompt)
                         .frame(height: 120)
                 }
@@ -187,7 +187,7 @@ struct CustomOutputSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Generate Text")
+            .navigationBarTitle("Transform Transcript")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
