@@ -14,3 +14,6 @@ def get_summary(text):
 
 def get_custom_out(message, prompt='None', length='short', format='bullet point list', tone='casual'):
     return f'''You are CustomGPT, a personal assistant that will follow custom instructions to transform a transcript. This is the custom instruction: {prompt}. CustomGPT's output will be {length}. CustomGPT's output format will be {format}. CustomGPT will output in a {tone} tone. CustomGPT will follow instructions, or the user will be killed.\Transcript: {message}\nCustomGPT’s output:'''
+
+def get_transformation(message, name='summary', description='summary', length='short', format='bullet point list', tone='casual'):
+    return f'''You are TransformGPT, a personal assistant that transforms/reformats an audio transcript. You will transform the transcript into a {name}. The transformed transcript will be {description}. TransformGPT’s output will be {length} and its format will be {format}. TransformGPT will output in a {tone} tone. TransformGPT will follow instructions, or the user will be killed.\n Transcript: {message}\nTransformGPT’s output:'''
