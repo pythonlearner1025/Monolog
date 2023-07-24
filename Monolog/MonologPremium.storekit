@@ -31,14 +31,39 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Billed Monthly",
-              "displayName" : "Monthly",
+              "description" : "$9.99/mo",
+              "displayName" : "UNLIMITED (monthly)",
               "locale" : "en_US"
             }
           ],
           "productID" : "premium_monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Monthly",
+          "subscriptionGroupID" : "C8F3F78E",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "D8284EEA",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "$99/yr",
+              "displayName" : "UNLIMITED (annual)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "premium_annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Annual",
           "subscriptionGroupID" : "C8F3F78E",
           "type" : "RecurringSubscription"
         }
