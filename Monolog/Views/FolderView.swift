@@ -11,7 +11,9 @@ import AVFoundation
 
 struct FolderView: View {
     @State var selection: FolderPageEnum = .normal
-    @State private var showLoadingAlert = false
+    @State private var showMoveLoadingAlert = false
+    @State private var showDeleteLoadingAlert = false
+    @State private var idxToDelete = 0
     @State private var isShowingSettings = false
     @State private var isShowingPicker = false
     @State private var isShowingMoveSheet = false
@@ -94,17 +96,22 @@ struct FolderView: View {
                             deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
                             removeRecording(idx: idx)
                         } else {
-                            showLoadingAlert = true
+                            idxToDelete = idx
+                            showDeleteLoadingAlert = true
                         }
                     } label: {
                         Label("Delete", systemImage: "minus.circle.fill")
                     }
                     Button {
+                        print("pressed")
                         if outputsLoaded(filteredItems[idx]) {
+                            print("here")
                             recordingToMove = filteredItems[idx]
                             isShowingMoveSheet = true
                         } else {
-                            showLoadingAlert = true
+                            print("here2")
+                            // problem is here. not loading.
+                            showMoveLoadingAlert = true
                         }
                     } label: {
                         Label("Move", systemImage: "folder")
@@ -174,11 +181,34 @@ struct FolderView: View {
                 print("error reading file")
             }
         }
-        .alert(isPresented: $showLoadingAlert) {
-            Alert(title: Text("Cannot Edit"), message: Text("Please try again after all text completes loading"),
-                  dismissButton: .default(Text("OK")) {
-                showLoadingAlert=false
-            })
+        .alert(isPresented: $showMoveLoadingAlert) {
+            Alert(title: Text("Warning"),
+             message: Text("Please try again after all text completes loading"),
+             primaryButton: .default(Text("Move Anyway")) {
+                if let last = filteredItems.lastIndex(where: { _ in true }) {
+                    recordingToMove = filteredItems[last]
+                    isShowingMoveSheet = true
+                }
+                 showMoveLoadingAlert=false
+             },
+             secondaryButton: .default(Text("Ok"), action: {
+                showMoveLoadingAlert=false
+             }))
+        }
+        .alert(isPresented: $showDeleteLoadingAlert) {
+            Alert(title: Text("Warning"),
+             message: Text("Please try again after all text completes loading"),
+             primaryButton: .default(Text("Delete Anyway")) {
+                audioRecorder.cancelSave()
+                filteredItems[idxToDelete].audioPlayer.stopPlaying()
+                filteredItems[idxToDelete].audioPlayer.isPlaying = false
+                deleteRecording(filteredItems[idxToDelete].copy(), filteredItems[idxToDelete].audioPath, filteredItems[idxToDelete].filePath)
+                removeRecording(idx: idxToDelete)
+                showDeleteLoadingAlert=false
+             },
+             secondaryButton: .default(Text("Ok"), action: {
+                showDeleteLoadingAlert=false
+             }))
         }
 
         if (folder.name != "Recently Deleted") {

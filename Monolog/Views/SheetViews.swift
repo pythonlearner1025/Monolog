@@ -172,7 +172,7 @@ struct CustomOutputSheet: View {
                     TextEditor(text: $customPrompt)
                         .frame(height: 120)
                 }
-                Button("Generate") {
+                Button("Transform") {
                     if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
                         if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
                             let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone, name: customName,  prompt: customPrompt)
@@ -236,7 +236,7 @@ struct UpgradeSheet: View {
             Form {
                 Section(header: Text("Subscription Plans")) {
                     Picker("", selection: $storeModel.selectedProduct) {
-                        ForEach(storeModel.subscriptions) { product in
+                        ForEach(storeModel.subscriptions.reversed()) { product in
                             HStack {
                                 Text(product.displayName)
                                 Spacer()
