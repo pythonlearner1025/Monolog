@@ -339,6 +339,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
                     .validate()
                     .responseJSON { response in
+                        print(response.description)
                         switch response.result {
                             case .success(let value):
                                 if let JSON = value as? [String: Any] {
@@ -397,7 +398,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 }
                 
                 if let dataString = String(data: data, encoding: .utf8) {
-                       //print("Data received: \(dataString)")
+                       print("Data received: \(dataString)")
                    } else {
                        print("Unable to convert data to text")
                    }

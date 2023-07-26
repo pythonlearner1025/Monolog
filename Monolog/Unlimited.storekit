@@ -1,0 +1,79 @@
+{
+  "identifier" : "516F579D",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6452193887",
+    "_developerTeamID" : "4GS43493GL",
+    "_lastSynchronizedDate" : 712058173.19007003
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21366806",
+      "localizations" : [
+
+      ],
+      "name" : "UNLIMITED",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "99.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6453472223",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "$99/yr",
+              "displayName" : "UNLIMITED (annual) ",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "unlimited_annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "annual",
+          "subscriptionGroupID" : "21366806",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6453472280",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "$9.99/mo",
+              "displayName" : "UNLIMITED (monthly) ",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "unlimited_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "monthly",
+          "subscriptionGroupID" : "21366806",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}
