@@ -398,7 +398,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 }
                 
                 if let dataString = String(data: data, encoding: .utf8) {
-                       print("Data received: \(dataString)")
+                       //print("Data received: \(dataString)")
                    } else {
                        print("Unable to convert data to text")
                    }
