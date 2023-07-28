@@ -115,7 +115,7 @@ class StoreModel: ObservableObject {
                         if let subscription = subscriptions.first(where: {$0.id == transaction.productID}) {
                             purchasedSubscriptions.append(subscription)
                         }
-                        print("all purchased: \(purchasedSubscriptions)")
+                        //print("all purchased: \(purchasedSubscriptions)")
                     default:
                         break
                 }

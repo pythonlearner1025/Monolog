@@ -19,11 +19,11 @@ struct Util {
     static func allFolderURLs() -> [URL] {
         let fileManager = FileManager.default
         guard let applicationSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return [] }
-        print("-- Util allFolderUrls --")
+        //print("-- Util allFolderUrls --")
         print(applicationSupportDirectory)
         let folderURLs = try! fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
-        print("contents of folderURLS")
-        print(folderURLs)
+        //print("contents of folderURLS")
+        //print(folderURLs)
         return folderURLs
     }
     

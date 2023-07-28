@@ -39,7 +39,6 @@
 		77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 77ABE0732A21AD4300EED914 /* Alamofire */; };
 		77C0D97B2A2BC02900B86AA4 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97A2A2BC02900B86AA4 /* Enums.swift */; };
 		77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97C2A2BC05200B86AA4 /* Classes.swift */; };
-		B0E941902A26E2C200D75726 /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -95,7 +94,6 @@
 		77C0D9772A2BADB000B86AA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		77C0D97A2A2BC02900B86AA4 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		77C0D97C2A2BC05200B86AA4 /* Classes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Classes.swift; sourceTree = "<group>"; };
-		B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,7 +201,6 @@
 				77C0D9772A2BADB000B86AA4 /* Info.plist */,
 				7791A0D42A1E9497005088C4 /* Assets.xcassets */,
 				7791A0D02A1E9496005088C4 /* MonologueApp.swift */,
-				B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */,
 				772341B62A4148D1004A3E6B /* Models */,
 				772341AD2A4146C4004A3E6B /* Views */,
 				77ABE06D2A1FF35400EED914 /* Structs */,
@@ -398,7 +395,6 @@
 				772341B82A4148E6004A3E6B /* AudioRecorderModel.swift in Sources */,
 				77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */,
 				772341C32A414BC8004A3E6B /* OutputModels.swift in Sources */,
-				B0E941902A26E2C200D75726 /* SwiftUIView.swift in Sources */,
 				77619E142A4A13B7005221ED /* ConsumableModel.swift in Sources */,
 				7791A0D32A1E9496005088C4 /* HomeView.swift in Sources */,
 				772341BF2A414B5E004A3E6B /* CameraButtonView.swift in Sources */,
@@ -569,7 +565,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"Monolog/Preview Content\"";
 				DEVELOPMENT_TEAM = 4GS43493GL;
 				ENABLE_PREVIEWS = YES;
@@ -608,7 +604,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"Monolog/Preview Content\"";
 				DEVELOPMENT_TEAM = 4GS43493GL;
 				ENABLE_PREVIEWS = YES;
