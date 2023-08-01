@@ -135,23 +135,6 @@ struct FolderView: View {
         }
         .sheet(item: $recordingToMove) { recording in
             MoveSheet($recordingsModel[folder.path].recordings, recording: recording, currFolder: folder.path)
-                
-                .onDisappear(perform: {
-                    fetchAllRecording()
-                })
-               
-            /*
-             
-            if let idx = filteredItems.firstIndex(where: {$0.id == recording.id}) {
-                MoveSheet($recordingsModel[folder.path].recordings, idx: idx, currFolder: folder.path)
-                    .onDisappear(perform: {
-                        fetchAllRecording()
-                    })
-            } else {
-                Text("Error")
-            }
-             */
-            
         }
         .sheet(isPresented: $isShowingSettings){
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
@@ -285,29 +268,11 @@ struct FolderView: View {
     }
     
     private func fetchAllRecording(){
-        if recordingsModel[folder.path].recordings.count > 0 {
-            return
-        }
-       
         var recordings = Recordings()
         let fileManager = FileManager.default
         let decoder = Util.decoder()
         let folderURL = Util.buildFolderURL(folder.path)
-        
         var directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
-        
-        if (folder.path == "All") {
-            let folderURLs = Util.allFolderURLs()
-            for f in folderURLs {
-                if (f.lastPathComponent != "Recently Deleted" && f.lastPathComponent != "All") {
-                  let folderContents = try! fileManager.contentsOfDirectory(at: f, includingPropertiesForKeys: nil)
-                    print(folderContents)
-                directoryContents.append(contentsOf: folderContents)
-                }
-            }
-        }
-       
-        
         for i in directoryContents {
             if (i.lastPathComponent != "raw") {
                 do {
