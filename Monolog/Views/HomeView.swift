@@ -16,7 +16,6 @@ struct HomeView: View {
     @EnvironmentObject var recordingsModel: RecordingsModel
     @EnvironmentObject var consumableModel: ConsumableModel
     @EnvironmentObject var storeModel: StoreModel
-    @State private var showAllFirst = true
     @State private var folders: [Folder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
@@ -36,7 +35,7 @@ struct HomeView: View {
                    List{
                        Section{
                            ForEach(folders) {folder in
-                               if(folder.name == "All" || folder.name == "Recently Deleted"){
+                               if(folder.name == "Recordings" || folder.name == "Recently Deleted"){
                                    NavigationLink(value: folder) {
                                        FolderPreview(folder)
                                    }.deleteDisabled(true)
@@ -45,7 +44,7 @@ struct HomeView: View {
                        }
                        Section(header: Text("My Folders")){
                            ForEach(folders) {folder in
-                               if(folder.name != "All" && folder.name != "Recently Deleted"){
+                               if(folder.name != "Recordings" && folder.name != "Recently Deleted"){
                                    NavigationLink(value: folder) {
                                        FolderPreview(folder)
                                    }
@@ -118,18 +117,18 @@ struct HomeView: View {
         do {
             let fileManager = FileManager.default
             let applicationSupportDirectory = Util.root()
-            let allFilesFolderPath = applicationSupportDirectory.appendingPathComponent("All")
-            let allFilesAudioFolderPath = allFilesFolderPath.appendingPathComponent("raw")
+            let recordingsFolderPath = applicationSupportDirectory.appendingPathComponent("Recordings")
+            let recordingsAudioFolderPath = recordingsFolderPath.appendingPathComponent("raw")
             let deletedFilesFolderPath =
                 applicationSupportDirectory.appendingPathComponent("Recently Deleted")
             let deletedAudioFolderPath = deletedFilesFolderPath.appendingPathComponent("raw")
-            try fileManager.createDirectory(at: allFilesFolderPath, withIntermediateDirectories: true, attributes: nil)
-            try fileManager.createDirectory(at: allFilesAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: recordingsFolderPath, withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: recordingsAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
             try fileManager.createDirectory(at: deletedFilesFolderPath,
                                             withIntermediateDirectories: true, attributes: nil)
             try fileManager.createDirectory(at: deletedAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            print("An error occurred while creating the 'All' directory: \(error)")
+            print("An error occurred while creating the 'Recordings' directory: \(error)")
         }
     }
     
@@ -138,7 +137,6 @@ struct HomeView: View {
         let applicationSupportDirectory = Util.root()
         do {
             let folderURLs = try! fileManager.contentsOfDirectory(at: applicationSupportDirectory, includingPropertiesForKeys: nil)
-            var allCount = 0
             folders = folderURLs.compactMap { url -> Folder? in
                 let folderName = url.lastPathComponent
                 let folderPath = url.path
@@ -146,20 +144,12 @@ struct HomeView: View {
                     //print("loaded folder \(url.path)")
                     let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
                     let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
-                    if (folderName != "Recently Deleted") {
-                        allCount += itemCount
-                    }
-                    if (folderName != "All") {
-                         return Folder(name: folderName, path: folderName, count: itemCount)
-                    } else {
-                        return nil
-                    }
+                    return Folder(name: folderName, path: folderName, count: itemCount)
                 } catch {
                     print("An error occurred while counting items in \(folderName): \(error)")
                     return nil
                 }
             }
-            folders.append(Folder(name: "All", path: "All", count: allCount))
         }
     }
     
@@ -218,7 +208,7 @@ struct HomeView: View {
             try fileManager.createDirectory(at: newFolderPath, withIntermediateDirectories: true, attributes: nil)
             try fileManager.createDirectory(at: newFolderRawPath, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            print("An error occurred while creating the 'All' directory: \(error)")
+            print("An error occurred while creating the 'Recordings' directory: \(error)")
         }
         // Create a new Folder instance and add it to the 'folders' array
         let newFolder = Folder(name: title, path: newFolderPath.lastPathComponent, count: 0)
