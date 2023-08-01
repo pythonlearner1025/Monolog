@@ -109,7 +109,7 @@ struct HomeView: View {
     private func firstSetup() {
         // init default settings
         let settings = Settings(outputs: [.Title, .Transcript, .Summary], length: .short, format: .bullet, tone: .casual)
-        let outputSettings = OutputSettings(length: .medium, format: .bullet, tone: .casual,name: "", prompt: "")
+        let outputSettings = OutputSettings(length: .short, format: .bullet, tone: .casual, name: "", prompt: "")
         UserDefaults.standard.storeSettings(settings, forKey: "Settings")
         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
         

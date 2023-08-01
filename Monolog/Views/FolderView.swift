@@ -13,6 +13,7 @@ struct FolderView: View {
     @State var selection: FolderPageEnum = .normal
     @State private var showMoveLoadingAlert = false
     @State private var showDeleteLoadingAlert = false
+    @State private var showLoadingAlert = false
     @State private var idxToDelete = 0
     @State private var isShowingSettings = false
     @State private var isShowingPicker = false
@@ -90,28 +91,30 @@ struct FolderView: View {
                 .swipeActions(allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         if outputsLoaded(filteredItems[idx]) {
-                            audioRecorder.cancelSave()
-                            filteredItems[idx].audioPlayer.stopPlaying()
-                            filteredItems[idx].audioPlayer.isPlaying = false
-                            deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
-                            removeRecording(idx: idx)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5){
+                                audioRecorder.cancelSave()
+                                filteredItems[idx].audioPlayer.stopPlaying()
+                                filteredItems[idx].audioPlayer.isPlaying = false
+                                deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
+                                removeRecording(idx: idx)
+                            }
                         } else {
                             idxToDelete = idx
                             showDeleteLoadingAlert = true
+                            showLoadingAlert = true
                         }
                     } label: {
                         Label("Delete", systemImage: "minus.circle.fill")
                     }
-                    Button {
-                        print("pressed")
+                    Button{
                         if outputsLoaded(filteredItems[idx]) {
-                            print("here")
                             recordingToMove = filteredItems[idx]
                             isShowingMoveSheet = true
                         } else {
-                            print("here2")
                             // problem is here. not loading.
                             showMoveLoadingAlert = true
+                            showLoadingAlert = true
+
                         }
                     } label: {
                         Label("Move", systemImage: "folder")
@@ -131,15 +134,24 @@ struct FolderView: View {
             view.searchable(text: $searchText)
         }
         .sheet(item: $recordingToMove) { recording in
+            MoveSheet($recordingsModel[folder.path].recordings, recording: recording, currFolder: folder.path)
+                
+                .onDisappear(perform: {
+                    fetchAllRecording()
+                })
+               
+            /*
+             
             if let idx = filteredItems.firstIndex(where: {$0.id == recording.id}) {
-                    MoveSheet($recordingsModel[folder.path].recordings, idx: idx, currFolder: folder.path)
-                        .onDisappear(perform: {
-                            fetchAllRecording()
-                            }
-                        )
+                MoveSheet($recordingsModel[folder.path].recordings, idx: idx, currFolder: folder.path)
+                    .onDisappear(perform: {
+                        fetchAllRecording()
+                    })
             } else {
                 Text("Error")
             }
+             */
+            
         }
         .sheet(isPresented: $isShowingSettings){
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
@@ -181,36 +193,39 @@ struct FolderView: View {
                 print("error reading file")
             }
         }
-        .alert(isPresented: $showMoveLoadingAlert) {
-            Alert(title: Text("Warning"),
-             message: Text("Please try again after all text completes loading"),
-             primaryButton: .default(Text("Move Anyway")) {
-                if let last = filteredItems.lastIndex(where: { _ in true }) {
-                    recordingToMove = filteredItems[last]
-                    isShowingMoveSheet = true
-                }
-                 showMoveLoadingAlert=false
-             },
-             secondaryButton: .default(Text("Ok"), action: {
-                showMoveLoadingAlert=false
-             }))
+        .alert(isPresented: $showLoadingAlert) {
+            if showMoveLoadingAlert {
+                return Alert(title: Text("Warning"),
+                 message: Text("Please try again after all text completes loading"),
+                 primaryButton: .default(Text("Move Anyway")) {
+                    if let last = filteredItems.lastIndex(where: { _ in true }) {
+                        recordingToMove = filteredItems[last]
+                        isShowingMoveSheet = true
+                    }
+                     showMoveLoadingAlert=false
+                 },
+                 secondaryButton: .default(Text("Ok"), action: {
+                    showMoveLoadingAlert=false
+                }))
+            } else {
+                 return Alert(title: Text("Warning"),
+                 message: Text("Please try again after all text completes loading"),
+                 primaryButton: .default(Text("Delete Anyway")) {
+                    audioRecorder.cancelSave()
+                    filteredItems[idxToDelete].audioPlayer.stopPlaying()
+                    filteredItems[idxToDelete].audioPlayer.isPlaying = false
+                    deleteRecording(filteredItems[idxToDelete].copy(), filteredItems[idxToDelete].audioPath, filteredItems[idxToDelete].filePath)
+                    //removeRecording(idx: idxToDelete)
+                    if let toDeleteIdx = recordingsModel[folder.path].recordings.firstIndex(of: filteredItems[idxToDelete]) {
+                        recordingsModel[folder.path].recordings.remove(at: toDeleteIdx)
+                    }
+                    showDeleteLoadingAlert=false
+                 },
+                 secondaryButton: .default(Text("Ok"), action: {
+                    showDeleteLoadingAlert=false
+                 }))
+            }
         }
-        .alert(isPresented: $showDeleteLoadingAlert) {
-            Alert(title: Text("Warning"),
-             message: Text("Please try again after all text completes loading"),
-             primaryButton: .default(Text("Delete Anyway")) {
-                audioRecorder.cancelSave()
-                filteredItems[idxToDelete].audioPlayer.stopPlaying()
-                filteredItems[idxToDelete].audioPlayer.isPlaying = false
-                deleteRecording(filteredItems[idxToDelete].copy(), filteredItems[idxToDelete].audioPath, filteredItems[idxToDelete].filePath)
-                removeRecording(idx: idxToDelete)
-                showDeleteLoadingAlert=false
-             },
-             secondaryButton: .default(Text("Ok"), action: {
-                showDeleteLoadingAlert=false
-             }))
-        }
-
         if (folder.name != "Recently Deleted") {
             HStack {
                 Spacer()
@@ -280,15 +295,18 @@ struct FolderView: View {
         let folderURL = Util.buildFolderURL(folder.path)
         
         var directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
+        
         if (folder.path == "All") {
             let folderURLs = Util.allFolderURLs()
             for f in folderURLs {
                 if (f.lastPathComponent != "Recently Deleted" && f.lastPathComponent != "All") {
                   let folderContents = try! fileManager.contentsOfDirectory(at: f, includingPropertiesForKeys: nil)
+                    print(folderContents)
                 directoryContents.append(contentsOf: folderContents)
                 }
             }
         }
+       
         
         for i in directoryContents {
             if (i.lastPathComponent != "raw") {
