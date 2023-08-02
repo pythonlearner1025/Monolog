@@ -295,9 +295,9 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     case .failure(_):
                     self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: recording.outputs)
                         do {
-                            //print("-- saving custom output error data --")
                             let updatedData = try self.encoder.encode(recording)
-                            try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
+                            let recordingPath = Util.buildFolderURL(recording.folderPath).appendingPathComponent(recording.filePath)
+                            try updatedData.write(to: recordingPath)
                         }
                         catch {
                             print("Error saving output-generate-error to recording: \(error)")

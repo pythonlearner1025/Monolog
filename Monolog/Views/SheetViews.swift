@@ -51,7 +51,6 @@ struct SettingsSheet: View {
                         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
                         presentationMode.wrappedValue.dismiss()
                     } else {
-                      //  print("err")
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
@@ -68,19 +67,14 @@ struct SettingsSheet: View {
 
     }
 }
+
 struct MoveSheet: View {
-    @Binding var recordings: [Recording]
     var recording: Recording
     let currFolder: String
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var recordingsModel: RecordingsModel
     @State private var allFolders: [String] = []
 
-    init(_ recordings: Binding<[Recording]>, recording: Recording, currFolder: String){
-        self._recordings = recordings
-        self.recording = recording
-        self.currFolder = currFolder
-    }
-    
     var body: some View {
         NavigationStack{
             Form {
@@ -119,7 +113,8 @@ struct MoveSheet: View {
     }
     
     private func moveItem(_ folder: String) {
-    //    print("moving item")
+        let oldFolder = recording.folderPath
+        
         let fileManager = FileManager.default
         let encoder = Util.encoder()
         let folderURL = Util.buildFolderURL(recording.folderPath)
@@ -143,9 +138,9 @@ struct MoveSheet: View {
         } catch {
             print("can't move audio \(error)")
         }
-        // After moving, dismiss the view
-        //recordings.remove(at: idx)
-        recordings.removeAll(where: {$0.id == recording.id})
+        
+        recordingsModel[oldFolder].recordings.removeAll(where: {$0.id == recording.id})
+        recordingsModel[folder].recordings.insert(recording, at: 0)
     }
 }
 
@@ -177,7 +172,6 @@ struct CustomOutputSheet: View {
                             UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
                             presentationMode.wrappedValue.dismiss()
                         } else {
-                            print("err")
                             presentationMode.wrappedValue.dismiss()
                         }
                         consumableModel.useOutput()
@@ -202,7 +196,6 @@ struct CustomOutputSheet: View {
     }
 }
 
-// TODO: should be part of RecordingView. Using sheet to check functionality
 struct RegenView: View {
     let audioAPI: AudioRecorderModel = AudioRecorderModel()
     let recording: Recording

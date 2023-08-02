@@ -37,7 +37,6 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
         generateText = try container.decode(Bool.self, forKey: .generateText)
         id = try container.decode(UUID.self, forKey: .id)
         audioPlayer = AudioPlayerModel(folderPath: try container.decode(String.self, forKey: .folderPath), audioPath: try container.decode(String.self, forKey: .audioPath))
-        //setupPublishers()
     }
 
     func encode(to encoder: Encoder) throws {
@@ -53,7 +52,6 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
         try container.encode(generateText, forKey: .generateText)
     }
 
-    // your initializer here
     init (folderPath: String, audioPath: String, filePath: String, createdAt: Date, title: String, outputs: Outputs, generateText: Bool){
         self.audioPath = audioPath
         self.filePath = filePath
@@ -63,7 +61,6 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
         self.folderPath = folderPath
         self.audioPlayer = AudioPlayerModel(folderPath: folderPath, audioPath: audioPath)
         self.generateText = generateText
-        //setupPublishers()
     }
     
     private func setupPublishers() {

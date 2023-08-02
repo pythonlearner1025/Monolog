@@ -34,12 +34,10 @@ struct HomeView: View {
                NavigationStack(path: $folderNavigationModel.presentedItems) {
                    List{
                        Section{
-                           ForEach(folders) {folder in
-                               if(folder.name == "Recordings" || folder.name == "Recently Deleted"){
-                                   NavigationLink(value: folder) {
-                                       FolderPreview(folder)
-                                   }.deleteDisabled(true)
-                               }
+                           ForEach(defaultFolders) {folder in
+                               NavigationLink(value: folder) {
+                                   FolderPreview(folder)
+                               }.deleteDisabled(true)
                            }
                        }
                        Section(header: Text("My Folders")){
@@ -104,6 +102,12 @@ struct HomeView: View {
                })
            }
          }
+    
+    private var defaultFolders: [Folder] {
+        return folders.filter { folder in
+            folder.name == "Recordings" || folder.name == "Recently Deleted"
+        }.reversed()
+    }
 
     private func firstSetup() {
         // init default settings
