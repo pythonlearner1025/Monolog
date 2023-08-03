@@ -187,18 +187,18 @@ struct FolderView: View {
         .alert(isPresented: $showLoadingAlert) {
             if showMoveLoadingAlert {
                 return Alert(title: Text("Warning"),
-                 message: Text("Please try again after all text completes loading"),
-                 primaryButton: .default(Text("Move Anyway")) {
+                 message: Text("Are you sure you want to move the recording while text is still loading? You will lose the loading text."),
+                 primaryButton: .default(Text("Move")) {
                     recordingToMove = filteredItems[idxToMove]
                      showMoveLoadingAlert = false
                  },
-                 secondaryButton: .default(Text("Ok"), action: {
+                 secondaryButton: .default(Text("Don't Move"), action: {
                     showMoveLoadingAlert=false
                 }))
             } else {
                  return Alert(title: Text("Warning"),
-                 message: Text("Please try again after all text completes loading"),
-                 primaryButton: .default(Text("Delete Anyway")) {
+                 message: Text("Are you sure you want to delete the recording while text is still loading? You will lose the loading text."),
+                 primaryButton: .default(Text("Delete")) {
                     audioRecorder.cancelSave()
                     filteredItems[idxToDelete].audioPlayer.stopPlaying()
                     filteredItems[idxToDelete].audioPlayer.isPlaying = false
@@ -206,7 +206,7 @@ struct FolderView: View {
                     removeRecording(idx: idxToDelete)
                     showDeleteLoadingAlert=false
                  },
-                 secondaryButton: .default(Text("Ok"), action: {
+                 secondaryButton: .default(Text("Don't Delete"), action: {
                     showDeleteLoadingAlert=false
                  }))
             }
