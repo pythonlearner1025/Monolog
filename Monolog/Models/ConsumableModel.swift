@@ -10,8 +10,8 @@ import KeychainSwift
 import SwiftUI
 
 class ConsumableModel: ObservableObject {
-    private let maxTranscripts: Int = 20
-    private let maxOutputs: Int = 20
+    private let maxTranscripts: Int = 100
+    private let maxOutputs: Int = 100
     
     init (){
         let keychain = KeychainSwift()

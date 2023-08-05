@@ -196,24 +196,6 @@ struct CustomOutputSheet: View {
     }
 }
 
-struct RegenView: View {
-    let audioAPI: AudioRecorderModel = AudioRecorderModel()
-    let recording: Recording
-    
-    var body: some View {
-        NavigationStack{
-            Form{
-                Button(action: {
-                    audioAPI.regenerateAll(recording: recording)
-                }) {
-                    Text("Regenerate All")
-                }
-            }
-            .navigationBarTitle("Error Transcribing", displayMode: .inline)
-        }
-    }
-}
-
 struct UpgradeSheet: View {
     @Environment(\.presentationMode) var presentationMode
     let recording: Recording
@@ -265,7 +247,9 @@ struct UpgradeSheet: View {
                 // regnerate all
                 if context == .TranscriptUnlock {
                     recording.generateText = true
-                    audioAPI.regenerateAll(recording: recording)
+                    audioAPI.regenerateAll(recording: recording) {
+                        
+                    }
                 }
                 presentationMode.wrappedValue.dismiss()
             }

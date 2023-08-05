@@ -9,6 +9,7 @@ import Foundation
 import AVFoundation
 import Combine
 import Alamofire
+import UIKit
 
 class AudioRecorderModel : NSObject, ObservableObject {
     @Published var isPlaying : Bool = false
@@ -138,7 +139,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 break
             }
         }, receiveValue: { update in
-           // print("* update: Transcript **")
+           print("* update: Transcript **")
             self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
             do {
                 let updatedData = try self.encoder.encode(recording)
@@ -235,9 +236,10 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }).store(in: &self.cancellables)
     }
     
-    func regenerateAll(recording: Recording) {
+    func regenerateAll(recording: Recording, completion: @escaping () -> Void) {
         updateAllLoadingOutput(outputs: recording.outputs)
         generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
+        completion()
     }
     
     // pass output of type Transcript to regen all
@@ -323,13 +325,17 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
     func generateOutput(transcript: String, outputType: OutputType, outputSettings: OutputSettings) -> Future<Update, OutputGenerationError> {
         return Future { promise in
-            //print("== Generating for \(outputType.rawValue) ==")
+            var taskId: UIBackgroundTaskIdentifier!
+                taskId = UIApplication.shared.beginBackgroundTask {
+                    UIApplication.shared.endBackgroundTask(taskId)
+                    taskId = .invalid
+            }
+            
             let url = self.baseURL + "generate_output"
             
             do {
                 let encodedSettings = try self.encoder.encode(outputSettings)
                 let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
-                //print("settings dict \(settingsDictionary!)")
                 let parameters: [String: Any] = [
                     "type": outputType.rawValue,
                     "transcript": transcript,
@@ -339,6 +345,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
                     .validate()
                     .responseJSON { response in
+                        UIApplication.shared.endBackgroundTask(taskId) // End the background task when the request completes
                         print(response.description)
                         switch response.result {
                             case .success(let value):
@@ -351,15 +358,21 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 promise(.failure(OutputGenerationError.failure(error: error, outputType: outputType, transcript: transcript)))
                         }
                 }
-
             } catch {
                 print("encoding error \(error)")
+                UIApplication.shared.endBackgroundTask(taskId) // End the background task if there is an error
             }
         }
     }
 
+    
     func generateTranscription(recording: Recording) -> Future<Update, Error> {
         return Future { promise in
+            let backgroundTaskId = UIApplication.shared.beginBackgroundTask {
+                // This block will be executed if the task expires
+                promise(.failure(NSError(domain: "com.yourapp", code: 0, userInfo: [NSLocalizedDescriptionKey: "Background task expired"])))
+            }
+
             let url = URL(string: self.baseURL + "transcribe")!
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
@@ -389,19 +402,15 @@ class AudioRecorderModel : NSObject, ObservableObject {
 
             // Set the HTTPBody with the form data we created
             request.httpBody = data
-
             URLSession.shared.dataTask(with: request) { (data, response, error) in
+                // Make sure to end the background task when done
+                UIApplication.shared.endBackgroundTask(backgroundTaskId)
+                
                 guard let data = data, error == nil else {
                     print("Error: \(error?.localizedDescription ?? "Unknown error")")
                     promise(.failure(error!))
                     return
                 }
-                
-                if let dataString = String(data: data, encoding: .utf8) {
-                       //print("Data received: \(dataString)")
-                   } else {
-                       print("Unable to convert data to text")
-                   }
 
                 do {
                     let decoder = JSONDecoder()
@@ -419,6 +428,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     print("Decoding error: \(error)")
                     promise(.failure(error))
                 }
+
             }.resume()
         }
     }

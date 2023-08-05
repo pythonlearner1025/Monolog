@@ -120,7 +120,9 @@ struct FolderView: View {
                     .tint(.green)
                     
                     Button{
-                        audioRecorder.regenerateAll(recording: filteredItems[idx])
+                        audioRecorder.regenerateAll(recording: filteredItems[idx]){
+                            
+                        }
                     } label: {
                         Label("Retry", systemImage: "goforward")
                     }
