@@ -30,8 +30,6 @@ struct RecordingView: View {
     var body: some View {
         if recording.generateText {
             if allError(outputs.outputs) {
-                //RegenView(recording: recording)
-                // TODO: when "Retry" pressed, replace it with a loading spinner
                 Group {
                     if retryLoading {
                         ProgressView()
