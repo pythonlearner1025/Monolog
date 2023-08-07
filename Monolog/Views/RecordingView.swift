@@ -20,8 +20,9 @@ struct RecordingView: View {
     @State private var selectedTone = ""
     @State private var selectedFormat = ""
     @State private var customInput = ""
-    @State private var showDelete: Bool = false
+    @State private var showDelete = false
     @State private var retryLoading = false
+    @State private var initialPopupShowed = false
     @ObservedObject private var keyboardResponder = KeyboardResponderModel()
     @EnvironmentObject private var storeModel: StoreModel
     @EnvironmentObject private var consumableModel: ConsumableModel
@@ -163,7 +164,7 @@ struct RecordingView: View {
                 .sheet(isPresented: $isShowingUpgrade) {
                     UpgradeSheet(recording: recording, context: .GenerationUnlock)
                         .environmentObject(storeModel)
-                        .presentationDetents([.medium])
+                        //.presentationDetents([.medium])
                 }
                 .onReceive(outputs.$outputs){ outputs in
                 }
@@ -193,7 +194,7 @@ struct RecordingView: View {
             .sheet(isPresented: $isShowingUpgrade) {
                 UpgradeSheet(recording: recording, context: .TranscriptUnlock)
                     .environmentObject(storeModel)
-                    .presentationDetents([.medium])
+                    //.presentationDetents([.medium])
             }
             .sheet(item: $activeSheet) {item in
                 switch item {
@@ -204,11 +205,14 @@ struct RecordingView: View {
                 }
             }
             .onAppear(perform: {
+                if !initialPopupShowed {
+                    isShowingUpgrade = true
+                    initialPopupShowed = true 
+                }
                 Task {
                     if storeModel.purchasedSubscriptions.count > 0 {
                         recording.generateText = true
                         audioAPI.regenerateAll(recording: recording) {
-                            
                         }
                     }
                 }
@@ -218,7 +222,7 @@ struct RecordingView: View {
     
     func allError(_ outputs: [Output]) -> Bool {
         for output in outputs {
-            if !output.error {
+            if output.status != .error  {
                 return false
             }
         }

@@ -32,8 +32,10 @@ struct OutputView: View {
             .onTapGesture {
                 isMinimized.toggle()
             }
-            if output.error {
-                Group {
+            
+            switch output.status {
+            case.error:
+                 Group {
                    if !isMinimized {
                        HStack{
                            // TODO: show error sign
@@ -47,8 +49,8 @@ struct OutputView: View {
                 }.onTapGesture{
                    audioAPI.regenerateOutput(recording: recording, output: output)
                 }.animation(.easeInOut.speed(1.4),  value: isMinimized)
-            } else if output.loading {
-                Group {
+            case .loading:
+                 Group {
                    if !isMinimized {
                        HStack{
                            ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
@@ -59,7 +61,7 @@ struct OutputView: View {
                        }
                    }
                 }.animation(.easeInOut.speed(1.4),  value: isMinimized)
-            } else {
+            case .completed:
                 Group {
                    if !isMinimized {
                        ZStack {
@@ -73,6 +75,8 @@ struct OutputView: View {
                 .onChange(of: output.content, perform: { value in
                    saveRecording()
                 })
+            case .restricted:
+                EmptyView()
             }
         }
     }
@@ -108,7 +112,8 @@ struct TitleView: View {
     let recording: Recording
     
     var body: some View {
-        if output.error {
+        switch output.status {
+        case .error:
             HStack{
                 Image(systemName: "exclamationmark.arrow.circlepath")
                 Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
@@ -116,12 +121,12 @@ struct TitleView: View {
             .onTapGesture{
                 audioAPI.regenerateOutput(recording:recording, output:output)
             }
-        } else if output.loading {
+        case .loading:
             HStack{
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
                 Text(output.content).font(.title2.weight(.bold)).padding(.vertical).frame(maxWidth: .infinity, alignment: .center).padding(.top, -30).foregroundColor(.gray)
             }
-        } else {
+        case .completed:
             HStack{
                 ZStack {
                     TextEditor(text: $output.content)
@@ -134,6 +139,9 @@ struct TitleView: View {
                 recording.title = value
                 saveRecording()
             })
+        case .restricted:
+            EmptyView()
+        
         }
     }
     
