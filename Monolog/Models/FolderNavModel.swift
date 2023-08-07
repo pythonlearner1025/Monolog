@@ -13,4 +13,5 @@ class FolderNavigationModel: ObservableObject {
     func addAllFolderView(_ folder: Folder) {
         presentedItems.append(folder)
     }
+    
 }

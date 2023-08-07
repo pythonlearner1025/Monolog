@@ -115,16 +115,15 @@ struct FolderView: View {
                             showLoadingAlert = true
                         }
                     } label: {
-                        Label("Move", systemImage: "folder")
+                        Label("Move to Folder", systemImage: "folder")
                     }
                     .tint(.green)
-                    
                     Button{
-                        audioRecorder.regenerateAll(recording: filteredItems[idx]){
-                            
+                        if storeModel.purchasedSubscriptions.count > 0 || !consumableModel.isTranscriptEmpty() {
+                        audioRecorder.regenerateAll(recording: filteredItems[idx]){}
                         }
                     } label: {
-                        Label("Retry", systemImage: "goforward")
+                        Label("Redo Everything", systemImage: "goforward")
                     }
                     .tint(.blue)
                 }
@@ -194,7 +193,8 @@ struct FolderView: View {
                     recordingToMove = filteredItems[idxToMove]
                      showMoveLoadingAlert = false
                  },
-                 secondaryButton: .default(Text("Don't Move"), action: {
+                //TODO: why is Text(Don't move") not boldening?
+                             secondaryButton: .default(Text("Don't Move").bold(), action: {
                     showMoveLoadingAlert=false
                 }))
             } else {
@@ -208,9 +208,9 @@ struct FolderView: View {
                     removeRecording(idx: idxToDelete)
                     showDeleteLoadingAlert=false
                  },
-                 secondaryButton: .default(Text("Don't Delete"), action: {
+                              secondaryButton: .default(Text("Don't Delete").bold(), action: {
                     showDeleteLoadingAlert=false
-                 }))
+             }))
             }
         }
         if (folder.name != "Recently Deleted") {

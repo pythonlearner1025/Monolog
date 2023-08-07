@@ -104,7 +104,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }
     }
     
-    func generateAll(recording: Recording, audioURL: URL) {
+    func generateAll(recording: Recording, audioURL: URL, transcriptCompletion: (() -> Void)? = nil) {
        let folderURL = Util.buildFolderURL(recording.folderPath)
        let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
        do {
@@ -141,6 +141,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }, receiveValue: { update in
            print("* update: Transcript **")
             self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+            transcriptCompletion?()
             do {
                 let updatedData = try self.encoder.encode(recording)
                 try updatedData.write(to: fileURL)
@@ -238,16 +239,24 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
     func regenerateAll(recording: Recording, completion: @escaping () -> Void) {
         updateAllLoadingOutput(outputs: recording.outputs)
-        generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
+        generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath)) {
+            print("transcript completion function")
+            for output in recording.outputs.outputs {
+                if output.type == .Custom {
+                    self.regenerateOutput(recording: recording, output: output)
+                }
+            }
+        }
         completion()
     }
     
-    // pass output of type Transcript to regen all
     func regenerateOutput(recording: Recording, output: Output) {
         output.content = "Loading"
         output.error = false
         output.loading = true
         let transcript = getTranscript(outputs: recording.outputs)
+        print("regen output")
+        print(transcript)
         generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
@@ -263,18 +272,16 @@ class AudioRecorderModel : NSObject, ObservableObject {
             receiveValue:{ update in
                 switch update.type {
                     case .Summary:
-                        //print("** update: summary **")
                         self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
                     case .Title:
-                        //print("** update: Title **")
                         recording.title = update.content
                         self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
                     case .Transcript:
                         break
                     case .Custom:
-                        break
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
                 }
                 do {
                     let updatedData = try self.encoder.encode(recording)

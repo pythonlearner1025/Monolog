@@ -54,6 +54,11 @@ struct HomeView: View {
                            }
                        }
                    }
+                    .onAppear(perform: {
+                       //print("List appears!")
+                       //print(folderNavigationModel.$presentedItems)
+                       loadFolders()
+                    })
                    .navigationDestination(for: Folder.self){ folder in
                        FolderView(folder: folder)
                            .environmentObject(audioRecorder)
@@ -92,14 +97,18 @@ struct HomeView: View {
                                })
                            }
                        }
-                     .onAppear(perform: {
-                       loadFolders()
-                   })
                }
-           .listStyle(.automatic)
-           .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
-                   isNewLaunch = true
-               })
+               .onChange(of: folderNavigationModel.presentedItems) {newVal in
+                    if folderNavigationModel.presentedItems.count == 0 {
+                        print("nav load folders")
+                        loadFolders()
+                    }
+                }
+               .listStyle(.automatic)
+               .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
+                       isNewLaunch = true
+                   })
+              
            }
          }
     

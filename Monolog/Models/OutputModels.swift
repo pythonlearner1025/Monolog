@@ -11,22 +11,22 @@ class Outputs: ObservableObject, Codable {
     @Published var outputs = [Output]()
     
     enum CodingKeys: CodingKey {
-           case outputs
-   }
-   
-   init(outputs: [Output] = []) {
-       self.outputs = outputs
-   }
-
-   required init(from decoder: Decoder) throws {
-       let container = try decoder.container(keyedBy: CodingKeys.self)
-       outputs = try container.decode([Output].self, forKey: .outputs)
-   }
-   
-   func encode(to encoder: Encoder) throws {
-       var container = encoder.container(keyedBy: CodingKeys.self)
-       try container.encode(outputs, forKey: .outputs)
-   }
+        case outputs
+    }
+    
+    init(outputs: [Output] = []) {
+        self.outputs = outputs
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        outputs = try container.decode([Output].self, forKey: .outputs)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(outputs, forKey: .outputs)
+    }
     
     static var defaultOutputs: Outputs {
         return  Outputs(outputs: [Output(type: .Title, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Transcript, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Summary, content: "Loading", settings: OutputSettings.defaultSettings)])
@@ -39,7 +39,12 @@ class Outputs: ObservableObject, Codable {
             outputs[idx] = newValue
         }
     }
+}
 
+enum OutputStatus: String, Encodable, Decodable, CaseIterable {
+    case restricted
+    case loading
+    case error
 }
 
 class Output: ObservableObject, Codable, Identifiable, Equatable, CustomStringConvertible {

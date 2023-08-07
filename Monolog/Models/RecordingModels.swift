@@ -88,6 +88,7 @@ class Recording: ObservableObject, Codable, Equatable, Identifiable, Hashable {
 
 
 class RecordingsModel: ObservableObject {
+    
     var cancellables = Set<AnyCancellable>()
     @Published var folderRecordings: [String: Recordings] = [:] {
         didSet {
@@ -116,7 +117,7 @@ class RecordingsModel: ObservableObject {
 }
 
 
-class Recordings: ObservableObject {
+class Recordings: ObservableObject, Equatable {
     var cancellables = Set<AnyCancellable>()
     @Published var recordings = [Recording]() {
         didSet{
@@ -137,5 +138,9 @@ class Recordings: ObservableObject {
         set(newValue) {
             recordings[idx] = newValue
         }
+    }
+    
+    static func ==(lhs: Recordings, rhs: Recordings) -> Bool {
+        return lhs.recordings == rhs.recordings
     }
 }
