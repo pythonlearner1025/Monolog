@@ -196,40 +196,22 @@ struct CustomOutputSheet: View {
     }
 }
 
+// TODO: complete upgrade sheet according to Design
 struct UpgradeSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     let recording: Recording
     let context: UpgradeContext
     let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    @State private var isMonthlyPressed = false
+    @State private var isAnnualPressed = false
     @EnvironmentObject var storeModel: StoreModel
     
     var body: some View {
-        NavigationStack {
+        NavigationStack{
             Form {
-                Section(header: Text("Subscription Plans")) {
-                    Picker("", selection: $storeModel.selectedProduct) {
-                        ForEach(storeModel.subscriptions.reversed()) { product in
-                            HStack {
-                                Text(product.displayName)
-                                Spacer()
-                                Text(product.description)
-                            }.tag(product as Product?)
-                        }
-                    }
-                    .pickerStyle(WheelPickerStyle())
-                    .frame(height: 100)
-                }
-                
-                Section(header: Text("Enjoy unlimited transcriptions & Generations")) {
-                    Button("Subscribe") {
-                        Task {
-                            if let selectedProduct = storeModel.selectedProduct {
-                                await buy(product: selectedProduct)
-                            }
-                        }
-                    }
-                }
             }
+            .frame(height: 0)
             .navigationBarTitle("Get UNLIMITED")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -238,17 +220,83 @@ struct UpgradeSheet: View {
                     }
                 }
             }
+            VStack{
+                Image(colorScheme == .dark ?  "phone" : "phone_black")
+                    .scaleEffect(0.75)
+                    .padding(.top, -65)
+                    .padding(.bottom, -50)
+                Text("Subscribe for UNLIMITED\nTranscriptions and Transformations")
+                    .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 30)
+                Button(action: {
+                    Task {
+                        let selectedProduct = storeModel.subscriptions[1]
+                        isMonthlyPressed = true
+                        await buy(product: selectedProduct) {
+                            isMonthlyPressed = false
+                        }
+                    }
+                    print("Button tapped!")
+                }) {
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 55)
+                            .fill(colorScheme == .dark ? .white : .black)
+                            .scaleEffect(x: 0.68, y: 0.9)
+                        if !isMonthlyPressed {
+                             Text("UNLIMITED (monthly)\n$9.99/mo")
+                                .font(.headline)
+                                .fontWeight(.heavy)
+                                .foregroundColor(colorScheme == .dark ? .black : .white)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
+                                .scaleEffect(1, anchor: .center)
+                                .padding(.trailing, 5)
+                        }
+                    }
+                    .padding(.bottom, 10)
+                }
+                Button(action: {
+                    Task {
+                        let selectedProduct = storeModel.subscriptions[0]
+                        isAnnualPressed = true
+                        await buy(product: selectedProduct) {
+                            isAnnualPressed = false
+                        }
+                    }
+                    print("Button tapped!")
+                }) {
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 55)
+                            .fill(colorScheme == .dark ? .white : .black)
+                            .scaleEffect(x: 0.68, y: 0.9)
+                        if !isAnnualPressed {
+                         Text("UNLIMITED (annual)\n$99/yr")
+                            .font(.headline)
+                            .fontWeight(.heavy)
+                            .foregroundColor(colorScheme == .dark ? .black : .white)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
+                                .scaleEffect(1, anchor: .center)
+                                .padding(.trailing, 5)
+                        }
+                    }
+                    .padding(.bottom, 10)
+                }
+            }
         }
     }
     
-    func buy(product: Product) async {
+    func buy(product: Product, completion: @escaping () -> Void) async {
         do {
             if try await storeModel.purchase(product) != nil {
                 // regnerate all
                 if context == .TranscriptUnlock {
                     recording.generateText = true
                     audioAPI.regenerateAll(recording: recording) {
-                        
                     }
                 }
                 presentationMode.wrappedValue.dismiss()
@@ -256,5 +304,6 @@ struct UpgradeSheet: View {
         } catch {
             print("purchase failed")
         }
+        completion()
     }
 }

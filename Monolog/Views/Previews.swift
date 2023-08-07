@@ -56,15 +56,16 @@ struct MoveFolderPreview: View {
 struct OutputPreview: View {
     @ObservedObject var output: Output
     var body: some View {
-        if output.error {
-            HStack{
-                Image(systemName: "exclamationmark.arrow.circlepath")
+        switch output.status {
+        case .error:
+             HStack{
+                 Image(systemName: "exclamationmark.arrow.circlepath").foregroundColor(.red)
                 ZStack {
                     Text("Error").foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
                 }
             }
-        } else if output.loading {
-            // TODO: adjust spinner gap with title when output.type is Title
+        case .loading:
+             // TODO: adjust spinner gap with title when output.type is Title
             HStack{
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
                 ZStack {
@@ -72,8 +73,15 @@ struct OutputPreview: View {
                         .font(.body).foregroundColor(.gray).font(output.type == .Title ? .headline : .body)
                 }
             }
-        } else {
-            Text(output.content).font(output.type == .Title ? .headline : .body).lineLimit(output.type == .Title ? nil : 4).truncationMode(.tail)
+        case .completed:
+             Text(output.content).font(output.type == .Title ? .headline : .body).lineLimit(output.type == .Title ? nil : 4).truncationMode(.tail)
+        case .restricted:
+             HStack{
+                 Image(systemName: "exclamationmark.circle").foregroundColor(.red)
+                ZStack {
+                    Text("Upgrade to Transcribe").font(output.type == .Title ? .headline : .body).lineLimit(output.type == .Title ? nil : 4)
+                }
+            }
         }
     }
 }

@@ -263,7 +263,7 @@ struct FolderView: View {
     private func outputsLoaded(_ recording: Recording) -> Bool {
         if recording.folderPath == "Recently Deleted" {return true}
         for out in recording.outputs.outputs {
-            if out.loading {
+            if out.status == .loading {
                 return false
             }
         }
