@@ -93,7 +93,7 @@ struct MoveSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Move Recording", displayMode: .inline)
+            .navigationBarTitle("Select Folder", displayMode: .inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

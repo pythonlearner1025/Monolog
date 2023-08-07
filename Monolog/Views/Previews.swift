@@ -17,8 +17,10 @@ struct FolderPreview: View {
             HStack{
                 if folder.name == "Recently Deleted" {
                     Image(systemName: "trash")
+                        .foregroundColor(.blue)
                 } else {
                     Image(systemName: "folder")
+                        .foregroundColor(.blue)
                 }
                 Text(folder.name)
             }.font(.body)
@@ -39,8 +41,10 @@ struct MoveFolderPreview: View {
         HStack{
             if name == "Recently Deleted" {
                 Image(systemName: "trash")
+                    .foregroundColor(.blue)
             } else {
                 Image(systemName: "folder")
+                    .foregroundColor(.blue)
             }
             Text(name)
             Spacer()
