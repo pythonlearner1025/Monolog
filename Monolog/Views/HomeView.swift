@@ -40,7 +40,7 @@ struct HomeView: View {
                                }.deleteDisabled(true)
                            }
                        }
-                       Section(header: Text("My Folders")){
+                       Section(header: Text("My Folders").font(.headline).bold()){
                            ForEach(folders) {folder in
                                if(folder.name != "Recordings" && folder.name != "Recently Deleted"){
                                    NavigationLink(value: folder) {
@@ -87,7 +87,7 @@ struct HomeView: View {
                                    Image(systemName: "folder.badge.plus")
                                }
                                .alert("New Folder", isPresented: $showAlert, actions: {
-                                   TextField("New folder name", text: $newFolderName)
+                                   TextField("", text: $newFolderName)
                                    Button("Create", action: {
                                        createFolder(title: newFolderName)
                                        newFolderName=""
