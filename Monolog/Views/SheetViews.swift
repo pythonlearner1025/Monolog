@@ -51,7 +51,6 @@ struct SettingsSheet: View {
                         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
                         presentationMode.wrappedValue.dismiss()
                     } else {
-                      //  print("err")
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
@@ -69,25 +68,18 @@ struct SettingsSheet: View {
     }
 }
 
-
 struct MoveSheet: View {
-    @Binding var recordings: [Recording]
-    let idx: Int
+    var recording: Recording
     let currFolder: String
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var recordingsModel: RecordingsModel
     @State private var allFolders: [String] = []
 
-    init(_ recordings: Binding<[Recording]>, idx: Int, currFolder: String){
-        self._recordings = recordings
-        self.idx = idx
-        self.currFolder = currFolder
-    }
-    
     var body: some View {
         NavigationStack{
             Form {
                 Section(header: Text("Selected Recording")) {
-                    Text(idx < recordings.count ? recordings[idx].title : "loading")
+                    Text(recording.title)
                 }
                 
                 Section(header: Text("Folders")) {
@@ -101,7 +93,7 @@ struct MoveSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Move Recording", displayMode: .inline)
+            .navigationBarTitle("Select Folder", displayMode: .inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -113,7 +105,7 @@ struct MoveSheet: View {
         .onAppear(perform: {
             let allFolderURLs = Util.allFolderURLs()
             for url in allFolderURLs {
-                if url.lastPathComponent != recordings[idx].folderPath && url.lastPathComponent != currFolder {
+                if url.lastPathComponent != recording.folderPath && url.lastPathComponent != currFolder {
                     allFolders.append(url.lastPathComponent)
                 }
             }
@@ -121,34 +113,34 @@ struct MoveSheet: View {
     }
     
     private func moveItem(_ folder: String) {
-    //    print("moving item")
+        let oldFolder = recording.folderPath
+        
         let fileManager = FileManager.default
-        let recording = recordings[idx]
         let encoder = Util.encoder()
         let folderURL = Util.buildFolderURL(recording.folderPath)
         let rawFolderURL = folderURL.appendingPathComponent("raw")
         let oldAudioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
         let oldFileURL = folderURL.appendingPathComponent(recording.filePath)
-        recording.folderPath = folder
         let newFolderURL = Util.buildFolderURL(folder)
         let newRawFolderURL = newFolderURL.appendingPathComponent("raw")
         let newFileURL = newFolderURL.appendingPathComponent(recording.filePath)
         let newAudioURL = newRawFolderURL.appendingPathComponent(recording.audioPath)
         do {
+            recording.folderPath = folder
             let data = try encoder.encode(recording)
             try data.write(to: newFileURL)
             try fileManager.removeItem(at: oldFileURL)
         } catch {
             print("can't move file \(error)")
         }
-        
         do {
             try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
         } catch {
             print("can't move audio \(error)")
         }
-        // After moving, dismiss the view
-        recordings.remove(at: idx)
+        
+        recordingsModel[oldFolder].recordings.removeAll(where: {$0.id == recording.id})
+        recordingsModel[folder].recordings.insert(recording, at: 0)
     }
 }
 
@@ -172,7 +164,7 @@ struct CustomOutputSheet: View {
                     TextEditor(text: $customPrompt)
                         .frame(height: 120)
                 }
-                Button("Generate") {
+                Button("Transform") {
                     if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
                         if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
                             let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone, name: customName,  prompt: customPrompt)
@@ -180,7 +172,6 @@ struct CustomOutputSheet: View {
                             UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
                             presentationMode.wrappedValue.dismiss()
                         } else {
-                            print("err")
                             presentationMode.wrappedValue.dismiss()
                         }
                         consumableModel.useOutput()
@@ -205,59 +196,22 @@ struct CustomOutputSheet: View {
     }
 }
 
-// TODO: should be part of RecordingView. Using sheet to check functionality
-struct RegenView: View {
-    let audioAPI: AudioRecorderModel = AudioRecorderModel()
-    let recording: Recording
-    
-    var body: some View {
-        NavigationStack{
-            Form{
-                Button(action: {
-                    audioAPI.regenerateAll(recording: recording)
-                }) {
-                    Text("Regenerate All")
-                }
-            }
-            .navigationBarTitle("Error Transcribing", displayMode: .inline)
-        }
-    }
-}
-
+// TODO: complete upgrade sheet according to Design
 struct UpgradeSheet: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     let recording: Recording
     let context: UpgradeContext
     let audioAPI: AudioRecorderModel = AudioRecorderModel()
+    @State private var isMonthlyPressed = false
+    @State private var isAnnualPressed = false
     @EnvironmentObject var storeModel: StoreModel
     
     var body: some View {
-        NavigationStack {
+        NavigationStack{
             Form {
-                Section(header: Text("Subscription Plans")) {
-                    Picker("", selection: $storeModel.selectedProduct) {
-                        ForEach(storeModel.subscriptions) { product in
-                            HStack {
-                                Text(product.displayName)
-                                Spacer()
-                                Text(product.description)
-                            }.tag(product as Product?)
-                        }
-                    }
-                    .pickerStyle(WheelPickerStyle())
-                    .frame(height: 100)
-                }
-                
-                Section(header: Text("Enjoy unlimited transcriptions & Generations")) {
-                    Button("Subscribe") {
-                        Task {
-                            if let selectedProduct = storeModel.selectedProduct {
-                                await buy(product: selectedProduct)
-                            }
-                        }
-                    }
-                }
             }
+            .frame(height: 0)
             .navigationBarTitle("Get UNLIMITED")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -266,21 +220,88 @@ struct UpgradeSheet: View {
                     }
                 }
             }
+            VStack{
+                Image(colorScheme == .dark ?  "phone" : "phone_black")
+                    .scaleEffect(0.75)
+                    .padding(.top, -65)
+                    .padding(.bottom, -50)
+                Text("Subscribe for UNLIMITED\nTranscriptions and Transformations")
+                    .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 30)
+                Button(action: {
+                    Task {
+                        let monthly = storeModel.subscriptions[1]
+                        isMonthlyPressed = true
+                        await buy(product: monthly) {
+                            isMonthlyPressed = false
+                        }
+                    }
+                }) {
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 55)
+                            .fill(colorScheme == .dark ? .white : .black)
+                            .scaleEffect(x: 0.68, y: 0.9)
+                        if !isMonthlyPressed {
+                             Text("UNLIMITED (monthly)\n$9.99/mo")
+                                .font(.headline)
+                                .fontWeight(.heavy)
+                                .foregroundColor(colorScheme == .dark ? .black : .white)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
+                                .scaleEffect(1, anchor: .center)
+                                .padding(.trailing, 5)
+                        }
+                    }
+                    .padding(.bottom, 10)
+                }
+                Button(action: {
+                    Task {
+                        let annual = storeModel.subscriptions[0]
+                        isAnnualPressed = true
+                        await buy(product: annual) {
+                            isAnnualPressed = false
+                        }
+                    }
+                }) {
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 55)
+                            .fill(colorScheme == .dark ? .white : .black)
+                            .scaleEffect(x: 0.68, y: 0.9)
+                        if !isAnnualPressed {
+                         Text("UNLIMITED (annual)\n$99/yr")
+                            .font(.headline)
+                            .fontWeight(.heavy)
+                            .foregroundColor(colorScheme == .dark ? .black : .white)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
+                                .scaleEffect(1, anchor: .center)
+                                .padding(.trailing, 5)
+                        }
+                    }
+                    .padding(.bottom, 10)
+                }
+            }
         }
     }
     
-    func buy(product: Product) async {
+    func buy(product: Product, completion: @escaping () -> Void) async {
         do {
             if try await storeModel.purchase(product) != nil {
                 // regnerate all
                 if context == .TranscriptUnlock {
                     recording.generateText = true
-                    audioAPI.regenerateAll(recording: recording)
+                    audioAPI.regenerateAll(recording: recording) {
+                    }
                 }
                 presentationMode.wrappedValue.dismiss()
             }
         } catch {
             print("purchase failed")
         }
+        completion()
     }
 }

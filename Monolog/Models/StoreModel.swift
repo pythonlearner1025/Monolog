@@ -7,6 +7,7 @@
 
 import Foundation
 import StoreKit
+import Glassfy
 
 //alias
 typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo //The Product.SubscriptionInfo.RenewalInfo provides information about the next subscription renewal period.
@@ -18,7 +19,7 @@ class StoreModel: ObservableObject {
     @Published private(set) var subscriptionGroupStatus: RenewalState?
     @Published var selectedProduct: Product?
     
-    private let productIds: [String] = ["premium_monthly", "premium_annual"]
+    private let productIds: [String] = ["unlimited_monthly", "unlimited_annual"]
     
     var updateListenerTask : Task<Void, Error>? = nil
 
@@ -114,6 +115,7 @@ class StoreModel: ObservableObject {
                         if let subscription = subscriptions.first(where: {$0.id == transaction.productID}) {
                             purchasedSubscriptions.append(subscription)
                         }
+                        //print("all purchased: \(purchasedSubscriptions)")
                     default:
                         break
                 }

@@ -11,7 +11,11 @@ import AVFoundation
 
 struct FolderView: View {
     @State var selection: FolderPageEnum = .normal
+    @State private var showMoveLoadingAlert = false
+    @State private var showDeleteLoadingAlert = false
     @State private var showLoadingAlert = false
+    @State private var idxToDelete = 0
+    @State private var idxToMove = 0
     @State private var isShowingSettings = false
     @State private var isShowingPicker = false
     @State private var isShowingMoveSheet = false
@@ -27,7 +31,6 @@ struct FolderView: View {
     var rawFolderURL: URL
     
     init(folder: Folder) {
-        //print("INIT FOLDERVIEW")
         self.folder = folder
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
@@ -88,35 +91,50 @@ struct FolderView: View {
                 .swipeActions(allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         if outputsLoaded(filteredItems[idx]) {
-                            audioRecorder.cancelSave()
-                            filteredItems[idx].audioPlayer.stopPlaying()
-                            filteredItems[idx].audioPlayer.isPlaying = false
-                            deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
-                            removeRecording(idx: idx)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5){
+                                audioRecorder.cancelSave()
+                                filteredItems[idx].audioPlayer.stopPlaying()
+                                filteredItems[idx].audioPlayer.isPlaying = false
+                                deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
+                                removeRecording(idx: idx)
+                            }
                         } else {
+                            idxToDelete = idx
+                            showDeleteLoadingAlert = true
                             showLoadingAlert = true
                         }
                     } label: {
                         Label("Delete", systemImage: "minus.circle.fill")
                     }
-                    Button {
+                    Button{
                         if outputsLoaded(filteredItems[idx]) {
                             recordingToMove = filteredItems[idx]
-                            isShowingMoveSheet = true
                         } else {
+                            idxToMove = idx
+                            showMoveLoadingAlert = true
                             showLoadingAlert = true
                         }
                     } label: {
-                        Label("Move", systemImage: "folder")
+                        Label("Move to Folder", systemImage: "folder")
                     }
                     .tint(.green)
+                    Button{
+                        if storeModel.purchasedSubscriptions.count > 0 || !consumableModel.isTranscriptEmpty() {
+                        audioRecorder.regenerateAll(recording: filteredItems[idx]){}
+                        }
+                    } label: {
+                        Label("Redo Everything", systemImage: "goforward")
+                    }
+                    .tint(.blue)
                 }
             }
             .onDelete{indexSet in}
             .listRowSeparator(.hidden)
         }
         .onAppear {
-            fetchAllRecording()
+            if recordingsModel[folder.path].recordings.count == 0 {
+                fetchAllRecording()
+            }
             formHasAppeared = true
             recordingToMove = nil
         }
@@ -124,15 +142,8 @@ struct FolderView: View {
             view.searchable(text: $searchText)
         }
         .sheet(item: $recordingToMove) { recording in
-            if let idx = filteredItems.firstIndex(where: {$0.id == recording.id}) {
-                    MoveSheet($recordingsModel[folder.path].recordings, idx: idx, currFolder: folder.path)
-                        .onDisappear(perform: {
-                            fetchAllRecording()
-                            }
-                        )
-            } else {
-                Text("Error")
-            }
+            MoveSheet(recording: recording, currFolder: folder.path)
+                .environmentObject(recordingsModel)
         }
         .sheet(isPresented: $isShowingSettings){
             if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
@@ -175,12 +186,33 @@ struct FolderView: View {
             }
         }
         .alert(isPresented: $showLoadingAlert) {
-            Alert(title: Text("Cannot Edit"), message: Text("Please try again after all text completes loading"),
-                  dismissButton: .default(Text("OK")) {
-                showLoadingAlert=false
-            })
+            if showMoveLoadingAlert {
+                return Alert(title: Text("Warning"),
+                 message: Text("Are you sure you want to move the recording while text is still loading? You will lose the loading text."),
+                 primaryButton: .default(Text("Move")) {
+                    recordingToMove = filteredItems[idxToMove]
+                     showMoveLoadingAlert = false
+                 },
+                //TODO: why is Text(Don't move") not boldening?
+                             secondaryButton: .default(Text("Don't Move").bold(), action: {
+                    showMoveLoadingAlert=false
+                }))
+            } else {
+                 return Alert(title: Text("Warning"),
+                 message: Text("Are you sure you want to delete the recording while text is still loading? You will lose the loading text."),
+                 primaryButton: .default(Text("Delete")) {
+                    audioRecorder.cancelSave()
+                    filteredItems[idxToDelete].audioPlayer.stopPlaying()
+                    filteredItems[idxToDelete].audioPlayer.isPlaying = false
+                    deleteRecording(filteredItems[idxToDelete].copy(), filteredItems[idxToDelete].audioPath, filteredItems[idxToDelete].filePath)
+                    removeRecording(idx: idxToDelete)
+                    showDeleteLoadingAlert=false
+                 },
+                              secondaryButton: .default(Text("Don't Delete").bold(), action: {
+                    showDeleteLoadingAlert=false
+             }))
+            }
         }
-
         if (folder.name != "Recently Deleted") {
             HStack {
                 Spacer()
@@ -218,7 +250,6 @@ struct FolderView: View {
     }
 
     private var filteredItems: [Recording] {
-        //print("filtering")
         if searchText.isEmpty {
             return recordingsModel[folder.path].recordings
         }
@@ -232,7 +263,7 @@ struct FolderView: View {
     private func outputsLoaded(_ recording: Recording) -> Bool {
         if recording.folderPath == "Recently Deleted" {return true}
         for out in recording.outputs.outputs {
-            if out.loading {
+            if out.status == .loading {
                 return false
             }
         }
@@ -240,32 +271,16 @@ struct FolderView: View {
     }
     
     private func fetchAllRecording(){
-        if recordingsModel[folder.path].recordings.count > 0 {
-            return
-        }
-       
-        var recordings = Recordings()
+        let recordings = Recordings()
         let fileManager = FileManager.default
         let decoder = Util.decoder()
         let folderURL = Util.buildFolderURL(folder.path)
-        
-        var directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
-        if (folder.path == "All") {
-            let folderURLs = Util.allFolderURLs()
-            for f in folderURLs {
-                if (f.lastPathComponent != "Recently Deleted" && f.lastPathComponent != "All") {
-                  let folderContents = try! fileManager.contentsOfDirectory(at: f, includingPropertiesForKeys: nil)
-                directoryContents.append(contentsOf: folderContents)
-                }
-            }
-        }
-        
+        let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
         for i in directoryContents {
             if (i.lastPathComponent != "raw") {
                 do {
                     let data = try Data(contentsOf: i)
                     let recording = try decoder.decode(Recording.self, from: data)
-                    // fixing bug: when deleting folder, the folder attribute of recordings in it do not get updated
                     if (folder.path == "Recently Deleted") {
                         recording.folderPath = "Recently Deleted"
                         recording.audioPlayer.reinit(folderPath: recording.folderPath, audioPath:  recording.audioPath)
@@ -322,6 +337,7 @@ struct FolderView: View {
         } catch {
             print("can't move meta\(error)")
         }
+        recordingsModel["Recently Deleted"].recordings.insert(recording, at: 0)
     }
     
     private let formatter: DateFormatter = {

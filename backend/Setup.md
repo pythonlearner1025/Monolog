@@ -14,6 +14,7 @@ Going with Ubuntu & Docker this time. Pre-requisite is to set up the Dockerfile.
 - Clone the repository
 - Navigate into dir with Dockerfile and run ```bash $ docker build -t api .```
 - to activate, run ```bash $ docker run -p 3000:3000 -d api```
+    - use this command instead to let docker access .env file: ```bash $ docker run --env-file=.env -p 3000:3000 -d api```
 - to kill, run ```bash $ docker kill <id>```
 - check running: ```bash $ curl http://localhost:3000```
 

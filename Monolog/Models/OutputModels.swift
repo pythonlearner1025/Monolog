@@ -11,22 +11,22 @@ class Outputs: ObservableObject, Codable {
     @Published var outputs = [Output]()
     
     enum CodingKeys: CodingKey {
-           case outputs
-   }
-   
-   init(outputs: [Output] = []) {
-       self.outputs = outputs
-   }
-
-   required init(from decoder: Decoder) throws {
-       let container = try decoder.container(keyedBy: CodingKeys.self)
-       outputs = try container.decode([Output].self, forKey: .outputs)
-   }
-   
-   func encode(to encoder: Encoder) throws {
-       var container = encoder.container(keyedBy: CodingKeys.self)
-       try container.encode(outputs, forKey: .outputs)
-   }
+        case outputs
+    }
+    
+    init(outputs: [Output] = []) {
+        self.outputs = outputs
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        outputs = try container.decode([Output].self, forKey: .outputs)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(outputs, forKey: .outputs)
+    }
     
     static var defaultOutputs: Outputs {
         return  Outputs(outputs: [Output(type: .Title, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Transcript, content: "Loading", settings: OutputSettings.defaultSettings), Output(type: .Summary, content: "Loading", settings: OutputSettings.defaultSettings)])
@@ -39,15 +39,20 @@ class Outputs: ObservableObject, Codable {
             outputs[idx] = newValue
         }
     }
+}
 
+enum OutputStatus: String, Encodable, Decodable, CaseIterable {
+    case restricted
+    case completed
+    case loading
+    case error
 }
 
 class Output: ObservableObject, Codable, Identifiable, Equatable, CustomStringConvertible {
     var id = UUID()
     var type: OutputType
     @Published var content: String
-    @Published var error: Bool = false
-    @Published var loading: Bool = true
+    @Published var status: OutputStatus
     @Published var settings: OutputSettings
     
 
@@ -55,10 +60,11 @@ class Output: ObservableObject, Codable, Identifiable, Equatable, CustomStringCo
         self.type = type
         self.content = content
         self.settings = settings
+        self.status = .loading
     }
     
     enum CodingKeys: CodingKey {
-        case id, type, content, settings, error, loading
+        case id, type, content, settings, status
     }
     
     required init(from decoder: Decoder) throws {
@@ -67,8 +73,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable, CustomStringCo
         type = try container.decode(OutputType.self, forKey: .type)
         content = try container.decode(String.self, forKey: .content)
         settings = try container.decodeIfPresent(OutputSettings.self, forKey: .settings) ?? OutputSettings.defaultSettings
-        error = try container.decode(Bool.self, forKey: .error)
-        loading = try container.decode(Bool.self, forKey: .loading)
+        status = try container.decode(OutputStatus.self, forKey: .status)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -77,9 +82,7 @@ class Output: ObservableObject, Codable, Identifiable, Equatable, CustomStringCo
         try container.encode(type, forKey: .type)
         try container.encode(content, forKey: .content)
         try container.encode(settings, forKey: .settings)
-        try container.encode(error, forKey: .error)
-        try container.encode(loading, forKey: .loading)
-
+        try container.encode(status, forKey: .status)
     }
     
     static func == (lhs: Output, rhs: Output) -> Bool{
