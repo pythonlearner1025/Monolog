@@ -232,13 +232,12 @@ struct UpgradeSheet: View {
                     .padding(.bottom, 30)
                 Button(action: {
                     Task {
-                        let selectedProduct = storeModel.subscriptions[1]
+                        let monthly = storeModel.subscriptions[1]
                         isMonthlyPressed = true
-                        await buy(product: selectedProduct) {
+                        await buy(product: monthly) {
                             isMonthlyPressed = false
                         }
                     }
-                    print("Button tapped!")
                 }) {
                     ZStack{
                         RoundedRectangle(cornerRadius: 55)
@@ -260,13 +259,12 @@ struct UpgradeSheet: View {
                 }
                 Button(action: {
                     Task {
-                        let selectedProduct = storeModel.subscriptions[0]
+                        let annual = storeModel.subscriptions[0]
                         isAnnualPressed = true
-                        await buy(product: selectedProduct) {
+                        await buy(product: annual) {
                             isAnnualPressed = false
                         }
                     }
-                    print("Button tapped!")
                 }) {
                     ZStack{
                         RoundedRectangle(cornerRadius: 55)

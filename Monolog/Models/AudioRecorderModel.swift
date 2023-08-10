@@ -153,7 +153,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     }
                 })
                 let futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
-                    self.generateOutput(transcript: transcript_out.content, outputType: outputType, outputSettings: outputSettings)
+                    self.generateOutput(transcript: !transcript_out.content.isEmpty ? transcript_out.content : "No transcript", outputType: outputType, outputSettings: outputSettings)
                        .eraseToAnyPublisher()
                }
                 
