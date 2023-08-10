@@ -65,22 +65,20 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
             isPlaying = true
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
-            audioPlayer.currentTime = absProgress
             audioPlayer.play()
             timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
                 guard let self = self else { return }
                 if self.isPlaying {
                     self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
                     self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
-                    self.absProgress = self.audioPlayer.currentTime
-                    if !self.audioPlayer.isPlaying {
+                    if self.audioPlayer.currentTime >= self.audioPlayer.duration - 0.01{
                         self.stopPlaying()
+                        self.audioPlayer.currentTime = 0
                         self.timer?.invalidate() // Terminate timer
                     }
                     self.objectWillChange.send()
                 }
             }
-            
         } catch {
             print("Audioplayer failed: \(error)")
         }

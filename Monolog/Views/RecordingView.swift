@@ -174,10 +174,13 @@ struct RecordingView: View {
             // TODO: make button stand out in Light Mode
             Group {
                 Button(action: {isShowingUpgrade = true}) {
-                    Text("Upgrade to Transcribe")
+                    Text("UPGRADE")
+                        .font(.headline)
+                        .fontWeight(.heavy)
+                        .foregroundColor(colorScheme == .dark ? .black : .white)
+                        .padding(15)
                 }
-                .padding()
-                .background(colorScheme == .dark ? Color(red: 0, green: 0, blue: 0.5) : .white)
+                .background(colorScheme == .dark ? .white : .black)
                 .clipShape(Capsule())
             }
             .navigationBarItems(trailing:

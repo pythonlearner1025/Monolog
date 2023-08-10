@@ -104,7 +104,7 @@ async def transcribe(file: UploadFile = File(...)):
 async def generate_output(load: OutputLoad):
     if load.type == 'Summary':
         #raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Missing Authorization header")
-        print(load.type)
+        #print(load.type)
         gpt = CompletionAI(
             get_summary_out,
             load.transcript, 
@@ -114,19 +114,8 @@ async def generate_output(load: OutputLoad):
             ) 
         out: str = await gpt() 
         out = out.replace('*', '-') 
-    elif load.type == 'Action':
-        print(load.type)
-        gpt = CompletionAI(
-            get_action_out,
-            load.transcript, 
-            length=load.settings.length, 
-            tone=load.settings.tone, 
-            format=load.settings.format
-            )
-        out: str = await gpt()
-        out = out.replace('*', '-') 
     elif load.type == 'Title':
-        print(load.type)
+        #print(load.type)
         gpt = CompletionAI(
             get_title,
             load.transcript 
@@ -135,7 +124,7 @@ async def generate_output(load: OutputLoad):
         out = out.replace('"', '') 
         out = out.replace("'", '') 
     else:
-        print(load.type)
+        #print(load.type)
         gpt = CompletionAI(
             get_transformation, 
             load.transcript, 
