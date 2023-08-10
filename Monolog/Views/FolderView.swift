@@ -86,7 +86,8 @@ struct FolderView: View {
                         }
                     }
                     AudioControlView(filteredItems[idx].audioPlayer, playingRecordingPath: $playingRecordingPath)
-                    Divider().padding(.vertical, 15)  // Add a divider here
+                        .tag(idx)
+                    Divider().padding(.vertical, 15)
                 }
                 .swipeActions(allowsFullSwipe: false) {
                     Button(role: .destructive) {

@@ -7,6 +7,7 @@
 
 import Foundation
 import AVFoundation
+import Combine
 
 class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var audioPlayer : AVAudioPlayer!
@@ -14,6 +15,8 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var progress: CGFloat = 0.0
     @Published var absProgress: Double = 0.0
     @Published var currentTime: String = "00:00"
+    private var cancellable: AnyCancellable?
+
     let audioPath: String
     var indexOfPlayer = 0
     var formatter : DateComponentsFormatter
@@ -66,24 +69,26 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
             audioPlayer.play()
-            timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
-                guard let self = self else { return }
-                if self.isPlaying {
-                    self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
-                    self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
-                    if self.audioPlayer.currentTime >= self.audioPlayer.duration - 0.01{
-                        self.stopPlaying()
-                        self.audioPlayer.currentTime = 0
-                        self.timer?.invalidate() // Terminate timer
+
+            // Replace the Timer with a Combine Publisher
+            cancellable = Timer.publish(every: 0.01, on: .main, in: .common)
+                .autoconnect()
+                .sink { [weak self] _ in
+                    guard let self = self else { return }
+                    if self.isPlaying {
+                        self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
+                        self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
+                        if self.audioPlayer.currentTime >= self.audioPlayer.duration - 0.01 {
+                            self.stopPlaying()
+                            self.cancellable?.cancel() // Terminate subscription
+                        }
                     }
-                    self.objectWillChange.send()
                 }
-            }
         } catch {
             print("Audioplayer failed: \(error)")
         }
-
     }
+
     
     func stopPlaying() {
         if(isPlaying){
