@@ -212,20 +212,28 @@ struct UpgradeSheet: View {
             Form {
             }
             .frame(height: 0)
-            .navigationBarTitle("Get UNLIMITED")
+            //.navigationBarTitle("GET UNLIMITED")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
+                ToolbarItem(placement: .principal) {
+                    Text("Upgrade")
+                        .font(.largeTitle.bold())
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.top, 80)
+                        .padding(.bottom, 10)
+                }
             }
             VStack{
-                Image(colorScheme == .dark ?  "phone" : "phone_black")
+                Image(colorScheme == .dark ?  "highpastel" : "highpastel_black")
                     .scaleEffect(0.75)
-                    .padding(.top, -65)
+                    .padding(.top, -35)
                     .padding(.bottom, -50)
-                Text("Subscribe for UNLIMITED\nTranscriptions and Transformations")
+                Text("Upgrade for UNLIMITED\nTranscriptions and Transformations")
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
