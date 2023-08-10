@@ -20,6 +20,8 @@
 		772341C52A414C2D004A3E6B /* FolderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341C42A414C2D004A3E6B /* FolderModel.swift */; };
 		772341C72A414CFE004A3E6B /* FolderNavModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341C62A414CFE004A3E6B /* FolderNavModel.swift */; };
 		772341C92A414D15004A3E6B /* KeyboardModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341C82A414D15004A3E6B /* KeyboardModel.swift */; };
+		7760E8142A711B7D0099D2DE /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7760E8132A711B7D0099D2DE /* StoreKit.framework */; };
+		7760E8172A711BC50099D2DE /* Glassfy in Frameworks */ = {isa = PBXBuildFile; productRef = 7760E8162A711BC50099D2DE /* Glassfy */; };
 		77619E122A49FC73005221ED /* StoreModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77619E112A49FC73005221ED /* StoreModel.swift */; };
 		77619E142A4A13B7005221ED /* ConsumableModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77619E132A4A13B7005221ED /* ConsumableModel.swift */; };
 		77619E172A4A1519005221ED /* KeychainSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 77619E162A4A1519005221ED /* KeychainSwift */; };
@@ -37,7 +39,6 @@
 		77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 77ABE0732A21AD4300EED914 /* Alamofire */; };
 		77C0D97B2A2BC02900B86AA4 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97A2A2BC02900B86AA4 /* Enums.swift */; };
 		77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97C2A2BC05200B86AA4 /* Classes.swift */; };
-		B0E941902A26E2C200D75726 /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +72,8 @@
 		772341C42A414C2D004A3E6B /* FolderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderModel.swift; sourceTree = "<group>"; };
 		772341C62A414CFE004A3E6B /* FolderNavModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderNavModel.swift; sourceTree = "<group>"; };
 		772341C82A414D15004A3E6B /* KeyboardModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardModel.swift; sourceTree = "<group>"; };
+		7760E8132A711B7D0099D2DE /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		7760E8182A7124CF0099D2DE /* Unlimited.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Unlimited.storekit; sourceTree = "<group>"; };
 		77619E102A49FB78005221ED /* MonologPremium.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = MonologPremium.storekit; sourceTree = "<group>"; };
 		77619E112A49FC73005221ED /* StoreModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreModel.swift; sourceTree = "<group>"; };
 		77619E132A4A13B7005221ED /* ConsumableModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsumableModel.swift; sourceTree = "<group>"; };
@@ -91,7 +94,6 @@
 		77C0D9772A2BADB000B86AA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		77C0D97A2A2BC02900B86AA4 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		77C0D97C2A2BC05200B86AA4 /* Classes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Classes.swift; sourceTree = "<group>"; };
-		B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +101,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7760E8172A711BC50099D2DE /* Glassfy in Frameworks */,
+				7760E8142A711B7D0099D2DE /* StoreKit.framework in Frameworks */,
 				77619E172A4A1519005221ED /* KeychainSwift in Frameworks */,
 				77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */,
 			);
@@ -161,6 +165,14 @@
 			path = Utils;
 			sourceTree = "<group>";
 		};
+		7760E8122A711B7D0099D2DE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7760E8132A711B7D0099D2DE /* StoreKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		7791A0C42A1E9496005088C4 = {
 			isa = PBXGroup;
 			children = (
@@ -168,6 +180,7 @@
 				7791A0E02A1E9497005088C4 /* MonologTests */,
 				7791A0EA2A1E9497005088C4 /* MonologUITests */,
 				7791A0CE2A1E9496005088C4 /* Products */,
+				7760E8122A711B7D0099D2DE /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -188,12 +201,12 @@
 				77C0D9772A2BADB000B86AA4 /* Info.plist */,
 				7791A0D42A1E9497005088C4 /* Assets.xcassets */,
 				7791A0D02A1E9496005088C4 /* MonologueApp.swift */,
-				B0E9418F2A26E2C200D75726 /* SwiftUIView.swift */,
 				772341B62A4148D1004A3E6B /* Models */,
 				772341AD2A4146C4004A3E6B /* Views */,
 				77ABE06D2A1FF35400EED914 /* Structs */,
 				7791A0D62A1E9497005088C4 /* Preview Content */,
 				77619E102A49FB78005221ED /* MonologPremium.storekit */,
+				7760E8182A7124CF0099D2DE /* Unlimited.storekit */,
 			);
 			path = Monolog;
 			sourceTree = "<group>";
@@ -252,6 +265,7 @@
 			packageProductDependencies = (
 				77ABE0732A21AD4300EED914 /* Alamofire */,
 				77619E162A4A1519005221ED /* KeychainSwift */,
+				7760E8162A711BC50099D2DE /* Glassfy */,
 			);
 			productName = Recordings;
 			productReference = 7791A0CD2A1E9496005088C4 /* Monolog.app */;
@@ -328,6 +342,7 @@
 			packageReferences = (
 				77ABE0722A21AD4300EED914 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				77619E152A4A1519005221ED /* XCRemoteSwiftPackageReference "keychain-swift" */,
+				7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */,
 			);
 			productRefGroup = 7791A0CE2A1E9496005088C4 /* Products */;
 			projectDirPath = "";
@@ -380,7 +395,6 @@
 				772341B82A4148E6004A3E6B /* AudioRecorderModel.swift in Sources */,
 				77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */,
 				772341C32A414BC8004A3E6B /* OutputModels.swift in Sources */,
-				B0E941902A26E2C200D75726 /* SwiftUIView.swift in Sources */,
 				77619E142A4A13B7005221ED /* ConsumableModel.swift in Sources */,
 				7791A0D32A1E9496005088C4 /* HomeView.swift in Sources */,
 				772341BF2A414B5E004A3E6B /* CameraButtonView.swift in Sources */,
@@ -548,10 +562,10 @@
 		7791A0F22A1E9497005088C4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Gramaphone;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"Monolog/Preview Content\"";
 				DEVELOPMENT_TEAM = 4GS43493GL;
 				ENABLE_PREVIEWS = YES;
@@ -572,7 +586,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = mjsong.Monolog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -587,10 +601,10 @@
 		7791A0F32A1E9497005088C4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Gramaphone;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"Monolog/Preview Content\"";
 				DEVELOPMENT_TEAM = 4GS43493GL;
 				ENABLE_PREVIEWS = YES;
@@ -611,7 +625,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = mjsong.Monolog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -636,6 +650,9 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mjsong.RecordingsTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -656,6 +673,9 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mjsong.RecordingsTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -741,6 +761,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/glassfy/ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 		77619E152A4A1519005221ED /* XCRemoteSwiftPackageReference "keychain-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/evgenyneu/keychain-swift.git";
@@ -760,6 +788,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7760E8162A711BC50099D2DE /* Glassfy */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */;
+			productName = Glassfy;
+		};
 		77619E162A4A1519005221ED /* KeychainSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 77619E152A4A1519005221ED /* XCRemoteSwiftPackageReference "keychain-swift" */;

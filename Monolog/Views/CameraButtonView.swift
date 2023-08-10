@@ -8,13 +8,14 @@
 import SwiftUI
 
 struct CameraButtonView: View {
+    @Environment(\.colorScheme) var colorScheme
     @State var recording = false
     var action: ((_ recording: Bool) -> Void)?
     var body: some View {
         ZStack {
             Circle()
                 .stroke(lineWidth: 4)
-                .foregroundColor(.white)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
                 .frame(width: 65, height: 65)
             RoundedRectangle(cornerRadius: recording ? 8 : self.innerCircleWidth / 2)
                 .foregroundColor(.red)

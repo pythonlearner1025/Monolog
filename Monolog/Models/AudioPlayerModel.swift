@@ -27,6 +27,8 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.audioPath = audioPath
         do {
+            print(folderPath)
+            print(audioPath)
             let folderURL = Util.buildFolderURL(folderPath)
             let rawURL = folderURL.appendingPathComponent("raw", isDirectory: true)
             let audioURL = rawURL.appendingPathComponent(audioPath)

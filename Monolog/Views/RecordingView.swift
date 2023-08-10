@@ -14,14 +14,15 @@ struct RecordingView: View {
     @ObservedObject var recording: Recording
     @ObservedObject var outputs: Outputs
     @State private var isShowingUpgrade = false
-    @State private var isShowingSettings = false
     @State private var isShowingCustomOutput = false
     @State private var activeSheet: ActiveSheet?
     @State private var selectedLength = ""
     @State private var selectedTone = ""
     @State private var selectedFormat = ""
     @State private var customInput = ""
-    @State private var showDelete: Bool = false
+    @State private var showDelete = false
+    @State private var retryLoading = false
+    @State private var initialPopupShowed = false
     @ObservedObject private var keyboardResponder = KeyboardResponderModel()
     @EnvironmentObject private var storeModel: StoreModel
     @EnvironmentObject private var consumableModel: ConsumableModel
@@ -29,15 +30,55 @@ struct RecordingView: View {
   
     var body: some View {
         if recording.generateText {
-            List{
-                if allError(outputs.outputs) {
-                    RegenView(recording: recording)
-                } else {
-                     if outputs.outputs.first(where: {$0.type == .Title}) != nil {
+            if allError(outputs.outputs) {
+                Group {
+                    if retryLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(2)
+                    } else {
+                         Button{
+                            retryLoading = true
+                            audioAPI.regenerateAll(recording: recording) {
+                               retryLoading = false
+                            }
+                        } label: {
+                            Label("Retry", systemImage: "goforward")
+                        }
+                        .padding()
+                        .background(colorScheme == .dark ? Color(red: 0, green: 0, blue: 0.5) : .white)
+                        .clipShape(Capsule())
+                    }
+                }
+                .navigationBarItems(trailing:
+                    HStack{
+                        Menu {
+                            Button(action: exportAudio) {
+                                Label("Export Audio", systemImage: "waveform")
+                            }
+                        }
+                        label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                )
+                .sheet(item: $activeSheet) {item in
+                    switch item {
+                        case .exportText(let url):
+                            ShareSheet(items: [url])
+                        case .exportAudio(let url):
+                            ShareSheet(items: [url])
+                    }
+                }
+                .onReceive(outputs.$outputs){ outputs in
+                }
+            } else {
+                List{
+                    if outputs.outputs.first(where: {$0.type == .Title}) != nil {
                         TitleView(output: recording.outputs.outputs.first(where: {$0.type == .Title})!, recording: recording)
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color(.systemBackground))
-                     }
+                    }
                     ForEach(sortOutputs(outputs.outputs).filter { $0.type != .Title}) { output in
                         HStack{
                             Group{
@@ -66,83 +107,77 @@ struct RecordingView: View {
                         .listRowBackground(Color(.systemBackground))
                     }
                 }
-            }
-            .navigationBarItems(trailing:
-                HStack{
-                    if keyboardResponder.currentHeight != 0 {
-                        Spacer()
-                        Button(action: hideKeyboard) {
-                            Text("Done")
-                        }
-                    } else {
-                        Menu {
-                            Button(action: exportText) {
-                                Label("Export Text", systemImage: "doc.text")
-                            }
-                            Button(action: exportAudio) {
-                                Label("Export Audio", systemImage: "waveform")
-                            }
-                        }
-                        label: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        Button(action: {
-                            if !consumableModel.isOutputEmpty() || storeModel.purchasedSubscriptions.count > 0 {
-                                isShowingCustomOutput.toggle()
-                            } else {
-                                isShowingUpgrade.toggle()
-                            }
-                        }) {
-                            Image(systemName: "sparkles")
-                        }
-                        Button(action: {
-                            showDelete.toggle()
-                        }){
-                            if !showDelete {
-                                Text("Edit")
-                            } else {
+                .navigationBarItems(trailing:
+                    HStack{
+                        if keyboardResponder.currentHeight != 0 {
+                            Spacer()
+                            Button(action: hideKeyboard) {
                                 Text("Done")
+                            }
+                        } else {
+                            Menu {
+                                Button(action: exportText) {
+                                    Label("Export Text", systemImage: "doc.text")
+                                }
+                                Button(action: exportAudio) {
+                                    Label("Export Audio", systemImage: "waveform")
+                                }
+                            }
+                            label: {
+                                Image(systemName: "square.and.arrow.up")
+                            }
+                            Button(action: {
+                                if !consumableModel.isOutputEmpty() || storeModel.purchasedSubscriptions.count > 0 {
+                                    isShowingCustomOutput.toggle()
+                                } else {
+                                    isShowingUpgrade.toggle()
+                                }
+                            }) {
+                                Image(systemName: "sparkles")
+                            }
+                            Button(action: {
+                                showDelete.toggle()
+                            }){
+                                if !showDelete {
+                                    Text("Edit")
+                                } else {
+                                    Text("Done")
+                                }
                             }
                         }
                     }
+                )
+                .listStyle(.plain)
+                .sheet(isPresented: $isShowingCustomOutput){
+                    CustomOutputSheet(recording: recording)
+                        .environmentObject(consumableModel)
+                        .environmentObject(storeModel)
                 }
-            )
-            .listStyle(.plain)
-            .sheet(isPresented: $isShowingCustomOutput){
-                CustomOutputSheet(recording: recording)
-                    .environmentObject(consumableModel)
-                    .environmentObject(storeModel)
-            }
-            .sheet(isPresented: $isShowingSettings) {
-                if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                    SettingsSheet(selectedFormat: outputSettings.format, selectedLength: outputSettings.length, selectedTone: outputSettings.tone)
+                .sheet(item: $activeSheet) {item in
+                    switch item {
+                        case .exportText(let url):
+                            ShareSheet(items: [url])
+                        case .exportAudio(let url):
+                            ShareSheet(items: [url])
+                    }
+                }
+                .sheet(isPresented: $isShowingUpgrade) {
+                    UpgradeSheet(recording: recording, context: .GenerationUnlock)
+                        .environmentObject(storeModel)
+                        //.presentationDetents([.medium])
+                }
+                .onReceive(outputs.$outputs){ outputs in
                 }
             }
-            .sheet(item: $activeSheet) {item in
-                switch item {
-                    case .exportText(let url):
-                        ShareSheet(items: [url])
-                    case .exportAudio(let url):
-                        ShareSheet(items: [url])
-                }
-            }
-            .sheet(isPresented: $isShowingUpgrade) {
-                UpgradeSheet(recording: recording, context: .GenerationUnlock)
-                    .environmentObject(storeModel)
-                    .presentationDetents([.medium])
-            }
-            .onReceive(outputs.$outputs){ outputs in
-            }
-            
         } else {
             // view of Subscription types
+            // TODO: make button stand out in Light Mode
             Group {
                 Button(action: {isShowingUpgrade = true}) {
                     Text("Upgrade to Transcribe")
                 }
                 .padding()
                 .background(colorScheme == .dark ? Color(red: 0, green: 0, blue: 0.5) : .white)
-                //.foregroundColor(.black)
                 .clipShape(Capsule())
             }
             .navigationBarItems(trailing:
@@ -159,7 +194,7 @@ struct RecordingView: View {
             .sheet(isPresented: $isShowingUpgrade) {
                 UpgradeSheet(recording: recording, context: .TranscriptUnlock)
                     .environmentObject(storeModel)
-                    .presentationDetents([.medium])
+                    //.presentationDetents([.medium])
             }
             .sheet(item: $activeSheet) {item in
                 switch item {
@@ -170,10 +205,15 @@ struct RecordingView: View {
                 }
             }
             .onAppear(perform: {
+                if !initialPopupShowed {
+                    isShowingUpgrade = true
+                    initialPopupShowed = true 
+                }
                 Task {
                     if storeModel.purchasedSubscriptions.count > 0 {
                         recording.generateText = true
-                        audioAPI.regenerateAll(recording: recording)
+                        audioAPI.regenerateAll(recording: recording) {
+                        }
                     }
                 }
             })
@@ -182,7 +222,7 @@ struct RecordingView: View {
     
     func allError(_ outputs: [Output]) -> Bool {
         for output in outputs {
-            if !output.error {
+            if output.status != .error  {
                 return false
             }
         }
@@ -194,7 +234,9 @@ struct RecordingView: View {
             if try await storeModel.purchase(product) != nil {
                 // regnerate all
                 recording.generateText = true
-                audioAPI.regenerateAll(recording: recording)
+                audioAPI.regenerateAll(recording: recording){
+                    
+                }
             }
         } catch {
             print("purchase failed")

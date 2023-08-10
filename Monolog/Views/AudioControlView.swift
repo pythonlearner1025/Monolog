@@ -12,7 +12,6 @@ struct AudioControlView: View {
     @Binding var playingRecordingPath: String
     
     init(_ audioPlayer: AudioPlayerModel, playingRecordingPath: Binding<String>){
-        print("RERENDER")
         self.audioPlayer = audioPlayer
         _playingRecordingPath = playingRecordingPath
     }

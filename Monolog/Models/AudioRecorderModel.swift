@@ -9,6 +9,7 @@ import Foundation
 import AVFoundation
 import Combine
 import Alamofire
+import UIKit
 
 class AudioRecorderModel : NSObject, ObservableObject {
     @Published var isPlaying : Bool = false
@@ -63,7 +64,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
             generateAll(recording: recording, audioURL: audioURL)
         } else {
             for output in recording.outputs.outputs {
-                output.error = true
+                output.status = .restricted
             }
             let folderURL = Util.buildFolderURL(recording.folderPath)
             let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
@@ -90,7 +91,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
             generateAll(recording: recording, audioURL: newAudioURL)
         } else {
             for output in recording.outputs.outputs {
-                output.error = true
+                output.status = .restricted
             }
             let folderURL = Util.buildFolderURL(recording.folderPath)
             let fileURL = folderURL.appendingPathComponent("\(newAudioURL.lastPathComponent).json")
@@ -103,13 +104,11 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }
     }
     
-    func generateAll(recording: Recording, audioURL: URL) {
+    func generateAll(recording: Recording, audioURL: URL, transcriptCompletion: (() -> Void)? = nil) {
        let folderURL = Util.buildFolderURL(recording.folderPath)
        let fileURL = folderURL.appendingPathComponent("\(audioURL.lastPathComponent).json")
        do {
            let data = try encoder.encode(recording)
-         //  print("Saving generateALL results here:")
-          // print(fileURL)
            try data.write(to: fileURL)
        } catch {
            print("An error occurred while saving the recording object: \(error)")
@@ -127,8 +126,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 self.updateAllErrorOutput(outputs: recording.outputs)
                 
                 do {
-                    //print("-- saving transcript error data --")
-                    //print(recording)
                     let updatedData = try self.encoder.encode(recording)
                     try updatedData.write(to: fileURL)
                 } catch {
@@ -138,8 +135,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 break
             }
         }, receiveValue: { update in
-           // print("* update: Transcript **")
             self.updateOutput(transcript_out.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+            transcriptCompletion?()
             do {
                 let updatedData = try self.encoder.encode(recording)
                 try updatedData.write(to: fileURL)
@@ -148,8 +145,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
             }
             if let settings = UserDefaults.standard.getSettings(forKey: "Settings") {
                 var outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") ?? UserDefaults.standard.defaultOutputSettings
-               // print("== all settings outputs \(settings.outputs)==")
-                // name & prompt only for custom...
                 outputSettings.name = ""
                 outputSettings.prompt = ""
                 settings.outputs.forEach({ outputType in
@@ -158,7 +153,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     }
                 })
                 let futures = settings.outputs.map { outputType -> AnyPublisher<Update, OutputGenerationError> in
-                    self.generateOutput(transcript: transcript_out.content, outputType: outputType, outputSettings: outputSettings)
+                    self.generateOutput(transcript: !transcript_out.content.isEmpty ? transcript_out.content : "No transcript", outputType: outputType, outputSettings: outputSettings)
                        .eraseToAnyPublisher()
                }
                 
@@ -199,20 +194,16 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     .sink(receiveCompletion: { _ in}, receiveValue: { update in
                         switch update.type {
                             case .Summary:
-                                //print("** update: summary **")
                                 let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Summary})
                                 let out = recording.outputs.outputs[out_idx!]
-                                out.loading = false
-                                out.error = false
+                                out.status = .completed
                                 out.content = update.content
                                 out.settings = update.settings
                             case .Title:
-                                //print("** update: Title **")
                                 recording.title = update.content
                                 let out_idx = recording.outputs.outputs.firstIndex(where: {$0.type == .Title})
                                 let out = recording.outputs.outputs[out_idx!]
-                                out.loading = false
-                                out.error = false
+                                out.status = .completed
                                 out.content = update.content
                                 out.settings = update.settings
                             case .Transcript:
@@ -235,25 +226,32 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }).store(in: &self.cancellables)
     }
     
-    func regenerateAll(recording: Recording) {
+    func regenerateAll(recording: Recording, completion: @escaping () -> Void) {
         updateAllLoadingOutput(outputs: recording.outputs)
-        generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath))
+        generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath)) {
+            print("transcript completion function")
+            for output in recording.outputs.outputs {
+                if output.type == .Custom {
+                    self.regenerateOutput(recording: recording, output: output)
+                }
+            }
+        }
+        completion()
     }
     
-    // pass output of type Transcript to regen all
     func regenerateOutput(recording: Recording, output: Output) {
         output.content = "Loading"
-        output.error = false
-        output.loading = true
+        output.status == .loading
         let transcript = getTranscript(outputs: recording.outputs)
+        print("regen output")
+        print(transcript)
         generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                 case .failure(let error):
                     //print("failed to regenerate \(error)")
                     output.content = "Error, tap to retry"
-                    output.loading = false
-                    output.error = true
+                    output.status == .error
                 case .finished:
                     break
                 }
@@ -261,18 +259,16 @@ class AudioRecorderModel : NSObject, ObservableObject {
             receiveValue:{ update in
                 switch update.type {
                     case .Summary:
-                        //print("** update: summary **")
                         self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
                     case .Title:
-                        //print("** update: Title **")
                         recording.title = update.content
                         self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
                         break
                     case .Transcript:
                         break
                     case .Custom:
-                        break
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
                 }
                 do {
                     let updatedData = try self.encoder.encode(recording)
@@ -295,9 +291,9 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     case .failure(_):
                     self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: recording.outputs)
                         do {
-                            //print("-- saving custom output error data --")
                             let updatedData = try self.encoder.encode(recording)
-                            try updatedData.write(to: URL(fileURLWithPath: recording.filePath))
+                            let recordingPath = Util.buildFolderURL(recording.folderPath).appendingPathComponent(recording.filePath)
+                            try updatedData.write(to: recordingPath)
                         }
                         catch {
                             print("Error saving output-generate-error to recording: \(error)")
@@ -323,13 +319,17 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
     func generateOutput(transcript: String, outputType: OutputType, outputSettings: OutputSettings) -> Future<Update, OutputGenerationError> {
         return Future { promise in
-            //print("== Generating for \(outputType.rawValue) ==")
+            var taskId: UIBackgroundTaskIdentifier!
+                taskId = UIApplication.shared.beginBackgroundTask {
+                    UIApplication.shared.endBackgroundTask(taskId)
+                    taskId = .invalid
+            }
+            
             let url = self.baseURL + "generate_output"
             
             do {
                 let encodedSettings = try self.encoder.encode(outputSettings)
                 let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
-                //print("settings dict \(settingsDictionary!)")
                 let parameters: [String: Any] = [
                     "type": outputType.rawValue,
                     "transcript": transcript,
@@ -339,6 +339,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
                     .validate()
                     .responseJSON { response in
+                        UIApplication.shared.endBackgroundTask(taskId) // End the background task when the request completes
+                        print(response.description)
                         switch response.result {
                             case .success(let value):
                                 if let JSON = value as? [String: Any] {
@@ -350,15 +352,21 @@ class AudioRecorderModel : NSObject, ObservableObject {
                                 promise(.failure(OutputGenerationError.failure(error: error, outputType: outputType, transcript: transcript)))
                         }
                 }
-
             } catch {
                 print("encoding error \(error)")
+                UIApplication.shared.endBackgroundTask(taskId) // End the background task if there is an error
             }
         }
     }
 
+    
     func generateTranscription(recording: Recording) -> Future<Update, Error> {
         return Future { promise in
+            let backgroundTaskId = UIApplication.shared.beginBackgroundTask {
+                // This block will be executed if the task expires
+                promise(.failure(NSError(domain: "com.yourapp", code: 0, userInfo: [NSLocalizedDescriptionKey: "Background task expired"])))
+            }
+
             let url = URL(string: self.baseURL + "transcribe")!
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
@@ -388,19 +396,15 @@ class AudioRecorderModel : NSObject, ObservableObject {
 
             // Set the HTTPBody with the form data we created
             request.httpBody = data
-
             URLSession.shared.dataTask(with: request) { (data, response, error) in
+                // Make sure to end the background task when done
+                UIApplication.shared.endBackgroundTask(backgroundTaskId)
+                
                 guard let data = data, error == nil else {
                     print("Error: \(error?.localizedDescription ?? "Unknown error")")
                     promise(.failure(error!))
                     return
                 }
-                
-                if let dataString = String(data: data, encoding: .utf8) {
-                       //print("Data received: \(dataString)")
-                   } else {
-                       print("Unable to convert data to text")
-                   }
 
                 do {
                     let decoder = JSONDecoder()
@@ -418,6 +422,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     print("Decoding error: \(error)")
                     promise(.failure(error))
                 }
+
             }.resume()
         }
     }
@@ -445,39 +450,34 @@ extension AudioRecorderModel {
         if let index = outputs.outputs.firstIndex(where: { $0.id.uuidString == id }) {
             outputs.outputs[index].content = content
             outputs.outputs[index].settings = settings
-            outputs.outputs[index].error = false
-            outputs.outputs[index].loading = false
+            outputs.outputs[index].status = .completed
         }
     }
     
     private func updateAllLoadingOutput(outputs: Outputs) {
         for output in outputs.outputs {
             output.content = "Loading"
-            output.error = false
-            output.loading = true
+            output.status = .loading
         }
     }
     
     private func updateAllErrorOutput(outputs: Outputs) {
         for output in outputs.outputs {
             output.content = "Error, tap to retry"
-            output.error = true
-            output.loading = false
+            output.status = .error
         }
     }
     
     private func updateErrorOutput(_ id: String, settings: OutputSettings, outputs: Outputs) {
         if let index = outputs.outputs.firstIndex(where: { $0.id.uuidString == id }) {
             outputs.outputs[index].content = "Error, tap to retry"
-            outputs.outputs[index].error = true
-            outputs.outputs[index].loading = false
+            outputs.outputs[index].status = .error
         }
     }
     
     private func addErrorOutput(type: OutputType, settings: OutputSettings, outputs: Outputs) -> Output {
         let newOutput = Output(type: type, content: "Error, tap to retry", settings: settings)
-        newOutput.error = true
-        newOutput.loading = false
+        newOutput.status = .error
         outputs.outputs.append(newOutput)
         return newOutput
     }

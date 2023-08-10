@@ -8,8 +8,6 @@ from utils import CompletionAI
 from prompts import *
 import uvicorn
 import openai
-import requests
-import base64
 import os
 
 
