@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AudioControlView: View {
+    @Environment(\.colorScheme) var colorScheme
     @ObservedObject var audioPlayer: AudioPlayerModel
     @Binding var playingRecordingPath: String
     
@@ -21,7 +22,15 @@ struct AudioControlView: View {
             HStack {
                 Text(Duration(secondsComponent: Int64(audioPlayer.audioPlayer.currentTime), attosecondsComponent: 0).formatted(.time(pattern: .minuteSecond)))
                     .font(.caption.monospacedDigit())
-                Slider(value: $audioPlayer.audioPlayer.currentTime, in: 0...audioPlayer.audioPlayer.duration).accentColor(Color.primary)
+                Slider(value: $audioPlayer.audioPlayer.currentTime, in: 0...audioPlayer.audioPlayer.duration)
+                    .controlSize(.small)
+                    .accentColor(colorScheme == .dark ? .white : .gray)
+                    .onAppear {
+                        let progressCircleConfig = UIImage.SymbolConfiguration(scale: .small)
+                        UISlider.appearance()
+                            .setThumbImage(UIImage(systemName: "circle.fill", withConfiguration: progressCircleConfig), for: .normal)
+                    }
+
             }
             .padding()
             HStack{

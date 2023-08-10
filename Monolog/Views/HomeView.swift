@@ -55,8 +55,6 @@ struct HomeView: View {
                        }
                    }
                     .onAppear(perform: {
-                       //print("List appears!")
-                       //print(folderNavigationModel.$presentedItems)
                        loadFolders()
                     })
                    .navigationDestination(for: Folder.self){ folder in
@@ -100,7 +98,6 @@ struct HomeView: View {
                }
                .onChange(of: folderNavigationModel.presentedItems) {newVal in
                     if folderNavigationModel.presentedItems.count == 0 {
-                        print("nav load folders")
                         loadFolders()
                     }
                 }
@@ -154,7 +151,6 @@ struct HomeView: View {
                 let folderName = url.lastPathComponent
                 let folderPath = url.path
                 do {
-                    //print("loaded folder \(url.path)")
                     let folderContents = try fileManager.contentsOfDirectory(atPath: folderPath)
                     let itemCount = folderContents.count == 0 ? folderContents.count : folderContents.count-1
                     return Folder(name: folderName, path: folderName, count: itemCount)
