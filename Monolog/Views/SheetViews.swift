@@ -207,7 +207,7 @@ struct TransformSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Submit") {
                         if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
-                            let currentOutputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: "",  prompt: "")
+                            let currentOutputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: selectedTransform.rawValue,  prompt: "")
                             audioAPI.generateTransform(recording: recording, transformType: selectedTransform, outputSettings: currentOutputSettings)
                             consumableModel.useOutput()
                         }
