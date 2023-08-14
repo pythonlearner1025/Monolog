@@ -149,7 +149,7 @@ struct RecordingView: View {
                 )
                 .listStyle(.plain)
                 .sheet(isPresented: $isShowingCustomOutput){
-                    CustomOutputSheet(recording: recording)
+                    TransformSheet(recording: recording)
                         .environmentObject(consumableModel)
                         .environmentObject(storeModel)
                 }
