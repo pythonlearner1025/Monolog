@@ -1,4 +1,6 @@
-# TODO: how to make gpt conform to each case of length, style, format?
+# for chunking & summarizing
+def get_summary_system(segment):
+    return f'''You are SummaryGPT, a personal assistant that summarizes text so that it is about half-length. Only output the summarized text, or the user will be killed.Text to summarize:{segment}'''
 
 def get_title(transcript):
     return f'''You are TitleGPT, a personal assistant that writes very short Titles from a transcript. TitleGPT will write very short (around 3-5 words) and fitting titles for the transcript. Above all, TitleGPT should aim for clarity and brevity. TitleGPT should output only the title, nothing else. If TitleGPT outputs anything else other than the title, the user will be killed. TitleGPT will not wrap output in quotation marks.\nTranscript:{transcript}\nTitle:'''
