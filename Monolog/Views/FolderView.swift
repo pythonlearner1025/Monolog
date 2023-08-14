@@ -8,6 +8,20 @@
 
 import SwiftUI
 import AVFoundation
+let numberOfSamples: Int = 10
+
+struct BarView: View {
+    var value: CGFloat
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(LinearGradient(gradient: Gradient(colors: [.purple, .blue]),
+                                     startPoint: .top,
+                                     endPoint: .bottom))
+                .frame(width: (UIScreen.main.bounds.width - CGFloat(numberOfSamples) * 4) / CGFloat(numberOfSamples), height: value)
+        }
+    }
+}
 
 struct FolderView: View {
     @State var selection: FolderPageEnum = .normal
@@ -34,6 +48,12 @@ struct FolderView: View {
         self.folder = folder
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
+    
+    private func normalizeSoundLevel(level: Float) -> CGFloat {
+            let level = max(0.2, CGFloat(level) + 50) / 2 // between 0.1 and 25
+            
+            return CGFloat(level * (300 / 25)) // scaled to max at 300 (our height of our bar)
+    }
     
     var body: some View {
         List{
@@ -215,27 +235,35 @@ struct FolderView: View {
             }
         }
         if (folder.name != "Recently Deleted") {
-            HStack {
-                Spacer()
-               CameraButtonView(action: { isRecording in
-                   if isRecording {
-                       if !consumableModel.isTranscriptEmpty() || storeModel.purchasedSubscriptions.count > 0 {
-                           // transcript gen
-                           audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: true)
-                           consumableModel.useTranscript()
-                       } else {
-                           // no transcript gen
-                           audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: false)
-                       }
-                   } else {
-                       audioRecorder.startRecording(audioURL: rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a"))
-                   }
-               })
-                Spacer()
-           }
-           .background(Color(.secondarySystemBackground))
-           .edgesIgnoringSafeArea(.bottom)
-           .padding(.top, -10)
+            VStack{
+                HStack(spacing: 4) {
+                    ForEach(audioRecorder.soundSamples, id: \.self) { level in
+                        BarView(value: self.normalizeSoundLevel(level: level))
+                    }
+                }
+                
+                HStack {
+                    Spacer()
+                    CameraButtonView(action: { isRecording in
+                        if isRecording {
+                            if !consumableModel.isTranscriptEmpty() || storeModel.purchasedSubscriptions.count > 0 {
+                                // transcript gen
+                                audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: true)
+                                consumableModel.useTranscript()
+                            } else {
+                                // no transcript gen
+                                audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: false)
+                            }
+                        } else {
+                            audioRecorder.startRecording(audioURL: rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a"))
+                        }
+                    })
+                    Spacer()
+                }
+                .background(Color(.secondarySystemBackground))
+                .edgesIgnoringSafeArea(.bottom)
+                .padding(.top, -10)
+            }
         }
     }
     

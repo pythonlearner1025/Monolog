@@ -10,6 +10,15 @@
       }
     },
     {
+      "identity" : "dswaveformimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dmrschmidt/DSWaveformImage",
+      "state" : {
+        "revision" : "e670b8da140c39036f171b9754ed25126b8d414b",
+        "version" : "13.0.2"
+      }
+    },
+    {
       "identity" : "ios-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/glassfy/ios-sdk",
