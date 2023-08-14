@@ -325,7 +325,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     taskId = .invalid
             }
             
-            let url = self.baseURL + "generate_transformation"
+            let url = self.baseURL + "generate_transform"
             
             do {
                 let encodedSettings = try self.encoder.encode(outputSettings)
