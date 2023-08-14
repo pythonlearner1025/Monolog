@@ -69,19 +69,17 @@ class AudioPlayerModel : NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer.delegate = self
             audioPlayer.prepareToPlay()
             audioPlayer.play()
-
-            // Replace the Timer with a Combine Publisher
             cancellable = Timer.publish(every: 0.01, on: .main, in: .common)
                 .autoconnect()
                 .sink { [weak self] _ in
                     guard let self = self else { return }
-                    if self.isPlaying {
+                    if self.audioPlayer.isPlaying {
                         self.currentTime = self.formatter.string(from: TimeInterval(self.audioPlayer.currentTime))!
                         self.progress = CGFloat(self.audioPlayer.currentTime / self.audioPlayer.duration)
-                        if self.audioPlayer.currentTime >= self.audioPlayer.duration - 0.01 {
-                            self.stopPlaying()
-                            self.cancellable?.cancel() // Terminate subscription
-                        }
+                    } else {
+                        self.stopPlaying()
+                        //self.audioPlayer.currentTime = self.audioPlayer.duration
+                        self.cancellable?.cancel()
                     }
                 }
         } catch {

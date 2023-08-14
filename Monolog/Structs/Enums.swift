@@ -40,7 +40,7 @@ enum FormatType: String, Encodable, Decodable, CaseIterable {
 
 enum ToneType: String, Encodable, Decodable, CaseIterable {
     case casual
-    case formal
+    case professional
 }
 
 enum ActiveSheet: Identifiable {
