@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct AudioControlView: View {
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject var audioPlayer: AudioPlayerModel
@@ -33,21 +34,23 @@ struct AudioControlView: View {
 
             }
             .padding()
-            HStack{
-                Spacer()
-                Button(action: {
-                    if audioPlayer.isPlaying == true {
-                        audioPlayer.stopPlaying()
-                    }else{
-                        audioPlayer.startPlaying()
-                        playingRecordingPath = audioPlayer.audioPath
-                    }}) {
-                        Image(systemName: audioPlayer.isPlaying ? "stop.fill" : "play.fill")
-                            .font(.title)
-                            .imageScale(.large)
-                            .foregroundColor(.primary)
-                    }.buttonStyle(.borderless)
-                Spacer()
+            VStack{
+                HStack{
+                    Spacer()
+                    Button(action: {
+                        if audioPlayer.isPlaying == true {
+                            audioPlayer.stopPlaying()
+                        }else{
+                            audioPlayer.startPlaying()
+                            playingRecordingPath = audioPlayer.audioPath
+                        }}) {
+                            Image(systemName: audioPlayer.isPlaying ? "stop.fill" : "play.fill")
+                                .font(.title)
+                                .imageScale(.large)
+                                .foregroundColor(.primary)
+                        }.buttonStyle(.borderless)
+                    Spacer()
+                }
             }
         }.onChange(of: playingRecordingPath, perform: { path in
            // print("new recording playing at \(path)")

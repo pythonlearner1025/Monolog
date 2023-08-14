@@ -24,6 +24,10 @@ class AudioRecorderModel : NSObject, ObservableObject {
     ]
     let baseURL = "https://turing-api.com/api/v1/"
     var cancellables = Set<AnyCancellable>()
+    private var timer: Timer?
+    private var currentSample: Int
+    private let numberOfSamples: Int
+    @Published public var soundSamples: [Float]
     
     override init(){
         self.formatter = DateComponentsFormatter()
@@ -32,6 +36,9 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.encoder = JSONEncoder()
         self.encoder.dateEncodingStrategy = .iso8601
+        self.numberOfSamples = 10
+        self.currentSample = 0
+        self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)
         super.init()
     }
     
@@ -46,8 +53,14 @@ class AudioRecorderModel : NSObject, ObservableObject {
         do {
             audioRecorder = try AVAudioRecorder(url: audioURL, settings: recordingSettings)
             audioRecorder.prepareToRecord()
+            audioRecorder.isMeteringEnabled = true
             audioRecorder.record()
-            
+            timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true, block: { (timer) in
+                self.audioRecorder.updateMeters()
+                self.soundSamples[self.currentSample] = self.audioRecorder.averagePower(forChannel: 0)
+                self.currentSample = (self.currentSample + 1) % self.numberOfSamples
+                print(self.currentSample)
+            })
         } catch {
             print("Failed to Setup the Recording")
         }
@@ -55,6 +68,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
     
     func stopRecording(_ recordings: inout [Recording], folderURL: URL, generateText: Bool) {
         audioRecorder.stop()
+        timer?.invalidate()
+        self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)
         // write Recordings to localStorage as well.
         let audioURL = audioRecorder.url
         let filePath = "\(audioURL.lastPathComponent).json"

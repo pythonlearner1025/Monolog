@@ -39,6 +39,8 @@
 		77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 77ABE0732A21AD4300EED914 /* Alamofire */; };
 		77C0D97B2A2BC02900B86AA4 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97A2A2BC02900B86AA4 /* Enums.swift */; };
 		77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97C2A2BC05200B86AA4 /* Classes.swift */; };
+		B027DE2D2A8A44BE0079C183 /* DSWaveformImage in Frameworks */ = {isa = PBXBuildFile; productRef = B027DE2C2A8A44BE0079C183 /* DSWaveformImage */; };
+		B027DE2F2A8A44BE0079C183 /* DSWaveformImageViews in Frameworks */ = {isa = PBXBuildFile; productRef = B027DE2E2A8A44BE0079C183 /* DSWaveformImageViews */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,7 +106,9 @@
 				7760E8172A711BC50099D2DE /* Glassfy in Frameworks */,
 				7760E8142A711B7D0099D2DE /* StoreKit.framework in Frameworks */,
 				77619E172A4A1519005221ED /* KeychainSwift in Frameworks */,
+				B027DE2F2A8A44BE0079C183 /* DSWaveformImageViews in Frameworks */,
 				77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */,
+				B027DE2D2A8A44BE0079C183 /* DSWaveformImage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,6 +270,8 @@
 				77ABE0732A21AD4300EED914 /* Alamofire */,
 				77619E162A4A1519005221ED /* KeychainSwift */,
 				7760E8162A711BC50099D2DE /* Glassfy */,
+				B027DE2C2A8A44BE0079C183 /* DSWaveformImage */,
+				B027DE2E2A8A44BE0079C183 /* DSWaveformImageViews */,
 			);
 			productName = Recordings;
 			productReference = 7791A0CD2A1E9496005088C4 /* Monolog.app */;
@@ -343,6 +349,7 @@
 				77ABE0722A21AD4300EED914 /* XCRemoteSwiftPackageReference "Alamofire" */,
 				77619E152A4A1519005221ED /* XCRemoteSwiftPackageReference "keychain-swift" */,
 				7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */,
+				B027DE2B2A8A44BE0079C183 /* XCRemoteSwiftPackageReference "DSWaveformImage" */,
 			);
 			productRefGroup = 7791A0CE2A1E9496005088C4 /* Products */;
 			projectDirPath = "";
@@ -785,6 +792,14 @@
 				minimumVersion = 5.0.0;
 			};
 		};
+		B027DE2B2A8A44BE0079C183 /* XCRemoteSwiftPackageReference "DSWaveformImage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dmrschmidt/DSWaveformImage";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -802,6 +817,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 77ABE0722A21AD4300EED914 /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
+		};
+		B027DE2C2A8A44BE0079C183 /* DSWaveformImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B027DE2B2A8A44BE0079C183 /* XCRemoteSwiftPackageReference "DSWaveformImage" */;
+			productName = DSWaveformImage;
+		};
+		B027DE2E2A8A44BE0079C183 /* DSWaveformImageViews */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B027DE2B2A8A44BE0079C183 /* XCRemoteSwiftPackageReference "DSWaveformImage" */;
+			productName = DSWaveformImageViews;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
