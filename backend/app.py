@@ -56,9 +56,12 @@ class Format(str, Enum):
 
 class OutputType(str, Enum):
     Summary = 'Summary'
-    Action = 'Action'
-    Custom = 'Custom'
     Title = 'Title'
+
+class TransformType(str, Enum):
+    actions = 'actions'
+    ideas = 'ideas'
+    journal = 'journal'
 
 class Settings(BaseModel):
     length: Length
@@ -69,6 +72,11 @@ class Settings(BaseModel):
 
 class OutputLoad(BaseModel):
     type: OutputType
+    transcript: str
+    settings: Settings
+
+class TransformLoad(BaseModel):
+    type: TransformType
     transcript: str
     settings: Settings
 
@@ -126,7 +134,7 @@ async def generate_output(load: OutputLoad):
     return {'out': out}
 
 @app.post('/api/v1/generate_transform')
-async def generate_transform(load: OutputLoad):
+async def generate_transform(load: TransformLoad):
     if load.type == 'actions':
         gpt = CompletionAI(
             get_actions_out,
