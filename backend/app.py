@@ -123,18 +123,40 @@ async def generate_output(load: OutputLoad):
         out: str = await gpt()
         out = out.replace('"', '') 
         out = out.replace("'", '') 
-    else:
-        #print(load.type)
+    return {'out': out}
+
+@app.post('/api/v1/generate_transform')
+async def generate_transform(load: OutputLoad):
+    if load.type == 'actions':
         gpt = CompletionAI(
-            get_transformation, 
+            get_actions_out,
             load.transcript, 
-            name=load.settings.name, 
-            description=load.settings.prompt,
             length=load.settings.length, 
             tone=load.settings.tone, 
             format=load.settings.format
-            )
-        out: str = await gpt()
+            ) 
+        out: str = await gpt() 
+        out = out.replace('*', '-') 
+    elif load.type == 'ideas':
+        gpt = CompletionAI(
+            get_ideas_out,
+            load.transcript, 
+            length=load.settings.length, 
+            tone=load.settings.tone, 
+            format=load.settings.format
+            ) 
+        out: str = await gpt() 
+        out = out.replace('*', '-') 
+    elif load.type == 'journal':
+        gpt = CompletionAI(
+            get_journal_out,
+            load.transcript, 
+            length=load.settings.length, 
+            tone=load.settings.tone, 
+            format=load.settings.format
+            ) 
+        out: str = await gpt() 
+        out = out.replace('*', '-') 
     return {'out': out}
 
 if __name__ == "__main__":
