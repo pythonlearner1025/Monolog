@@ -14,8 +14,8 @@ struct BarView: View {
     var value: CGFloat
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(LinearGradient(gradient: Gradient(colors: [.purple, .blue]),
+            RoundedRectangle(cornerRadius: 10)
+                .fill(LinearGradient(gradient: Gradient(colors: [.red, .orange]),
                                      startPoint: .top,
                                      endPoint: .bottom))
                 .frame(width: (UIScreen.main.bounds.width - CGFloat(numberOfSamples) * 6) / (CGFloat(numberOfSamples)), height: value)
@@ -43,6 +43,7 @@ struct FolderView: View {
     @EnvironmentObject var storeModel: StoreModel
     var folder: Folder
     var rawFolderURL: URL
+
     
     init(folder: Folder) {
         self.folder = folder
@@ -55,7 +56,7 @@ struct FolderView: View {
             level1 = CGFloat(0.2)
         }
             
-        return CGFloat(level1 * (50 / 25)) // scaled to max at 300 (our height of our bar)
+        return CGFloat(level1 * 2) // scaled to max at 300 (our height of our bar)
     }
     
     var body: some View {
@@ -243,21 +244,23 @@ struct FolderView: View {
                     VStack{
                         Text("Recording").padding(.top, 15).font(.headline)
                         Text(audioRecorder.currentTime).padding(.top, 0).font(.body).foregroundStyle(.gray)
+                        
                         VStack{
                             HStack(spacing: 6) {
                                 ForEach(audioRecorder.soundSamples, id: \.self) { level in
                                     BarView(value: self.normalizeSoundLevel(level: level))
                                 }
-                            }.frame(height: 50)
+                            }.frame(height: 70)
                         }
+                        
                     }
                     
                 }
                 
                 HStack {
                     Spacer()
-                    CameraButtonView(action: { isRecording in
-                        if isRecording {
+                    CameraButtonView(action: { recording in
+                        if audioRecorder.isRecording {
                             if !consumableModel.isTranscriptEmpty() || storeModel.purchasedSubscriptions.count > 0 {
                                 // transcript gen
                                 audioRecorder.stopRecording(&recordingsModel[folder.path].recordings, folderURL: Util.buildFolderURL(folder.path), generateText: true)
@@ -270,6 +273,7 @@ struct FolderView: View {
                             audioRecorder.startRecording(audioURL: rawFolderURL.appendingPathComponent("Recording: \(Date().toString(dateFormat: "dd-MM-YY 'at' HH:mm:ss")).m4a"))
                         }
                     })
+                    .environmentObject(audioRecorder)
                     Spacer()
                 }
             }.background(Color(.secondarySystemBackground))
@@ -378,6 +382,13 @@ struct FolderView: View {
         }
         recordingsModel["Recently Deleted"].recordings.insert(recording, at: 0)
     }
+    private let recordingFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = [ .pad ]
+        return formatter
+    }()
     
     private let formatter: DateFormatter = {
          let formatter = DateFormatter()
