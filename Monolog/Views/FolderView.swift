@@ -8,7 +8,7 @@
 
 import SwiftUI
 import AVFoundation
-let numberOfSamples: Int = 10
+let numberOfSamples: Int = 30
 
 struct BarView: View {
     var value: CGFloat
@@ -52,7 +52,7 @@ struct FolderView: View {
     private func normalizeSoundLevel(level: Float) -> CGFloat {
             let level = max(0.2, CGFloat(level) + 50) / 2 // between 0.1 and 25
             
-            return CGFloat(level * (300 / 25)) // scaled to max at 300 (our height of our bar)
+            return CGFloat(level * (100 / 25)) // scaled to max at 300 (our height of our bar)
     }
     
     var body: some View {
