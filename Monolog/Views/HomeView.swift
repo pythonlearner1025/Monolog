@@ -19,12 +19,14 @@ struct HomeView: View {
     @State private var folders: [Folder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
+    @State private var isSheetPresented = false
     private var section = ["Defaults", "User Created"]
     
     init() {
         if isFirstLaunch {
             firstSetup()
             loadFolders()
+            isSheetPresented = true
             isFirstLaunch = false
         }
       }
@@ -105,6 +107,9 @@ struct HomeView: View {
                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
                        isNewLaunch = true
                    })
+               .sheet(isPresented: $isSheetPresented, onDismiss: {}) {
+                    Text("Sheet Content")
+                }
               
            }
          }

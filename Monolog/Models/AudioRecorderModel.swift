@@ -13,6 +13,7 @@ import UIKit
 
 class AudioRecorderModel : NSObject, ObservableObject {
     @Published var isPlaying : Bool = false
+    @Published var isRecording : Bool = false
     let encoder : JSONEncoder
     var formatter : DateComponentsFormatter
     var audioRecorder : AVAudioRecorder!
@@ -27,6 +28,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
     private var timer: Timer?
     private var currentSample: Int
     private let numberOfSamples: Int
+    @Published var currentTime = "00:00"
     @Published public var soundSamples: [Float]
     
     override init(){
@@ -36,7 +38,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.encoder = JSONEncoder()
         self.encoder.dateEncodingStrategy = .iso8601
-        self.numberOfSamples = 30
+        self.numberOfSamples = 50
         self.currentSample = 0
         self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)
         super.init()
@@ -51,19 +53,21 @@ class AudioRecorderModel : NSObject, ObservableObject {
            print("Cannot setup the Recording")
         }
         do {
+            self.isRecording = true
             audioRecorder = try AVAudioRecorder(url: audioURL, settings: recordingSettings)
             audioRecorder.prepareToRecord()
             audioRecorder.isMeteringEnabled = true
             audioRecorder.record()
             timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true, block: { (timer) in
                 self.audioRecorder.updateMeters()
-                if self.currentSample < 29 {
+                if self.currentSample < 49 {
                     self.currentSample = (self.currentSample + 1) % self.numberOfSamples
                 }
                 else{
-                    self.soundSamples = self.soundSamples[
+                    self.soundSamples = Array(self.soundSamples[1...49]) + [0]
                 }
                 self.soundSamples[self.currentSample] = self.audioRecorder.averagePower(forChannel: 0)
+                self.currentTime = self.formatter.string(from: TimeInterval(self.audioRecorder.currentTime))!
                 print(self.currentSample)
             })
         } catch {
@@ -72,6 +76,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func stopRecording(_ recordings: inout [Recording], folderURL: URL, generateText: Bool) {
+        self.isRecording = false
         audioRecorder.stop()
         timer?.invalidate()
         self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)

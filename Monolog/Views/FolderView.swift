@@ -8,7 +8,7 @@
 
 import SwiftUI
 import AVFoundation
-let numberOfSamples: Int = 30
+let numberOfSamples: Int = 50
 
 struct BarView: View {
     var value: CGFloat
@@ -18,7 +18,7 @@ struct BarView: View {
                 .fill(LinearGradient(gradient: Gradient(colors: [.purple, .blue]),
                                      startPoint: .top,
                                      endPoint: .bottom))
-                .frame(width: (UIScreen.main.bounds.width - CGFloat(numberOfSamples) * 4) / CGFloat(numberOfSamples), height: value)
+                .frame(width: (UIScreen.main.bounds.width - CGFloat(numberOfSamples) * 6) / (CGFloat(numberOfSamples)), height: value)
         }
     }
 }
@@ -50,9 +50,12 @@ struct FolderView: View {
    }
     
     private func normalizeSoundLevel(level: Float) -> CGFloat {
-            let level = max(0.2, CGFloat(level) + 50) / 2 // between 0.1 and 25
+        var level1 = max(0.2, CGFloat(level) + 50) / 2
+        if level == 0{
+            level1 = CGFloat(0.2)
+        }
             
-            return CGFloat(level * (100 / 25)) // scaled to max at 300 (our height of our bar)
+        return CGFloat(level1 * (50 / 25)) // scaled to max at 300 (our height of our bar)
     }
     
     var body: some View {
@@ -236,10 +239,19 @@ struct FolderView: View {
         }
         if (folder.name != "Recently Deleted") {
             VStack{
-                HStack(spacing: 4) {
-                    ForEach(audioRecorder.soundSamples, id: \.self) { level in
-                        BarView(value: self.normalizeSoundLevel(level: level))
+                if audioRecorder.isRecording{
+                    VStack{
+                        Text("Recording").padding(.top, 15).font(.headline)
+                        Text(audioRecorder.currentTime).padding(.top, 0).font(.body).foregroundStyle(.gray)
+                        VStack{
+                            HStack(spacing: 6) {
+                                ForEach(audioRecorder.soundSamples, id: \.self) { level in
+                                    BarView(value: self.normalizeSoundLevel(level: level))
+                                }
+                            }.frame(height: 50)
+                        }
                     }
+                    
                 }
                 
                 HStack {
@@ -260,10 +272,8 @@ struct FolderView: View {
                     })
                     Spacer()
                 }
-                .background(Color(.secondarySystemBackground))
-                .edgesIgnoringSafeArea(.bottom)
-                .padding(.top, -10)
-            }
+            }.background(Color(.secondarySystemBackground))
+            .edgesIgnoringSafeArea(.bottom)
         }
     }
     

@@ -24,8 +24,8 @@ struct CameraButtonView: View {
                     .frame(width: self.innerCircleWidth, height: self.innerCircleWidth)
             }
             .animation(.linear(duration: 0.2))
-            .padding(.top, 30)
-            .padding(.bottom, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
             .onTapGesture {
                 withAnimation {
                     self.action?(self.recording)
