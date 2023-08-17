@@ -55,7 +55,7 @@ struct SettingsSheet: View {
                     }
                 }
             }
-            .navigationBarTitle("Text Style")
+            .navigationBarTitle("Summary Style")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -144,11 +144,19 @@ struct MoveSheet: View {
     }
 }
 
-struct CustomOutputSheet: View {
+enum TransformType: String, Encodable, Decodable, CaseIterable {
+    case actions
+    case ideas
+    case journal
+}
+
+struct TransformSheet: View {
     @Environment(\.presentationMode) var presentationMode
     let audioAPI: AudioRecorderModel = AudioRecorderModel()
-    @State private var customPrompt: String = ""
-    @State private var customName: String = ""
+    @State var selectedTransform: TransformType = .actions
+    @State var selectedFormat: FormatType = .bullet
+    @State var selectedLength: LengthType = .short
+    @State var selectedTone: ToneType = .casual
     let recording: Recording
     @EnvironmentObject var consumableModel: ConsumableModel
     @EnvironmentObject var storeModel: StoreModel
@@ -156,47 +164,99 @@ struct CustomOutputSheet: View {
     var body: some View{
         NavigationStack {
             Form {
-                Section(header: Text("Transform Name")) {
-                    TextEditor(text: $customName)
+                Section(header: Text("Select Transformation")) {
+                    CustomTransformPicker(index: $selectedTransform)
                 }
                 
-                Section(header: Text("Transform Description")) {
-                    TextEditor(text: $customPrompt)
-                        .frame(height: 120)
-                }
-                Button("Transform") {
-                    if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
-                        if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                            let currentOutputSettings = OutputSettings(length: savedOutputSettings.length, format: savedOutputSettings.format, tone: savedOutputSettings.tone, name: customName,  prompt: customPrompt)
-                            audioAPI.generateCustomOutput(recording: recording, outputSettings: currentOutputSettings)
-                            UserDefaults.standard.storeOutputSettings(currentOutputSettings, forKey: "Output Settings")
-                            presentationMode.wrappedValue.dismiss()
-                        } else {
-                            presentationMode.wrappedValue.dismiss()
+                Section(header: Text("Length")) {
+                    Picker("Select Length", selection: $selectedLength) {
+                        ForEach(LengthType.allCases, id: \.self) { option in
+                            Text(option.rawValue)
                         }
-                        consumableModel.useOutput()
                     }
+                    .pickerStyle(SegmentedPickerStyle())
                 }
-            }
+                Section(header: Text("Format")) {
+                    Picker("Select Format", selection: $selectedFormat) {
+                        ForEach(FormatType.allCases, id: \.self) { option in
+                            if option.rawValue == "bullet" {
+                                Text("bullet point")
+                            } else {
+                                Text(option.rawValue)
+                            }
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                Section(header: Text("Tone")) {
+                    Picker("Select Tone", selection: $selectedTone) {
+                        ForEach(ToneType.allCases, id: \.self) { option in
+                            Text(option.rawValue)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+            }//
             .navigationBarTitle("Transform Transcript")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Submit") {
+                        if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
+                            let currentOutputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: selectedTransform.rawValue,  prompt: "")
+                            audioAPI.generateTransform(recording: recording, transformType: selectedTransform, outputSettings: currentOutputSettings)
+                            consumableModel.useOutput()
+                        }
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
             }
         }
-        .onAppear {
-            if let outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings"){
-                self.customPrompt = outputSettings.prompt
-                self.customName = outputSettings.name
-            }
-        }
     }
 }
 
-// TODO: complete upgrade sheet according to Design
+struct CustomTransformPicker: View {
+    @Binding var index: TransformType
+
+    let icons: [TransformType: String] = [
+        .actions: "checklist",
+        .ideas: "list.bullet",
+        .journal: "book.closed"
+    ]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(TransformType.allCases, id: \.self) { option in
+                Button(action: {
+                    print(option)
+                    self.index = option
+                }) {
+                    VStack {
+                        Image(systemName: icons[option] ?? "")
+                            .foregroundColor(self.index == option ? .black : .gray)
+                        Text(option.rawValue)
+                            .font(Font.system(size: 12))
+                            .foregroundColor(self.index == option ? .black : .gray)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 35)
+                    .background((Color.white).opacity(self.index == option ? 1 : 0))
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                }
+                .id(option)
+                .buttonStyle(BorderlessButtonStyle())
+            }
+        }
+        .padding(3)
+        .background(Color.black.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 15))
+    }
+}
+
 struct UpgradeSheet: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode

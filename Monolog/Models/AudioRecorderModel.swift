@@ -302,10 +302,10 @@ class AudioRecorderModel : NSObject, ObservableObject {
             .store(in: &self.cancellables)
     }
     
-    func generateCustomOutput(recording: Recording, outputSettings: OutputSettings) {
+    func generateTransform(recording: Recording, transformType: TransformType, outputSettings: OutputSettings) {
         let transcript = getTranscript(outputs: recording.outputs)
         let custom_out = addLoadingOutput(type: .Custom, settings: outputSettings, outputs: recording.outputs)
-        generateOutput(transcript: transcript, outputType: .Custom, outputSettings: outputSettings).sink(
+        generateTransformOutput(transcript: transcript, transformType: transformType, outputSettings: outputSettings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                     case .failure(_):
@@ -336,6 +336,49 @@ class AudioRecorderModel : NSObject, ObservableObject {
             })
         .store(in: &self.cancellables)
     }
+   
+    func generateTransformOutput(transcript: String, transformType: TransformType, outputSettings: OutputSettings) -> Future<Update, OutputGenerationError> {
+        return Future { promise in
+            var taskId: UIBackgroundTaskIdentifier!
+                taskId = UIApplication.shared.beginBackgroundTask {
+                    UIApplication.shared.endBackgroundTask(taskId)
+                    taskId = .invalid
+            }
+            
+            let url = self.baseURL + "generate_transform"
+            
+            do {
+                let encodedSettings = try self.encoder.encode(outputSettings)
+                let settingsDictionary = try JSONSerialization.jsonObject(with: encodedSettings, options: .allowFragments) as? [String: Any]
+                let parameters: [String: Any] = [
+                    "type": transformType.rawValue,
+                    "transcript": transcript,
+                    "settings": settingsDictionary ?? [:]
+                ]
+                
+                AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+                    .validate()
+                    .responseJSON { response in
+                        UIApplication.shared.endBackgroundTask(taskId) // End the background task when the request completes
+                        print(response.description)
+                        switch response.result {
+                            case .success(let value):
+                                if let JSON = value as? [String: Any] {
+                                    let output = JSON["out"] as? String ?? ""
+                                    let update = Update(type: .Custom, content: output, settings: outputSettings)
+                                    promise(.success(update))
+                                }
+                            case .failure(let error):
+                            promise(.failure(OutputGenerationError.failure(error: error, outputType: .Custom, transcript: transcript)))
+                        }
+                }
+            } catch {
+                print("encoding error \(error)")
+                UIApplication.shared.endBackgroundTask(taskId) // End the background task if there is an error
+            }
+        }
+    }
+
     
     func generateOutput(transcript: String, outputType: OutputType, outputSettings: OutputSettings) -> Future<Update, OutputGenerationError> {
         return Future { promise in
