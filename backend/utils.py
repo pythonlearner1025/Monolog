@@ -8,6 +8,7 @@ from tenacity import (
     wait_random_exponential,
 )  # for
 from langchain.text_splitter import NLTKTextSplitter
+from prompts import get_summary_system
 import asyncio
 import nltk
 
@@ -72,7 +73,7 @@ class CompletionAI:
 
         tasks = []
         for seg in split:
-            summary_bot = CompletionAI(get_summary,seg)
+            summary_bot = CompletionAI(get_summary_system,seg)
             tasks.append(asyncio.create_task(self.run_summary(summary_bot.raw_run)))
             print('-'*50)
             print(len(self.encoding.encode(seg)))
