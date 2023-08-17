@@ -15,7 +15,7 @@ struct BarView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
-                .fill(LinearGradient(gradient: Gradient(colors: [.purple, .blue]),
+                .fill(LinearGradient(gradient: Gradient(colors: [.purple, .blue]), // CHange color of bars here
                                      startPoint: .top,
                                      endPoint: .bottom))
                 .frame(width: (UIScreen.main.bounds.width - CGFloat(numberOfSamples) * 6) / (CGFloat(numberOfSamples)), height: value)
@@ -50,9 +50,9 @@ struct FolderView: View {
    }
     
     private func normalizeSoundLevel(level: Float) -> CGFloat {
-        var level1 = max(0.2, CGFloat(level) + 50) / 2
+        var level1 = max(3.0, CGFloat(level) + 50) / 2
         if level == 0{
-            level1 = CGFloat(0.2)
+            level1 = CGFloat(3.0)
         }
             
         return CGFloat(level1 * (50 / 25)) // scaled to max at 300 (our height of our bar)
