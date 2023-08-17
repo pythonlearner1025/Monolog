@@ -36,7 +36,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.encoder = JSONEncoder()
         self.encoder.dateEncodingStrategy = .iso8601
-        self.numberOfSamples = 10
+        self.numberOfSamples = 30
         self.currentSample = 0
         self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)
         super.init()
@@ -57,8 +57,13 @@ class AudioRecorderModel : NSObject, ObservableObject {
             audioRecorder.record()
             timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true, block: { (timer) in
                 self.audioRecorder.updateMeters()
+                if self.currentSample < 29 {
+                    self.currentSample = (self.currentSample + 1) % self.numberOfSamples
+                }
+                else{
+                    self.soundSamples = self.soundSamples[
+                }
                 self.soundSamples[self.currentSample] = self.audioRecorder.averagePower(forChannel: 0)
-                self.currentSample = (self.currentSample + 1) % self.numberOfSamples
                 print(self.currentSample)
             })
         } catch {
