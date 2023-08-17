@@ -10,7 +10,7 @@ import SwiftUI
 
 struct CameraButtonView: View {
     @Environment(\.colorScheme) var colorScheme
-    @State var recording = false
+    @EnvironmentObject var audioRecorder: AudioRecorderModel
     var action: ((_ recording: Bool) -> Void)?
     var body: some View {
         VStack{
@@ -19,23 +19,22 @@ struct CameraButtonView: View {
                     .stroke(lineWidth: 4)
                     .foregroundColor(colorScheme == .dark ? .white : .gray)
                     .frame(width: 65, height: 65)
-                RoundedRectangle(cornerRadius: recording ? 8 : self.innerCircleWidth / 2)
+                RoundedRectangle(cornerRadius: audioRecorder.isRecording ? 8 : self.innerCircleWidth / 2)
                     .foregroundColor(.red)
                     .frame(width: self.innerCircleWidth, height: self.innerCircleWidth)
             }
             .animation(.linear(duration: 0.2))
-            .padding(.top, 10)
+            .padding(.top, 20)
             .padding(.bottom, 10)
             .onTapGesture {
                 withAnimation {
-                    self.action?(self.recording)
-                    self.recording.toggle()
+                    self.action?(self.audioRecorder.isRecording)
                 }
             }
         }
     }
 
     var innerCircleWidth: CGFloat {
-        self.recording ? 32 : 55
+        self.audioRecorder.isRecording ? 32 : 55
     }
 }
