@@ -48,7 +48,7 @@ class Length(str, Enum):
 
 class Tone(str, Enum):
     casual = 'casual' 
-    formal = 'formal'
+    professional = 'professional'
 
 class Format(str, Enum):
     bullet = 'bullet'

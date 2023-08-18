@@ -16,6 +16,8 @@ struct HomeView: View {
     @EnvironmentObject var recordingsModel: RecordingsModel
     @EnvironmentObject var consumableModel: ConsumableModel
     @EnvironmentObject var storeModel: StoreModel
+    @State private var showDeleteConfirmationAlert = false
+    @State private var folderToDelete: Folder?
     @State private var folders: [Folder] = []
     @State private var showAlert = false
     @State private var newFolderName = ""
@@ -39,48 +41,90 @@ struct HomeView: View {
                            ForEach(defaultFolders) {folder in
                                NavigationLink(value: folder) {
                                    FolderPreview(folder)
-                               }.deleteDisabled(true)
+                               }
+                               .swipeActions(allowsFullSwipe: false){
+                                   Button {
+                                       if folder.name == "Recently Deleted" {
+                                           folderToDelete = folder
+                                           showDeleteConfirmationAlert = true
+                                       } else {
+                                           deleteFolder(targetFolder: folder)
+                                           recordingsModel[folder.path].recordings = []
+                                       }
+                                   } label: {
+                                       Text("Delete All Recordings")
+                                   }
+                                   .tint(.red)
+                               }
                            }
+                           .onDelete{indexSet in}
                        }
                        Section(header: Text("My Folders").font(.headline).bold()){
-                           ForEach(folders) {folder in
-                               if(folder.name != "Recordings" && folder.name != "Recently Deleted"){
-                                   NavigationLink(value: folder) {
-                                       FolderPreview(folder)
+                           ForEach(myFolders.indices, id: \.self) {idx in
+                                   NavigationLink(value: myFolders[idx]) {
+                                       FolderPreview(myFolders[idx])
                                    }
-                               }
-                           }.onDelete{indexSet in
-                               indexSet.sorted(by:>).forEach{i in deleteFolder(targetFolder: folders[i])
-                               }
-                               folders.remove(atOffsets: indexSet)
+                                   .swipeActions(allowsFullSwipe: false){
+                                       Button(role: .destructive) {
+                                           deleteFolder(targetFolder: myFolders[idx])
+                                           folders.removeAll(where: {$0.id == folders[idx].id})
+                                       } label: {
+                                           Text("Delete Folder")
+                                       }
+                                       
+                                       Button {
+                                           deleteFolder(targetFolder: myFolders[idx])
+                                           recordingsModel[myFolders[idx].path].recordings = []
+                                       } label: {
+                                           Text("Delete All Recordings")
+                                       }
+                                       .tint(.gray)
+                                   }
+                                }.onDelete{indexSet in}
                            }
                        }
-                   }
-                    .onAppear(perform: {
-                       loadFolders()
-                    })
-                   .navigationDestination(for: Folder.self){ folder in
-                       FolderView(folder: folder)
-                           .environmentObject(audioRecorder)
-                           .environmentObject(recordingsModel)
-                           .environmentObject(consumableModel)
-                   }
-                   .navigationDestination(for: Recording.self) { recording  in
-                       RecordingView(recording: recording, outputs: recording.outputs)
-                           .environmentObject(storeModel)
-                           .environmentObject(consumableModel)
-                   }
-                   .navigationTitle("Folders")
-                   .navigationBarItems(trailing:
-                       EditButton()
-                       ).toolbar {
-                       ToolbarItem(placement: .bottomBar){
-                               Button(action: {
-                               }) {
-                                   Text("")
+                       .alert(isPresented: $showDeleteConfirmationAlert) {
+                           Alert(title: Text("Warning"),
+                                 message: Text("Are you sure you want to permanently delete all recordings in \"Recently Deleted\"?"),
+                                 primaryButton: .destructive(Text("Delete")) {
+                               if folderToDelete != nil {
+                                   permaDelete(folderToDelete!)
+                                   recordingsModel[folderToDelete!.path].recordings = []
+                                   folderToDelete = nil
                                }
+                               },
+                                 secondaryButton: .default(Text("Cancel").bold(), action: {
+                               folderToDelete = nil
+                           })
+                           )
                        }
-                       ToolbarItem(placement: .bottomBar){
+                        .onAppear(perform: {
+                           loadFolders()
+                        })
+                       .navigationDestination(for: Folder.self){ folder in
+                           FolderView(folder: folder)
+                               .environmentObject(audioRecorder)
+                               .environmentObject(recordingsModel)
+                               .environmentObject(consumableModel)
+                       }
+                       .navigationDestination(for: Recording.self) { recording  in
+                           RecordingView(recording: recording, outputs: recording.outputs)
+                               .environmentObject(storeModel)
+                               .environmentObject(consumableModel)
+                       }
+                      
+                       .navigationTitle("Folders")
+                       .navigationBarItems(trailing:
+                           EditButton()
+                           )
+                       .toolbar {
+                           ToolbarItem(placement: .bottomBar){
+                                   Button(action: {
+                                   }) {
+                                       Text("")
+                                   }
+                           }
+                           ToolbarItem(placement: .bottomBar){
                                Button(action: {
                                    showAlert = true
                                }) {
@@ -96,8 +140,9 @@ struct HomeView: View {
                                    Button("Cancel", role: .cancel, action: {})
                                })
                            }
-                       }
-               }
+                        }
+                   } //navstack
+                } // zstack
                .onChange(of: folderNavigationModel.presentedItems) {newVal in
                     if folderNavigationModel.presentedItems.count == 0 {
                         loadFolders()
@@ -110,9 +155,13 @@ struct HomeView: View {
                .sheet(isPresented: $isSheetPresented, onDismiss: {}) {
                     Text("Sheet Content")
                 }
-              
            }
-         }
+         
+    private var myFolders: [Folder] {
+        return folders.filter {folder in
+            folder.name != "Recordings" && folder.name != "Recently Deleted"
+        }
+    }
     
     private var defaultFolders: [Folder] {
         return folders.filter { folder in
@@ -121,30 +170,29 @@ struct HomeView: View {
     }
 
     private func firstSetup() {
-        // init default settings
         let settings = Settings(outputs: [.Title, .Transcript, .Summary], length: .short, format: .bullet, tone: .casual)
         let outputSettings = OutputSettings(length: .short, format: .bullet, tone: .casual, name: "", prompt: "")
         UserDefaults.standard.storeSettings(settings, forKey: "Settings")
         UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
         
-        
-        // init default folders
         do {
             let fileManager = FileManager.default
-            let applicationSupportDirectory = Util.root()
-            let recordingsFolderPath = applicationSupportDirectory.appendingPathComponent("Recordings")
+            let recordingsFolderPath = Util.buildFolderURL("Recordings")
             let recordingsAudioFolderPath = recordingsFolderPath.appendingPathComponent("raw")
-            let deletedFilesFolderPath =
-                applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+            let deletedFilesFolderPath = Util.buildFolderURL("Recently Deleted")
             let deletedAudioFolderPath = deletedFilesFolderPath.appendingPathComponent("raw")
-            try fileManager.createDirectory(at: recordingsFolderPath, withIntermediateDirectories: true, attributes: nil)
+            
+            try fileManager.createDirectory(at: recordingsFolderPath,
+                withIntermediateDirectories: true, attributes: nil)
             try fileManager.createDirectory(at: recordingsAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
             try fileManager.createDirectory(at: deletedFilesFolderPath,
-                                            withIntermediateDirectories: true, attributes: nil)
-            try fileManager.createDirectory(at: deletedAudioFolderPath, withIntermediateDirectories: true, attributes: nil)
+                withIntermediateDirectories: true, attributes: nil)
+            try fileManager.createDirectory(at: deletedAudioFolderPath,
+                withIntermediateDirectories: true, attributes: nil)
         } catch {
-            print("An error occurred while creating the 'Recordings' directory: \(error)")
+            print("An error occurred while initiating directories: \(error)")
         }
+        print("first setup complete")
     }
     
     private func loadFolders() {
@@ -167,22 +215,44 @@ struct HomeView: View {
         }
     }
     
-    // TODO: check this works
+    private func permaDelete(_ targetFolder: Folder){
+        let fileManager = FileManager.default
+        let targetFolderURL = Util.buildFolderURL(targetFolder.path)
+        let targetFolderRawURL = targetFolderURL.appendingPathComponent("raw")
+        do {
+            let targetFolderContents = try fileManager.contentsOfDirectory(at: targetFolderURL, includingPropertiesForKeys: nil)
+            let targetFolderRawContents = try fileManager.contentsOfDirectory(at: targetFolderRawURL, includingPropertiesForKeys: nil)
+
+            for item in targetFolderContents {
+                try fileManager.removeItem(at: item)
+            }
+            
+            for item in targetFolderRawContents {
+                try fileManager.removeItem(at: item)
+            }
+        } catch {
+            print("Error perma deleting")
+        }
+        loadFolders()
+    }
+  
     private func deleteFolder(targetFolder: Folder) {
         let fileManager = FileManager.default
-        let applicationSupportDirectory = Util.root()
-        let targetFolderURL = applicationSupportDirectory.appendingPathComponent( targetFolder.path)
+        let targetFolderURL = Util.buildFolderURL(targetFolder.path)
         let targetFolderRawURL = targetFolderURL.appendingPathComponent("raw")
-        let recentlyDeletedFolderPath = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        let recentlyDeletedFolderPath = Util.buildFolderURL("Recently Deleted")
         let recentlyDeletedFolderRawPath = recentlyDeletedFolderPath.appendingPathComponent("raw")
 
         do {
+            // Ensure "Recently Deleted" and its "raw" subfolder exist
+            try ensureDirectoryExists(at: recentlyDeletedFolderPath)
+            try ensureDirectoryExists(at: recentlyDeletedFolderRawPath)
             // Move each item to the 'Recently Deleted' folder
             let targetFolderRawContents = try fileManager.contentsOfDirectory(at: targetFolderRawURL, includingPropertiesForKeys: nil)
             for item in targetFolderRawContents {
                 let oldLocation = targetFolderRawURL.appendingPathComponent(item.lastPathComponent)
                 let newLocation = recentlyDeletedFolderRawPath.appendingPathComponent(item.lastPathComponent)
-                    try fileManager.moveItem(at: oldLocation, to: newLocation)
+                try fileManager.moveItem(at: oldLocation, to: newLocation)
             }
             
             // Get the contents of the target folder
@@ -204,13 +274,13 @@ struct HomeView: View {
                 }
             }
             // Delete the target folder
-            try fileManager.removeItem(at: targetFolderURL)
-            if let idx = folders.firstIndex(where: {$0.name == "Recently Deleted"}) {
-                folders[idx].count += deleted
+            if targetFolder.name != "Recently Deleted" && targetFolder.name != "Recordings" {
+                try fileManager.removeItem(at: targetFolderURL)
             }
         } catch {
             print("An error occurred while deleting folder \(targetFolder.name): \(error)")
         }
+        loadFolders()
     }
     
     private func createFolder(title: String) {
@@ -228,6 +298,13 @@ struct HomeView: View {
         let newFolder = Folder(name: title, path: newFolderPath.lastPathComponent, count: 0)
         withAnimation{
             folders.append(newFolder)
+        }
+    }
+    
+    private func ensureDirectoryExists(at url: URL) throws {
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: url.path) {
+            try fileManager.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
         }
     }
 }
