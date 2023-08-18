@@ -41,6 +41,7 @@
 		77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97C2A2BC05200B86AA4 /* Classes.swift */; };
 		B027DE2D2A8A44BE0079C183 /* DSWaveformImage in Frameworks */ = {isa = PBXBuildFile; productRef = B027DE2C2A8A44BE0079C183 /* DSWaveformImage */; };
 		B027DE2F2A8A44BE0079C183 /* DSWaveformImageViews in Frameworks */ = {isa = PBXBuildFile; productRef = B027DE2E2A8A44BE0079C183 /* DSWaveformImageViews */; };
+		B027DE312A8E59AD0079C183 /* InitialDemoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B027DE302A8E59AD0079C183 /* InitialDemoView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +97,7 @@
 		77C0D9772A2BADB000B86AA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		77C0D97A2A2BC02900B86AA4 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		77C0D97C2A2BC05200B86AA4 /* Classes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Classes.swift; sourceTree = "<group>"; };
+		B027DE302A8E59AD0079C183 /* InitialDemoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitialDemoView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,6 +142,7 @@
 				772341B22A4147FA004A3E6B /* AudioControlView.swift */,
 				772341B42A414843004A3E6B /* OutputViews.swift */,
 				772341BE2A414B5E004A3E6B /* CameraButtonView.swift */,
+				B027DE302A8E59AD0079C183 /* InitialDemoView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -411,6 +414,7 @@
 				772341AF2A4146E7004A3E6B /* Previews.swift in Sources */,
 				77ABE0712A1FF85800EED914 /* RecordingView.swift in Sources */,
 				7791A0FB2A1EA58F005088C4 /* FolderView.swift in Sources */,
+				B027DE312A8E59AD0079C183 /* InitialDemoView.swift in Sources */,
 				77619E122A49FC73005221ED /* StoreModel.swift in Sources */,
 				772341C92A414D15004A3E6B /* KeyboardModel.swift in Sources */,
 				772341C12A414BC1004A3E6B /* RecordingModels.swift in Sources */,
