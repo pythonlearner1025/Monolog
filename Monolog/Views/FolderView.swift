@@ -22,6 +22,7 @@ struct BarView: View {
                      startPoint: .top,
                      endPoint: .bottom))
                 .frame(width: CGFloat(barWidth), height: value)
+
         }
     }
 }
