@@ -38,13 +38,24 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.formatter.zeroFormattingBehavior = [ .pad ]
         self.encoder = JSONEncoder()
         self.encoder.dateEncodingStrategy = .iso8601
-        self.numberOfSamples = 50
-        self.currentSample = 0
+        /* MATH
+         num samples = width / spacing
+         (x-1) * spacing + (x * barwidth) = width
+         x*spacing - spacing + x*barwidth
+         x*(spacing + barwidth) - spacing = width
+         x = (width + spacing) / (spacing + barwidth)
+         */
+        let screenWidth = UIScreen.main.bounds.width
+        let intScreenWidth = Int(screenWidth)
+        let widthPlusSpacing = intScreenWidth + barSpacing
+        let divisor = barWidth + barSpacing
+        let divisionResult = ceil(Double(widthPlusSpacing) / Double(divisor))
+        self.numberOfSamples = Int(divisionResult)
+        self.currentSample = self.numberOfSamples - 1
         self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)
         super.init()
     }
     
-
     func startRecording(audioURL: URL) {
         let recordingSession = AVAudioSession.sharedInstance()
         do {
@@ -59,25 +70,13 @@ class AudioRecorderModel : NSObject, ObservableObject {
             audioRecorder.prepareToRecord()
             audioRecorder.isMeteringEnabled = true
             audioRecorder.record()
-/*
-            backgroundTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                self.currentTime = self.formatter.string(from: TimeInterval(self.audioRecorder.currentTime))!
-            }
-            RunLoop.current.add(backgroundTimer!, forMode: RunLoop.Mode.common) // add this line
- */
-           
-            cancellable = Timer.publish(every: 0.01, on: .main, in: .common)
+            cancellable = Timer.publish(every: 0.05, on: .main, in: .common)
                 .autoconnect()
                 .sink { [weak self] _ in
                     guard let self = self else {return}
                     self.audioRecorder.updateMeters()
-                    if self.currentSample < 49 {
-                        self.currentSample = (self.currentSample + 1) % self.numberOfSamples
-                    }
-                    else{
-                        self.soundSamples = Array(self.soundSamples[1...49]) + [0]
-                    }
-                    self.soundSamples[self.currentSample] = self.audioRecorder.averagePower(forChannel: 0)
+                    self.soundSamples[self.numberOfSamples-1] = self.audioRecorder.averagePower(forChannel: 0)
+                    self.soundSamples = Array(self.soundSamples[1..<self.numberOfSamples]) + [0]
                     self.currentTime = self.formatter.string(from: TimeInterval(self.audioRecorder.currentTime))!
                 }
         } catch {
@@ -89,6 +88,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.isRecording = false
         audioRecorder.stop()
         cancellable?.cancel()
+        print(self.currentSample)
      //   backgroundTimer?.invalidate()
       //  backgroundTimer = nil
         self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)

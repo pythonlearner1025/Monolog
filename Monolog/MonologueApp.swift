@@ -25,13 +25,16 @@ struct RecordingsApp: App {
                .environmentObject(storeModel)
                .onAppear(perform: {
                   if isNewLaunch {
-                      let fileManager = FileManager.default
+                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                       let fileManager = FileManager.default
                       let recordingsFolder = Util.buildFolderURL("Recordings")
                       let recordingsContents = try! fileManager.contentsOfDirectory(at: recordingsFolder, includingPropertiesForKeys: nil)
                       let fileCount = recordingsContents.count == 0 ? recordingsContents.count : recordingsContents.count-1
                       let all = Folder(name: "Recordings", path: "Recordings", count: fileCount)
                       folderNavigationModel.addAllFolderView(all)
-                      isNewLaunch = false
+                      isNewLaunch = false           // Your existing logic
+                      }
+                     
                   }
              })
         }
