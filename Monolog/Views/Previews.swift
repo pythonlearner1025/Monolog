@@ -65,7 +65,6 @@ struct OutputPreview: View {
                 }
             }
         case .loading:
-             // TODO: adjust spinner gap with title when output.type is Title
             HStack{
                 ProgressView().scaleEffect(0.8, anchor: .center).padding(.trailing, 5)
                 ZStack {
@@ -74,7 +73,9 @@ struct OutputPreview: View {
                 }
             }
         case .completed:
-             Text(output.content).font(output.type == .Title ? .headline : .body).lineLimit(output.type == .Title ? nil : 4).truncationMode(.tail)
+            HStack{
+                Text(output.content).font(output.type == .Title ? .headline : .body).lineLimit(output.type == .Title ? 2 : 4).truncationMode(.tail)
+            }
         case .restricted:
              HStack{
                  Image(systemName: "exclamationmark.circle").foregroundColor(.red)

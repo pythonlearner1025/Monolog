@@ -8,17 +8,20 @@
 
 import SwiftUI
 import AVFoundation
-let numberOfSamples: Int = 50
+
+let barSpacing: Int = 5
+let barWidth: Int = 3
 
 struct BarView: View {
     var value: CGFloat
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(LinearGradient(gradient: Gradient(colors: [.red, .orange]),
-                                     startPoint: .top,
-                                     endPoint: .bottom))
-                .frame(width: (UIScreen.main.bounds.width - CGFloat(numberOfSamples) * 6) / (CGFloat(numberOfSamples)), height: value)
+            RoundedRectangle(cornerRadius: 5)
+                .fill(LinearGradient(gradient: Gradient(colors: [.red]),
+                     startPoint: .top,
+                     endPoint: .bottom))
+                .frame(width: CGFloat(barWidth), height: value)
         }
     }
 }
@@ -49,14 +52,19 @@ struct FolderView: View {
         self.folder = folder
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
+   
+    private func avg(_ floatArray: [Float]) -> Float {
+        let sum = floatArray.reduce(0, +)
+        return sum / Float(floatArray.count)
+    }
     
-    private func normalizeSoundLevel(level: Float) -> CGFloat {
-        var level1 = max(0.2, CGFloat(level) + 50) / 2
-        if level == 0{
-            level1 = CGFloat(0.2)
+    // level range [-50, 0]
+    private func normalizeSoundLevel(levels: [Float], idx: Int) -> CGFloat {
+        var level1 =  max(1, levels[idx] + 50)
+        if levels[idx] == 0 || level1 <= 1 {
+            level1 = 1
         }
-            
-        return CGFloat(level1 * 2) // scaled to max at 300 (our height of our bar)
+        return CGFloat(level1)
     }
     
     var body: some View {
@@ -86,8 +94,7 @@ struct FolderView: View {
                             Text("\(formatter.string(from: filteredItems[idx].createdAt))").font(.caption).foregroundColor(Color(.gray))
                         }.padding(.bottom, 10)
                         Spacer()
-                        NavigationLink(value: filteredItems[idx]){
-                        }
+                        NavigationLink(value: filteredItems[idx]){}.frame(width: 0)
                     }
                     if selection == .normal{
                         ForEach(filteredItems[idx].outputs.outputs) {output in
@@ -114,48 +121,53 @@ struct FolderView: View {
                     Divider().padding(.vertical, 15)
                 }
                 .swipeActions(allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        if outputsLoaded(filteredItems[idx]) {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5){
-                                audioRecorder.cancelSave()
-                                filteredItems[idx].audioPlayer.stopPlaying()
-                                filteredItems[idx].audioPlayer.isPlaying = false
-                                deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
-                                removeRecording(idx: idx)
+                    if !audioRecorder.isRecording {
+                         Button(role: .destructive) {
+                            if outputsLoaded(filteredItems[idx]) {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5){
+                                    audioRecorder.cancelSave()
+                                    filteredItems[idx].audioPlayer.stopPlaying()
+                                    filteredItems[idx].audioPlayer.isPlaying = false
+                                    deleteRecording(filteredItems[idx].copy(), filteredItems[idx].audioPath, filteredItems[idx].filePath)
+                                    removeRecording(idx: idx)
+                                }
+                            } else {
+                                idxToDelete = idx
+                                showDeleteLoadingAlert = true
+                                showLoadingAlert = true
                             }
-                        } else {
-                            idxToDelete = idx
-                            showDeleteLoadingAlert = true
-                            showLoadingAlert = true
+                        } label: {
+                            Label("Delete", systemImage: "minus.circle.fill")
                         }
-                    } label: {
-                        Label("Delete", systemImage: "minus.circle.fill")
-                    }
-                    Button{
-                        if outputsLoaded(filteredItems[idx]) {
-                            recordingToMove = filteredItems[idx]
-                        } else {
-                            idxToMove = idx
-                            showMoveLoadingAlert = true
-                            showLoadingAlert = true
+                        Button{
+                            if outputsLoaded(filteredItems[idx]) {
+                                recordingToMove = filteredItems[idx]
+                            } else {
+                                idxToMove = idx
+                                showMoveLoadingAlert = true
+                                showLoadingAlert = true
+                            }
+                        } label: {
+                            Label("Move to Folder", systemImage: "folder")
                         }
-                    } label: {
-                        Label("Move to Folder", systemImage: "folder")
-                    }
-                    .tint(.green)
-                    Button{
-                        if storeModel.purchasedSubscriptions.count > 0 || !consumableModel.isTranscriptEmpty() {
-                        audioRecorder.regenerateAll(recording: filteredItems[idx]){}
+                        .tint(.green)
+                        Button{
+                            if storeModel.purchasedSubscriptions.count > 0 || !consumableModel.isTranscriptEmpty() {
+                            audioRecorder.regenerateAll(recording: filteredItems[idx]){}
+                            }
+                        } label: {
+                            Label("Redo Everything", systemImage: "goforward")
                         }
-                    } label: {
-                        Label("Redo Everything", systemImage: "goforward")
+                        .tint(.blue)
                     }
-                    .tint(.blue)
                 }
             }
             .onDelete{indexSet in}
             .listRowSeparator(.hidden)
+            .deleteDisabled(audioRecorder.isRecording)
+            .disabled(audioRecorder.isRecording)
         }
+        .scrollDisabled(audioRecorder.isRecording)
         .onAppear {
             if recordingsModel[folder.path].recordings.count == 0 {
                 fetchAllRecording()
@@ -179,7 +191,6 @@ struct FolderView: View {
         }
         .navigationTitle("\(folder.name)")
         .navigationBarItems(trailing: HStack{
-            // TODO: import audio
             Button(action: {
                 isShowingPicker = true
             }) {
@@ -214,18 +225,17 @@ struct FolderView: View {
             if showMoveLoadingAlert {
                 return Alert(title: Text("Warning"),
                  message: Text("Are you sure you want to move the recording while text is still loading? You will lose the loading text."),
-                 primaryButton: .default(Text("Move")) {
+                 primaryButton: .destructive(Text("Move")) {
                     recordingToMove = filteredItems[idxToMove]
                      showMoveLoadingAlert = false
                  },
-                //TODO: why is Text(Don't move") not boldening?
-                             secondaryButton: .default(Text("Don't Move").bold(), action: {
+                secondaryButton: .default(Text("Cancel").bold(), action: {
                     showMoveLoadingAlert=false
                 }))
             } else {
                  return Alert(title: Text("Warning"),
                  message: Text("Are you sure you want to delete the recording while text is still loading? You will lose the loading text."),
-                 primaryButton: .default(Text("Delete")) {
+                 primaryButton: .destructive(Text("Delete")) {
                     audioRecorder.cancelSave()
                     filteredItems[idxToDelete].audioPlayer.stopPlaying()
                     filteredItems[idxToDelete].audioPlayer.isPlaying = false
@@ -233,8 +243,8 @@ struct FolderView: View {
                     removeRecording(idx: idxToDelete)
                     showDeleteLoadingAlert=false
                  },
-                              secondaryButton: .default(Text("Don't Delete").bold(), action: {
-                    showDeleteLoadingAlert=false
+                secondaryButton: .default(Text("Cancel").bold(), action: {
+                showDeleteLoadingAlert=false
              }))
             }
         }
@@ -246,15 +256,14 @@ struct FolderView: View {
                         Text(audioRecorder.currentTime).padding(.top, 0).font(.body).foregroundStyle(.gray)
                         
                         VStack{
-                            HStack(spacing: 6) {
-                                ForEach(audioRecorder.soundSamples, id: \.self) { level in
-                                    BarView(value: self.normalizeSoundLevel(level: level))
+                            HStack(spacing: CGFloat(barSpacing)) {
+                                ForEach(audioRecorder.soundSamples.indices, id: \.self) { idx in
+                                    BarView(value: normalizeSoundLevel(levels: audioRecorder.soundSamples, idx: idx))
                                 }
                             }.frame(height: 70)
                         }
                         
                     }
-                    
                 }
                 
                 HStack {
@@ -338,6 +347,13 @@ struct FolderView: View {
         recordingsModel[folder.path] = recordings
     }
     
+    private func ensureDirectoryExists(at url: URL) throws {
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: url.path) {
+            try fileManager.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+        }
+    }
+    
     private func deleteRecording(_ recording: Recording, _ audioPath: String, _ filePath: String) {
         let fileManager = FileManager.default
         let encoder = Util.encoder()
@@ -347,6 +363,7 @@ struct FolderView: View {
         let oldFileURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent(filePath)
         let applicationSupportDirectory = Util.root()
         let recentlyDeletedFolder = applicationSupportDirectory.appendingPathComponent("Recently Deleted")
+        
         // if curr folder == recently deleted, perma delete
         if (recentlyDeletedFolder.lastPathComponent == folder.path) {
             do {
@@ -367,7 +384,9 @@ struct FolderView: View {
         let recentlyDeletedRawFolder = recentlyDeletedFolder.appendingPathComponent("raw")
         let newAudioURL = recentlyDeletedRawFolder.appendingPathComponent(audioPath)
         let newFileURL = recentlyDeletedFolder.appendingPathComponent(filePath)
+        
         do {
+            try ensureDirectoryExists(at: recentlyDeletedRawFolder)
             try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
         } catch {
             print("can't move audio\(error)")
@@ -380,8 +399,10 @@ struct FolderView: View {
         } catch {
             print("can't move meta\(error)")
         }
+        
         recordingsModel["Recently Deleted"].recordings.insert(recording, at: 0)
     }
+    
     private let recordingFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]
