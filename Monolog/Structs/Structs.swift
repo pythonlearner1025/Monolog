@@ -23,6 +23,7 @@ struct OutputSettings: Encodable, Decodable {
     var tone: ToneType
     var name: String
     var prompt: String
+    var transformType: TransformType?
     
     static var defaultSettings: OutputSettings {
         return OutputSettings(length: .short, format: .bullet, tone: .casual, name: "Default", prompt: "")
