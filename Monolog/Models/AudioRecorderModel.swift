@@ -88,7 +88,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
         self.isRecording = false
         audioRecorder.stop()
         cancellable?.cancel()
-        print(self.currentSample)
      //   backgroundTimer?.invalidate()
       //  backgroundTimer = nil
         self.soundSamples = [Float](repeating: .zero, count: numberOfSamples)
@@ -266,9 +265,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
     func regenerateAll(recording: Recording, completion: @escaping () -> Void) {
         updateAllLoadingOutput(outputs: recording.outputs)
         generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath)) {
-            print("transcript completion function")
             for output in recording.outputs.outputs {
-                if output.type == .Custom {
+                if output.type == .Custom && output.settings.transformType != nil {
                     self.regenerateOutput(recording: recording, output: output)
                 }
             }
@@ -277,16 +275,12 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func regenerateOutput(recording: Recording, output: Output) {
-        output.content = "Loading"
-        output.status == .loading
         let transcript = getTranscript(outputs: recording.outputs)
-        print("regen output")
-        print(transcript)
-        generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
+        generateTransformOutput(transcript: transcript, transformType: output.settings.transformType!, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                 case .failure(let error):
-                    //print("failed to regenerate \(error)")
+                    print("failed to regenerate \(error)")
                     output.content = "Error, tap to retry"
                     output.status == .error
                 case .finished:
@@ -296,11 +290,11 @@ class AudioRecorderModel : NSObject, ObservableObject {
             receiveValue:{ update in
                 switch update.type {
                     case .Summary:
-                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
                         break
                     case .Title:
                         recording.title = update.content
-                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs:  recording.outputs)
+                        self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
                         break
                     case .Transcript:
                         break
@@ -377,7 +371,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     .validate()
                     .responseJSON { response in
                         UIApplication.shared.endBackgroundTask(taskId) // End the background task when the request completes
-                        print(response.description)
+                            //print(response.description)
                         switch response.result {
                             case .success(let value):
                                 if let JSON = value as? [String: Any] {
@@ -420,7 +414,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     .validate()
                     .responseJSON { response in
                         UIApplication.shared.endBackgroundTask(taskId) // End the background task when the request completes
-                        print(response.description)
+                        //print(response.description)
                         switch response.result {
                             case .success(let value):
                                 if let JSON = value as? [String: Any] {
