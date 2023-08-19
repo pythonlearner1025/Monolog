@@ -55,6 +55,7 @@ struct MoveFolderPreview: View {
 
 struct OutputPreview: View {
     @ObservedObject var output: Output
+    
     var body: some View {
         switch output.status {
         case .error:

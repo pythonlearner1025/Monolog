@@ -40,6 +40,7 @@ struct FolderView: View {
     @State private var searchText = ""
     @State private var formHasAppeared = false
     @State private var playingRecordingPath = ""
+    @EnvironmentObject var folderNavigationModel: FolderNavigationModel
     @EnvironmentObject var audioRecorder: AudioRecorderModel
     @EnvironmentObject var recordingsModel: RecordingsModel
     @EnvironmentObject var consumableModel: ConsumableModel
@@ -53,12 +54,6 @@ struct FolderView: View {
         self.rawFolderURL = Util.buildFolderURL(folder.path).appendingPathComponent("raw")
    }
    
-    private func avg(_ floatArray: [Float]) -> Float {
-        let sum = floatArray.reduce(0, +)
-        return sum / Float(floatArray.count)
-    }
-    
-    // level range [-50, 0]
     private func normalizeSoundLevel(levels: [Float], idx: Int) -> CGFloat {
         var level1 =  max(1, levels[idx] + 50)
         if levels[idx] == 0 || level1 <= 1 {
@@ -190,6 +185,7 @@ struct FolderView: View {
             }
         }
         .navigationTitle("\(folder.name)")
+        .navigationBarBackButtonHidden(audioRecorder.isRecording)
         .navigationBarItems(trailing: HStack{
             Button(action: {
                 isShowingPicker = true
@@ -248,6 +244,7 @@ struct FolderView: View {
              }))
             }
         }
+
         if (folder.name != "Recently Deleted") {
             VStack{
                 if audioRecorder.isRecording{
@@ -289,7 +286,7 @@ struct FolderView: View {
             .edgesIgnoringSafeArea(.bottom)
         }
     }
-    
+
     private func removeRecording(idx: Int) {
         let toDelete = filteredItems[idx]
         if let toDeleteIdx = recordingsModel[folder.path].recordings.firstIndex(of: toDelete) {
@@ -328,22 +325,25 @@ struct FolderView: View {
         let decoder = Util.decoder()
         let folderURL = Util.buildFolderURL(folder.path)
         let directoryContents = try! fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil)
-        for i in directoryContents {
+        // sort in descending order, oldest first
+        let sortedFolderContents = directoryContents.sorted {
+            let date1 = (try? fileManager.attributesOfItem(atPath: $0.path)[FileAttributeKey.creationDate] as? Date) ?? Date.distantPast
+            let date2 = (try? fileManager.attributesOfItem(atPath: $1.path)[FileAttributeKey.creationDate] as? Date) ?? Date.distantPast
+            return date1 > date2
+        }
+        for i in sortedFolderContents {
             if (i.lastPathComponent != "raw") {
                 do {
                     let data = try Data(contentsOf: i)
                     let recording = try decoder.decode(Recording.self, from: data)
-                    if (folder.path == "Recently Deleted") {
-                        recording.folderPath = "Recently Deleted"
-                        recording.audioPlayer.reinit(folderPath: recording.folderPath, audioPath:  recording.audioPath)
-                    }
+                    recording.folderPath = folder.path
+                    recording.audioPlayer.reinit(folderPath: recording.folderPath, audioPath:  recording.audioPath)
                     recordings.recordings.append(recording)
                 } catch {
                     print("An error occurred while decoding the recording object: \(error)")
                 }
             }
         }
-        recordings.recordings.sort(by: { $0.createdAt.compare($1.createdAt) == .orderedDescending})
         recordingsModel[folder.path] = recordings
     }
     
