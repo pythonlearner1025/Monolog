@@ -45,21 +45,24 @@ struct SettingsSheet: View {
                     }
                     .pickerStyle(SegmentedPickerStyle())
                 }
-                Button("Save") {
-                    if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
-                        let outputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: savedOutputSettings.name, prompt: savedOutputSettings.prompt)
-                        UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
-                        presentationMode.wrappedValue.dismiss()
-                    } else {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
+                
             }
             .navigationBarTitle("Summary Style")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        if let savedOutputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") {
+                            let outputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: savedOutputSettings.name, prompt: savedOutputSettings.prompt)
+                            UserDefaults.standard.storeOutputSettings(outputSettings, forKey: "Output Settings")
+                            presentationMode.wrappedValue.dismiss()
+                        } else {
+                            presentationMode.wrappedValue.dismiss()
+                        }
                     }
                 }
             }
@@ -112,6 +115,13 @@ struct MoveSheet: View {
         })
     }
     
+    private func ensureDirectoryExists(at url: URL) throws {
+        let fileManager = FileManager.default
+        if !fileManager.fileExists(atPath: url.path) {
+            try fileManager.createDirectory(at: url, withIntermediateDirectories: true, attributes: nil)
+        }
+    }
+    
     private func moveItem(_ folder: String) {
         let oldFolder = recording.folderPath
         
@@ -134,6 +144,7 @@ struct MoveSheet: View {
             print("can't move file \(error)")
         }
         do {
+            try ensureDirectoryExists(at: newRawFolderURL)
             try fileManager.moveItem(at: oldAudioURL, to: newAudioURL)
         } catch {
             print("can't move audio \(error)")
@@ -207,7 +218,7 @@ struct TransformSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Submit") {
                         if !consumableModel.isOutputEmpty() || storeModel.subscriptions.count > 0 {
-                            let currentOutputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: selectedTransform.rawValue,  prompt: "")
+                            let currentOutputSettings = OutputSettings(length: selectedLength, format: selectedFormat, tone: selectedTone, name: selectedTransform.rawValue,  prompt: "", transformType: selectedTransform)
                             audioAPI.generateTransform(recording: recording, transformType: selectedTransform, outputSettings: currentOutputSettings)
                             consumableModel.useOutput()
                         }
@@ -232,7 +243,6 @@ struct CustomTransformPicker: View {
         HStack(spacing: 0) {
             ForEach(TransformType.allCases, id: \.self) { option in
                 Button(action: {
-                    print(option)
                     self.index = option
                 }) {
                     VStack {

@@ -16,7 +16,8 @@ if __name__ == "__main__":
             response_format="verbose_json",
             options={
                 'language': 'en', 
-                'prompt': 'talking about some things I have done today'
+                'prompt': 'talking about some things I have done today',
+                'condition_on_previous_text': False
             }
         )
     e = time.time()
