@@ -241,6 +241,7 @@ struct CustomTransformPicker: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            Spacer()
             ForEach(TransformType.allCases, id: \.self) { option in
                 Button(action: {
                     self.index = option
@@ -248,18 +249,19 @@ struct CustomTransformPicker: View {
                     VStack {
                         Image(systemName: icons[option] ?? "")
                             .foregroundColor(self.index == option ? .black : .gray)
+                            .padding(.horizontal, 35)
                         Text(option.rawValue)
                             .font(Font.system(size: 12))
                             .foregroundColor(self.index == option ? .black : .gray)
                     }
                     .padding(.vertical, 10)
-                    .padding(.horizontal, 35)
                     .background((Color.white).opacity(self.index == option ? 1 : 0))
                     .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
                 .id(option)
                 .buttonStyle(BorderlessButtonStyle())
             }
+            Spacer()
         }
         .padding(3)
         .background(Color.black.opacity(0.06))
