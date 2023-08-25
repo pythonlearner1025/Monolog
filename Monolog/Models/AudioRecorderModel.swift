@@ -267,7 +267,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         generateAll(recording: recording, audioURL: URL(fileURLWithPath: recording.audioPath)) {
             for output in recording.outputs.outputs {
                 if output.type == .Custom && output.settings.transformType != nil {
-                    self.regenerateOutput(recording: recording, output: output)
+                    self.regenerateTransformOutput(recording: recording, output: output)
                 }
             }
         }
@@ -275,6 +275,51 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func regenerateOutput(recording: Recording, output: Output) {
+        for out in recording.outputs.outputs {
+            if out.id == output.id {
+                out.content = "Loading"
+                out.status = .loading
+            }
+        }
+        let transcript = getTranscript(outputs: recording.outputs)
+        generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
+            receiveCompletion: {completion in
+                switch (completion) {
+                case .failure(let error):
+                    print("failed to regenerate \(error)")
+                    output.content = "Error, tap to retry"
+                    output.status == .error
+                case .finished:
+                    break
+                }
+        }, receiveValue: {update in
+            switch update.type {
+                case .Summary:
+                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+                    break
+                case .Title:
+                    recording.title = update.content
+                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+                    break
+                case .Transcript:
+                    break
+                case .Custom:
+                    self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+            }
+            do {
+                let updatedData = try self.encoder.encode(recording)
+                let folderURL = Util.buildFolderURL(recording.folderPath)
+                let fileURL = folderURL.appendingPathComponent(recording.filePath)
+                try updatedData.write(to: fileURL)
+            } catch {
+                print("error saving updated output")
+            }
+        })
+        .store(in: &self.cancellables)
+
+    }
+    
+    func regenerateTransformOutput(recording: Recording, output: Output) {
         let transcript = getTranscript(outputs: recording.outputs)
         generateTransformOutput(transcript: transcript, transformType: output.settings.transformType!, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
@@ -433,6 +478,37 @@ class AudioRecorderModel : NSObject, ObservableObject {
         }
     }
 
+    func regenerateTranscript(recording: Recording, output: Output) {
+        for out in recording.outputs.outputs {
+            if out.id == output.id {
+                out.content = "Loading"
+                out.status = .loading
+            }
+        }
+        generateTranscription(recording: recording).sink(
+            receiveCompletion: { completion in
+                switch (completion) {
+                case .failure(let error):
+                    print("failed to regenerate \(error)")
+                    output.content = "Error, tap to retry"
+                    output.status == .error
+                case .finished:
+                    break
+                }
+            },
+            receiveValue:{ update in
+                self.updateOutput(output.id.uuidString, content: update.content, settings: update.settings, outputs: recording.outputs)
+                do {
+                    let updatedData = try self.encoder.encode(recording)
+                    let folderURL = Util.buildFolderURL(recording.folderPath)
+                    let fileURL = folderURL.appendingPathComponent(recording.filePath)
+                    try updatedData.write(to: fileURL)
+                } catch {
+                    print("error saving updated output")
+                }
+            })
+            .store(in: &self.cancellables)
+    }
     
     func generateTranscription(recording: Recording) -> Future<Update, Error> {
         return Future { promise in

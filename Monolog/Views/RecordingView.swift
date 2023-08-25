@@ -23,6 +23,9 @@ struct RecordingView: View {
     @State private var showDelete = false
     @State private var retryLoading = false
     @State private var initialPopupShowed = false
+    @State private var showAlert = false
+    @State private var outputToDelete: Output?
+    @State private var outputToDeleteTitle: String = ""
     @ObservedObject private var keyboardResponder = KeyboardResponderModel()
     @EnvironmentObject private var storeModel: StoreModel
     @EnvironmentObject private var consumableModel: ConsumableModel
@@ -81,30 +84,55 @@ struct RecordingView: View {
                     }
                     ForEach(sortOutputs(outputs.outputs).filter { $0.type != .Title}) { output in
                         HStack{
-                            Group{
-                                if output.type != .Transcript && showDelete {
-                                    VStack{
-                                        Button(action: {
-                                            deleteOutput(output)
-                                        }) {
-                                            ZStack{
-                                                Image(systemName:"minus.circle")
-                                                    .font(.system(size: 25))
-                                                    .foregroundColor(.white)
-                                                Image(systemName: "minus.circle.fill")
-                                                    .font(.system(size: 25))
-                                                    .foregroundColor(.red)
-                                            }
+                            if showDelete {
+                                VStack{
+                                    Button(action: {
+                                        print("delete clicked")
+                                        showAlert = true
+                                        outputToDelete = output
+                                        outputToDeleteTitle = output.type.rawValue
+                                        if output.type == .Custom {
+                                            outputToDeleteTitle = output.settings.transformType!.rawValue
                                         }
-                                        .padding(.top, 10)
-                                        Spacer()
+                                        showAlert = true
+                                    }) {
+                                        ZStack{
+                                            Image(systemName:"trash")
+                                                .font(.system(size: 25))
+                                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                        }
                                     }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .padding(.top, 10)
+
+                                    
+                                    Button(action: {
+                                        if output.type != .Transcript {
+                                            audioAPI.regenerateOutput(recording: recording, output: output)
+                                        } else {
+                                            audioAPI.regenerateTranscript(recording: recording, output: output)
+                                        }
+                                        showDelete.toggle()
+                                    }) {
+                                        ZStack{
+                                            Image(systemName:"goforward")
+                                                .font(.system(size: 25))
+                                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                        }
+                                    }
+                                    .padding(.top, 15)
+                                    .buttonStyle(PlainButtonStyle())
+                                    
+                                    Spacer()
+
                                 }
+                                .padding(.trailing, 5)
                             }
                             OutputView(output, recording: recording)
                         }
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color(.systemBackground))
+                       
                     }
                 }
                 .navigationBarItems(trailing:
@@ -167,6 +195,19 @@ struct RecordingView: View {
                         //.presentationDetents([.medium])
                 }
                 .onReceive(outputs.$outputs){ outputs in
+                }
+                .alert(isPresented: $showAlert) {
+                    Alert(title: Text("Warning"),
+                          message: Text("Are you sure you want to delete \"\(outputToDeleteTitle)\" permanently?"),
+                          primaryButton: .destructive(Text("Delete")) {
+                        if let output = outputToDelete {
+                            deleteOutput(output)
+                        }
+                    },
+                          secondaryButton: .default(Text("Cancel").bold(), action: {
+                        
+                    })
+                    )
                 }
             }
         } else {
