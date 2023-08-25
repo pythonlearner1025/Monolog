@@ -149,7 +149,9 @@ struct FolderView: View {
                         .tint(.green)
                         Button{
                             if storeModel.purchasedSubscriptions.count > 0 || !consumableModel.isTranscriptEmpty() {
-                            audioRecorder.regenerateAll(recording: filteredItems[idx]){}
+                                var recordingToRegen = filteredItems[idx]
+                                recordingToRegen.generateText = true
+                                audioRecorder.regenerateAll(recording: recordingToRegen){}
                             }
                         } label: {
                             Label("Redo Everything", systemImage: "goforward")
