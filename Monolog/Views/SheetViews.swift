@@ -288,7 +288,7 @@ struct UpgradeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Close") {
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
@@ -302,14 +302,14 @@ struct UpgradeSheet: View {
             }
             VStack{
                 Image(colorScheme == .dark ?  "highpastel" : "highpastel_black")
-                    .scaleEffect(0.75)
+                    .scaleEffect(0.65)
                     .padding(.top, -35)
-                    .padding(.bottom, -50)
-                Text("Upgrade for UNLIMITED\nTranscriptions and Transformations")
+                    .padding(.bottom, -60)
+                Text("Subscribe for UNLIMITED transcriptions and transformations")
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
-                    .padding(.bottom, 30)
+                    .padding(.bottom, 20)
                 Button(action: {
                     Task {
                         let monthly = storeModel.subscriptions[1]
@@ -362,8 +362,18 @@ struct UpgradeSheet: View {
                                 .padding(.trailing, 5)
                         }
                     }
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 5)
                 }
+            // add Restore purchases
+                Button("Restore Purchases") {
+                    Task {
+                        await storeModel.restorePurchases()
+                    }
+                }
+                .padding(.bottom, 10)
+            
+            // add EULA & privacy policy
+                PolicyView()
             }
         }
     }
@@ -383,5 +393,201 @@ struct UpgradeSheet: View {
             print("purchase failed")
         }
         completion()
+    }
+}
+
+struct AccountSheet: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var consumableModel: ConsumableModel
+    @EnvironmentObject var storeModel: StoreModel
+    @State private var showUpgradeSheet = false
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("My Plan")) {
+                    if storeModel.purchasedSubscriptions.count > 0 {
+                        Text("UNLIMITED plan")
+                    } else {
+                        Text("Free Plan")
+                    }
+                    Button("Subscribe") {
+                        showUpgradeSheet = true
+                    }
+                }
+                Section(header: Text("Transcriptions Remaining")) {
+                    if storeModel.purchasedSubscriptions.count > 0 {
+                        Text("∞")
+                    } else {
+                        Text("\(consumableModel.currentTranscript())")
+                    }
+                }
+                Section(header: Text("Transformations Remaining")) {
+                    if storeModel.purchasedSubscriptions.count > 0 {
+                        Text("∞")
+                    } else {
+                        Text("\(consumableModel.currentOutput())")
+
+                    }
+                }
+                Section(header: Text("Version")) {
+                    Text(version)
+                        .foregroundColor(.gray)
+                }
+            }
+            .navigationBarTitle("Account")
+            .toolbar{
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showUpgradeSheet, onDismiss:{}){
+            MiniUpgradeSheet()
+                .environmentObject(storeModel)
+        }
+    }
+    
+    var version: String {
+        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
+}
+
+
+struct MiniUpgradeSheet: View {
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.presentationMode) var presentationMode
+    @State private var isMonthlyPressed = false
+    @State private var isAnnualPressed = false
+    @EnvironmentObject var storeModel: StoreModel
+    
+    var body: some View {
+        NavigationStack{
+            Form {
+            }
+            .frame(height: 0)
+            //.navigationBarTitle("GET UNLIMITED")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text("Upgrade")
+                        .font(.largeTitle.bold())
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.top, 80)
+                        .padding(.bottom, 10)
+                }
+            }
+            VStack{
+                Image(colorScheme == .dark ?  "highpastel" : "highpastel_black")
+                    .scaleEffect(0.65)
+                    .padding(.top, -35)
+                    .padding(.bottom, -60)
+                Text("Subscribe for UNLIMITED transcriptions and transformations")
+                    .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 20)
+                Button(action: {
+                    Task {
+                        let monthly = storeModel.subscriptions[1]
+                        isMonthlyPressed = true
+                        await buy(product: monthly) {
+                            isMonthlyPressed = false
+                        }
+                    }
+                }) {
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 55)
+                            .fill(colorScheme == .dark ? .white : .black)
+                            .scaleEffect(x: 0.68, y: 0.9)
+                        if !isMonthlyPressed {
+                             Text("UNLIMITED (monthly)\n$9.99/mo")
+                                .font(.headline)
+                                .fontWeight(.heavy)
+                                .foregroundColor(colorScheme == .dark ? .black : .white)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
+                                .scaleEffect(1, anchor: .center)
+                                .padding(.trailing, 5)
+                        }
+                    }
+                    .padding(.bottom, 10)
+                }
+                Button(action: {
+                    Task {
+                        let annual = storeModel.subscriptions[0]
+                        isAnnualPressed = true
+                        await buy(product: annual) {
+                            isAnnualPressed = false
+                        }
+                    }
+                }) {
+                    ZStack{
+                        RoundedRectangle(cornerRadius: 55)
+                            .fill(colorScheme == .dark ? .white : .black)
+                            .scaleEffect(x: 0.68, y: 0.9)
+                        if !isAnnualPressed {
+                         Text("UNLIMITED (annual)\n$99/yr")
+                            .font(.headline)
+                            .fontWeight(.heavy)
+                            .foregroundColor(colorScheme == .dark ? .black : .white)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: colorScheme == .dark ? .black : .white))
+                                .scaleEffect(1, anchor: .center)
+                                .padding(.trailing, 5)
+                        }
+                    }
+                    .padding(.bottom, 5)
+                }
+            // add Restore purchases
+                Button("Restore Purchases") {
+                    Task {
+                        await storeModel.restorePurchases()
+                    }
+                }
+                .padding(.bottom, 10)
+            
+            // add EULA & privacy policy
+                PolicyView()
+            }
+        }
+    }
+    
+    func buy(product: Product, completion: @escaping () -> Void) async {
+        do {
+            if try await storeModel.purchase(product) != nil {
+                presentationMode.wrappedValue.dismiss()
+            }
+        } catch {
+            print("purchase failed")
+        }
+        completion()
+    }
+}
+
+struct PolicyView: View {
+    var body: some View {
+        VStack {
+            Text("Your subscriptions will auto-renew until canceled. You can manage your subscriptions in the Settings App.")
+                .multilineTextAlignment(.center)
+            HStack {
+                Link("Terms of Service", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                Text("and")
+                Link("Privacy Policy", destination: URL(string: "https://pythonlearner1025.github.io/Monolog.ai/")!)
+            }
+            .multilineTextAlignment(.center)
+        }
+        .font(.system(size: CGFloat(10)))
     }
 }
