@@ -49,7 +49,6 @@ class ConsumableModel: ObservableObject {
 
     func isTranscriptEmpty() -> Bool {
         let keychain = KeychainSwift()
-        
         if let currentTranscripts = keychain.get("transcripts") {
             if let currentTranscriptsInt = Int(currentTranscripts), currentTranscriptsInt < maxTranscripts {
                 return false
@@ -72,6 +71,26 @@ class ConsumableModel: ObservableObject {
         } else {
             return false
         }
-
+    }
+    
+    func currentTranscript() -> Int {
+        let keychain = KeychainSwift()
+        if let currentTranscripts = keychain.get("transcripts") {
+            if let currentTranscriptsInt = Int(currentTranscripts) {
+                return currentTranscriptsInt
+            }
+        }
+        return  -1
+    }
+        
+    // current # of transformations left
+    func currentOutput() -> Int {
+        let keychain = KeychainSwift()
+        if let currentOutputs = keychain.get("outputs") {
+            if let currentOutputsInt = Int(currentOutputs) {
+                return currentOutputsInt
+            }
+        }
+        return -1
     }
 }

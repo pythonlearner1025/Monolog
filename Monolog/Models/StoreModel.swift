@@ -126,6 +126,30 @@ class StoreModel: ObservableObject {
             }
         }
     }
+    
+    func restorePurchases() async {
+        for await result in Transaction.currentEntitlements {
+            do {
+                //Check whether the transaction is verified. If it isn’t, catch `failedVerification` error.
+                let transaction = try checkVerified(result)
+                
+                switch transaction.productType {
+                    case .autoRenewable:
+                        if let subscription = subscriptions.first(where: {$0.id == transaction.productID}) {
+                            purchasedSubscriptions.append(subscription)
+                        }
+                        //print("all purchased: \(purchasedSubscriptions)")
+                    default:
+                        break
+                }
+                //Always finish a transaction.
+                await transaction.finish()
+            } catch {
+                print("failed updating products")
+            }
+        }
+    }
+
 }
 
 public enum StoreError: Error {

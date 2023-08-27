@@ -19,19 +19,18 @@ struct HomeView: View {
     @State private var showAlert = false
     @State private var folders: [Folder] = []
     @State private var newFolderName = ""
-    @State private var isSheetPresented = false
     @State private var folderToDelete: Folder?
     @State private var showNewFolderAlert = false
     @State private var showDeleteConfirmationAlert = false
     @State private var showFolderDeleteAlert = false
     @State private var showRecordingsDeleteAlert = false
+    @State private var showAccount = false
     private var section = ["Defaults", "User Created"]
     
     init() {
         if isFirstLaunch {
             firstSetup()
             loadFolders()
-            isSheetPresented = true
             isFirstLaunch = false
         }
       }
@@ -196,6 +195,13 @@ struct HomeView: View {
                            EditButton()
                            )
                        .toolbar {
+                           ToolbarItem(placement: .navigationBarLeading) {
+                               Button(action: {
+                                   showAccount = true
+                               }) {
+                                   Image(systemName: "person.circle")
+                               }
+                           }
                            ToolbarItem(placement: .bottomBar){
                                    Button(action: {
                                    }) {
@@ -230,9 +236,11 @@ struct HomeView: View {
                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification), perform: { output in
                        isNewLaunch = true
                    })
-               .sheet(isPresented: $isSheetPresented, onDismiss: {}) {
-                    Text("Sheet Content")
-                }
+               .sheet(isPresented: $showAccount, onDismiss: {}) {
+                  AccountSheet()
+                       .environmentObject(consumableModel)
+                       .environmentObject(storeModel)
+               }
            }
          
     private var myFolders: [Folder] {
