@@ -73,22 +73,22 @@ class ConsumableModel: ObservableObject {
         }
     }
     
-    func currentTranscript() -> Int {
+    func remainingTranscript() -> Int {
         let keychain = KeychainSwift()
         if let currentTranscripts = keychain.get("transcripts") {
             if let currentTranscriptsInt = Int(currentTranscripts) {
-                return currentTranscriptsInt
+                return maxTranscripts - currentTranscriptsInt
             }
         }
         return  -1
     }
         
     // current # of transformations left
-    func currentOutput() -> Int {
+    func remainingOutput() -> Int {
         let keychain = KeychainSwift()
         if let currentOutputs = keychain.get("outputs") {
             if let currentOutputsInt = Int(currentOutputs) {
-                return currentOutputsInt
+                return maxOutputs - currentOutputsInt
             }
         }
         return -1

@@ -420,14 +420,14 @@ struct AccountSheet: View {
                     if storeModel.purchasedSubscriptions.count > 0 {
                         Text("∞")
                     } else {
-                        Text("\(consumableModel.currentTranscript())")
+                        Text("\(consumableModel.remainingTranscript())")
                     }
                 }
                 Section(header: Text("Transformations Remaining")) {
                     if storeModel.purchasedSubscriptions.count > 0 {
                         Text("∞")
                     } else {
-                        Text("\(consumableModel.currentOutput())")
+                        Text("\(consumableModel.remainingOutput())")
 
                     }
                 }
