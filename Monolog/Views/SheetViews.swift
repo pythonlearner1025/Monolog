@@ -312,10 +312,11 @@ struct UpgradeSheet: View {
                     .padding(.bottom, 20)
                 Button(action: {
                     Task {
-                        let monthly = storeModel.subscriptions[1]
-                        isMonthlyPressed = true
-                        await buy(product: monthly) {
-                            isMonthlyPressed = false
+                        if let monthly = storeModel.monthlyProduct() {
+                            isMonthlyPressed = true
+                            await buy(product: monthly) {
+                                isMonthlyPressed = false
+                            }
                         }
                     }
                 }) {
@@ -339,10 +340,11 @@ struct UpgradeSheet: View {
                 }
                 Button(action: {
                     Task {
-                        let annual = storeModel.subscriptions[0]
-                        isAnnualPressed = true
-                        await buy(product: annual) {
-                            isAnnualPressed = false
+                        if let annual = storeModel.annualProduct() {
+                            isAnnualPressed = true
+                            await buy(product: annual) {
+                                isAnnualPressed = false
+                            }
                         }
                     }
                 }) {
@@ -408,7 +410,11 @@ struct AccountSheet: View {
             Form {
                 Section(header: Text("My Plan")) {
                     if storeModel.purchasedSubscriptions.count > 0 {
-                        Text("UNLIMITED plan")
+                        if storeModel.purchasedSubscriptions[0].id == "unlimited_monthly" {
+                            Text("UNLIMITED (monthly)")
+                        } else {
+                            Text("UNLIMITED (annual)")
+                        }
                     } else {
                         Text("Free Plan")
                     }
@@ -498,10 +504,11 @@ struct MiniUpgradeSheet: View {
                     .padding(.bottom, 20)
                 Button(action: {
                     Task {
-                        let monthly = storeModel.subscriptions[1]
-                        isMonthlyPressed = true
-                        await buy(product: monthly) {
-                            isMonthlyPressed = false
+                        if let monthly = storeModel.monthlyProduct() {
+                            isMonthlyPressed = true
+                            await buy(product: monthly) {
+                                isMonthlyPressed = false
+                            }
                         }
                     }
                 }) {
@@ -525,10 +532,11 @@ struct MiniUpgradeSheet: View {
                 }
                 Button(action: {
                     Task {
-                        let annual = storeModel.subscriptions[0]
-                        isAnnualPressed = true
-                        await buy(product: annual) {
-                            isAnnualPressed = false
+                        if let annual = storeModel.annualProduct() {
+                            isAnnualPressed = true
+                            await buy(product: annual) {
+                                isAnnualPressed = false
+                            }
                         }
                     }
                 }) {

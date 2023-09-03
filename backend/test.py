@@ -1,26 +1,20 @@
 import openai
 import os
 from dotenv import load_dotenv
+import requests
+
+def test_transcribe_api(path):
+    url = "http://localhost:3000/api/v1/transcribe"
+
+    with open(path, 'rb') as f:
+        files = {'file': f}
+        response = requests.post(url, files=files)
+
+    print(response.json())
 
 if __name__ == "__main__":
-    load_dotenv()
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-    import time
-    #f = '/Users/minjunes/Downloads/idea generation w speech.m4a'
-    f = '/Users/minjunes/Downloads/Counting with Numbers..m4a'
-    s = time.time()
-    with open(f, 'rb') as audio_file:
-        transcript = openai.Audio.transcribe(
-            'whisper-1',
-            file=audio_file, 
-            response_format="verbose_json",
-            options={
-                'language': 'en', 
-                'prompt': 'talking about some things I have done today',
-                'condition_on_previous_text': False
-            }
-        )
-    e = time.time()
-    print(transcript)
-    print(e-s)
+    f = '/Users/minjunes/ghost/audios/Beyond Vector Search： Knowledge Management with Generative AI.m4a'
+    f = '/Users/minjunes/Downloads/Choosing Writing as a Career.m4a'
+    test_transcribe_api(f)
 
+    
