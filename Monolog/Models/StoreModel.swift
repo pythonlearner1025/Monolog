@@ -91,18 +91,6 @@ class StoreModel: ObservableObject {
         }
     }
     
-    func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
-        //Check whether the JWS passes StoreKit verification.
-        switch result {
-        case .unverified:
-            //StoreKit parses the JWS, but it fails verification.
-            throw StoreError.failedVerification
-        case .verified(let safe):
-            //The result is verified. Return the unwrapped value.
-            return safe
-        }
-    }
-    
     @MainActor
     func updateCustomerProductStatus() async {
         for await result in Transaction.currentEntitlements {
@@ -127,6 +115,18 @@ class StoreModel: ObservableObject {
         }
     }
     
+    func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        //Check whether the JWS passes StoreKit verification.
+        switch result {
+        case .unverified:
+            //StoreKit parses the JWS, but it fails verification.
+            throw StoreError.failedVerification
+        case .verified(let safe):
+            //The result is verified. Return the unwrapped value.
+            return safe
+        }
+    }
+    
     func restorePurchases() async {
         for await result in Transaction.currentEntitlements {
             do {
@@ -148,6 +148,20 @@ class StoreModel: ObservableObject {
                 print("failed updating products")
             }
         }
+    }
+    
+    func monthlyProduct() -> Product? {
+        if let monthly = subscriptions.first(where: {$0.id == "unlimited_monthly"}) {
+            return monthly
+        }
+        return nil
+    }
+    
+    func annualProduct() -> Product? {
+        if let annual = subscriptions.first(where: {$0.id == "unlimited_annual"}) {
+            return annual
+        }
+        return nil
     }
 
 }

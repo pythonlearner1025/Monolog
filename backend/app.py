@@ -5,12 +5,16 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from enum import Enum
 from utils import CompletionAI
+from pydub import AudioSegment
 from prompts import *
 import uvicorn
 import openai
-import os
+import os, io
+import concurrent.futures
+import time
+import logging
 
-
+logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -86,15 +90,43 @@ def get():
 
 @app.post('/api/v1/transcribe')
 async def transcribe(file: UploadFile = File(...)):
-    if file.size >= 25000000:
-        return {'transcript': None}
     contents = await file.read()
-    # Create a temporary file using NamedTemporaryFile
-    with NamedTemporaryFile(suffix=".m4a", delete=True) as tmp:
-        tmp.write(contents)
+    chunk_size = 10000000  
+    audio = AudioSegment.from_file(io.BytesIO(contents), format="m4a")
+
+    # calculate chunk_size in ms equivalent (approximated)
+    bytes_per_ms = len(contents) / len(audio)
+    chunk_length_ms = int(chunk_size / bytes_per_ms)
+
+    chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
+    logging.debug(f'number of chunks: {len(chunks)}')
+    logging.debug(f'chunk len: {[len(chunk) for chunk in chunks]}')
+
+    transcripts = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_transcript = {executor.submit(transcribe_chunk, chunk, i): chunk for i, chunk in enumerate(chunks)}
+        for future in concurrent.futures.as_completed(future_to_transcript):
+            future_to_transcript[future]
+            try:
+                transcripts.append(future.result())
+            except Exception as exc:
+                logging.debug(f'generated an exception: {exc}')
+
+    transcripts.sort(key=lambda x: x[1])
+    transcript = ' '.join([transcript[0] for transcript in transcripts])
+
+    logging.debug(f'transcripts: {transcripts}')
+    logging.debug(f'transcript: {transcript}')
+
+    return {'transcript': transcript}
+
+def transcribe_chunk(chunk: AudioSegment, index: int):
+    s = time.time()
+    with NamedTemporaryFile(suffix=".mp3", delete=True) as tmp:
+        chunk.export(tmp, format='mp3')
         tmp.flush()
 
-        # Re-open the temp file in read mode and send to openai
+        # Check if the file format is .m4a before sending request
         with open(tmp.name, 'rb') as audio_file:
             transcript = openai.Audio.transcribe(
                 'whisper-1',
@@ -104,9 +136,9 @@ async def transcribe(file: UploadFile = File(...)):
                     'prompt': 'talking about some things I have done today'
                 }
             )['text']
-    print('*'*10, 'transcript', '*'*10)
-    print(transcript)
-    return {'transcript': transcript}
+    e = time.time()
+    logging.debug(f'chunk {index} time: {e-s}')
+    return transcript, index
 
 @app.post('/api/v1/generate_output')
 async def generate_output(load: OutputLoad):
