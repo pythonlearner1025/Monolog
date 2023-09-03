@@ -14,7 +14,7 @@ def test_transcribe_api(path):
 
 if __name__ == "__main__":
     f = '/Users/minjunes/ghost/audios/ex.m4a'
-    #f = '/Users/minjunes/Downloads/Choosing Writing as a Career.m4a'
+    f = '/Users/minjunes/Downloads/Choosing Writing as a Career.m4a'
     test_transcribe_api(f)
 
     

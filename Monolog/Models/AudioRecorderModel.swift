@@ -23,7 +23,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
         AVNumberOfChannelsKey: 1,
         AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
     ]
-    let baseURL = "https://turing-api.com/api/v1/"
+    let baseURL = "https://deforum.dev/api/v1/"
     var cancellables = Set<AnyCancellable>()
     private var cancellable: AnyCancellable?
     private var currentSample: Int
