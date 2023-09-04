@@ -399,6 +399,7 @@ struct UpgradeSheet: View {
 }
 
 struct AccountSheet: View {
+    @AppStorage("local_transcribe") var local_transcribe: Bool = false
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var consumableModel: ConsumableModel
@@ -435,6 +436,11 @@ struct AccountSheet: View {
                     } else {
                         Text("\(consumableModel.remainingOutput())")
 
+                    }
+                }
+                Section(header: Text("Privacy")) {
+                    Toggle(isOn: $local_transcribe) {
+                        Text("Local Transcription")
                     }
                 }
                 Section(header: Text("Version")) {

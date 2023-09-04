@@ -11,6 +11,8 @@ import Combine
 import Alamofire
 import UIKit
 
+
+
 class AudioRecorderModel : NSObject, ObservableObject {
     @Published var isPlaying : Bool = false
     @Published var isRecording : Bool = false
@@ -511,6 +513,27 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func generateTranscription(recording: Recording) -> Future<Update, Error> {
+        let rawFolderURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent("raw")
+        let audioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
+        let local_transcribe = UserDefaults.standard.bool(forKey: "local_transcribe")
+       
+        // local
+        if local_transcribe {
+            return Future {promise in
+                let whisper = TranscribeModel()
+               whisper.transcribe(audioURL: audioURL) {result in
+                    switch result {
+                    case .success(let transcript):
+                        let update = Update(type: .Transcript, content: transcript, settings: OutputSettings.defaultSettings)
+                        promise(.success(update))
+                    case .failure(let error):
+                        promise(.failure(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "\(error)"])))
+                    }
+                }
+            }
+        }
+       
+        // remote
         return Future { promise in
             let backgroundTaskId = UIApplication.shared.beginBackgroundTask {
                 // This block will be executed if the task expires
@@ -532,8 +555,6 @@ class AudioRecorderModel : NSObject, ObservableObject {
             data.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
 
             do {
-                let rawFolderURL = Util.buildFolderURL(recording.folderPath).appendingPathComponent("raw")
-                let audioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
                 let fileData = try Data(contentsOf: audioURL)
                 data.append(fileData)
             } catch {

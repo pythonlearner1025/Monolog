@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7721CF4D2AA5628E00B893BA /* SwiftWhisper in Frameworks */ = {isa = PBXBuildFile; productRef = 7721CF4C2AA5628E00B893BA /* SwiftWhisper */; };
+		7721CF512AA565F200B893BA /* ggml-base-encoder.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = 7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */; };
+		7721CF522AA565F200B893BA /* ggml-base.bin in Resources */ = {isa = PBXBuildFile; fileRef = 7721CF502AA565F200B893BA /* ggml-base.bin */; };
+		7721CF542AA569A300B893BA /* TranscribeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7721CF532AA569A300B893BA /* TranscribeModel.swift */; };
+		7721CF572AA5712200B893BA /* AudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7721CF562AA5712200B893BA /* AudioKit */; };
 		772341AF2A4146E7004A3E6B /* Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341AE2A4146E7004A3E6B /* Previews.swift */; };
 		772341B12A41479A004A3E6B /* SheetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341B02A41479A004A3E6B /* SheetViews.swift */; };
 		772341B32A4147FA004A3E6B /* AudioControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341B22A4147FA004A3E6B /* AudioControlView.swift */; };
@@ -62,6 +67,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = "ggml-base-encoder.mlmodelc"; sourceTree = "<group>"; };
+		7721CF502AA565F200B893BA /* ggml-base.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "ggml-base.bin"; sourceTree = "<group>"; };
+		7721CF532AA569A300B893BA /* TranscribeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscribeModel.swift; sourceTree = "<group>"; };
 		772341AE2A4146E7004A3E6B /* Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Previews.swift; sourceTree = "<group>"; };
 		772341B02A41479A004A3E6B /* SheetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetViews.swift; sourceTree = "<group>"; };
 		772341B22A4147FA004A3E6B /* AudioControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioControlView.swift; sourceTree = "<group>"; };
@@ -106,6 +114,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				7760E8172A711BC50099D2DE /* Glassfy in Frameworks */,
+				7721CF4D2AA5628E00B893BA /* SwiftWhisper in Frameworks */,
+				7721CF572AA5712200B893BA /* AudioKit in Frameworks */,
 				7760E8142A711B7D0099D2DE /* StoreKit.framework in Frameworks */,
 				77619E172A4A1519005221ED /* KeychainSwift in Frameworks */,
 				B027DE2F2A8A44BE0079C183 /* DSWaveformImageViews in Frameworks */,
@@ -159,6 +169,7 @@
 				772341C82A414D15004A3E6B /* KeyboardModel.swift */,
 				77619E112A49FC73005221ED /* StoreModel.swift */,
 				77619E132A4A13B7005221ED /* ConsumableModel.swift */,
+				7721CF532AA569A300B893BA /* TranscribeModel.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -204,6 +215,8 @@
 		7791A0CF2A1E9496005088C4 /* Monolog */ = {
 			isa = PBXGroup;
 			children = (
+				7721CF502AA565F200B893BA /* ggml-base.bin */,
+				7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */,
 				772341BB2A414AED004A3E6B /* Utils */,
 				77C0D9772A2BADB000B86AA4 /* Info.plist */,
 				7791A0D42A1E9497005088C4 /* Assets.xcassets */,
@@ -275,6 +288,8 @@
 				7760E8162A711BC50099D2DE /* Glassfy */,
 				B027DE2C2A8A44BE0079C183 /* DSWaveformImage */,
 				B027DE2E2A8A44BE0079C183 /* DSWaveformImageViews */,
+				7721CF4C2AA5628E00B893BA /* SwiftWhisper */,
+				7721CF562AA5712200B893BA /* AudioKit */,
 			);
 			productName = Recordings;
 			productReference = 7791A0CD2A1E9496005088C4 /* Monolog.app */;
@@ -353,6 +368,8 @@
 				77619E152A4A1519005221ED /* XCRemoteSwiftPackageReference "keychain-swift" */,
 				7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */,
 				B027DE2B2A8A44BE0079C183 /* XCRemoteSwiftPackageReference "DSWaveformImage" */,
+				7721CF4B2AA5628E00B893BA /* XCRemoteSwiftPackageReference "SwiftWhisper" */,
+				7721CF552AA5712200B893BA /* XCRemoteSwiftPackageReference "AudioKit" */,
 			);
 			productRefGroup = 7791A0CE2A1E9496005088C4 /* Products */;
 			projectDirPath = "";
@@ -370,8 +387,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7721CF512AA565F200B893BA /* ggml-base-encoder.mlmodelc in Resources */,
 				7791A0D82A1E9497005088C4 /* Preview Assets.xcassets in Resources */,
 				7791A0D52A1E9497005088C4 /* Assets.xcassets in Resources */,
+				7721CF522AA565F200B893BA /* ggml-base.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -406,6 +425,7 @@
 				77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */,
 				772341C32A414BC8004A3E6B /* OutputModels.swift in Sources */,
 				77619E142A4A13B7005221ED /* ConsumableModel.swift in Sources */,
+				7721CF542AA569A300B893BA /* TranscribeModel.swift in Sources */,
 				7791A0D32A1E9496005088C4 /* HomeView.swift in Sources */,
 				772341BF2A414B5E004A3E6B /* CameraButtonView.swift in Sources */,
 				77ABE06F2A1FF36100EED914 /* Structs.swift in Sources */,
@@ -772,6 +792,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7721CF4B2AA5628E00B893BA /* XCRemoteSwiftPackageReference "SwiftWhisper" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/exPHAT/SwiftWhisper";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		7721CF552AA5712200B893BA /* XCRemoteSwiftPackageReference "AudioKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/AudioKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 		7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/glassfy/ios-sdk";
@@ -807,6 +843,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7721CF4C2AA5628E00B893BA /* SwiftWhisper */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7721CF4B2AA5628E00B893BA /* XCRemoteSwiftPackageReference "SwiftWhisper" */;
+			productName = SwiftWhisper;
+		};
+		7721CF562AA5712200B893BA /* AudioKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7721CF552AA5712200B893BA /* XCRemoteSwiftPackageReference "AudioKit" */;
+			productName = AudioKit;
+		};
 		7760E8162A711BC50099D2DE /* Glassfy */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7760E8152A711BC50099D2DE /* XCRemoteSwiftPackageReference "ios-sdk" */;
