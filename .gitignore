@@ -1,5 +1,6 @@
 **/.env
 **/__pycache__
 **/.DS_Store
-.vscodeMonolog/ggml-base.bin
+.vscode
+Monolog/ggml-base.bin
 Monolog/ggml-base-encoder.mlmodelc
