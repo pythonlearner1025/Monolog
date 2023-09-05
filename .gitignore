@@ -4,3 +4,5 @@
 .vscode
 Monolog/ggml-base.bin
 Monolog/ggml-base-encoder.mlmodelc
+Monolog/ggml-tiny.bin
+Monolog/ggml-tiny-encoder.mlmodelc
