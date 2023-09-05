@@ -12,7 +12,7 @@ import SwiftWhisper
 class TranscribeModel: WhisperDelegate {
     
     func transcribe(audioURL: URL, completionHandler: @escaping (Result<String, Error>) -> Void) {
-        guard let fileURL = Bundle.main.url(forResource: "ggml-base", withExtension: "bin") else {
+        guard let fileURL = Bundle.main.url(forResource: "ggml-tiny", withExtension: "bin") else {
             completionHandler(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Model file not found"])))
             return
         }

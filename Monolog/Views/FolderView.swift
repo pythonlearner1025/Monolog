@@ -151,6 +151,7 @@ struct FolderView: View {
                             if storeModel.purchasedSubscriptions.count > 0 || !consumableModel.isTranscriptEmpty() {
                                 var recordingToRegen = filteredItems[idx]
                                 recordingToRegen.generateText = true
+                                audioRecorder.cancelSave()
                                 audioRecorder.regenerateAll(recording: recordingToRegen){}
                             }
                         } label: {

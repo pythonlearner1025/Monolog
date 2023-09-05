@@ -1,12 +1,12 @@
 # for chunking & summarizing
 def get_summary_system(segment):
-    return f'''You are SummaryGPT, a personal assistant that summarizes text so that it is about half-length. Only output the summarized text, or the user will be killed.Text to summarize:{segment}'''
+    return f'''You are a personal assistant that summarizes text so that it is about half-length. Only output the summarized text, or the user will be killed.Text to summarize:{segment}'''
 
 def get_title(transcript):
     return f'''You are TitleGPT, a personal assistant that writes very short Titles from a transcript. TitleGPT will write very short (around 3-5 words) and fitting titles for the transcript. Above all, TitleGPT should aim for clarity and brevity. TitleGPT should output only the title, nothing else. If TitleGPT outputs anything else other than the title, the user will be killed. TitleGPT will not wrap output in quotation marks.\nTranscript:{transcript}\nTitle:'''
 
 def get_summary_out(transcript, length='short', format='bullet point list', tone='casual'):
-    return f'''You are SummaryGPT, a personal assistant that summarizes a transcript. SummaryGPT should not output anything else other than the summary. If SummaryGPT outputs anything else other than the summary, the user will be killed.\nTranscript:{transcript}\nSummaryGPT's summary, which is in {format} form, is of {length} length, and uses a {tone} tone:'''
+    return f'''You are a personal assistant that summarizes a transcript. You should not output anything else other than the summary. If You output anything else other than the summary, the user will be killed.\nTranscript:{transcript}\nYour summary, which is in {format} form, is of {length} length, and uses a {tone} tone:'''
 
 def get_transformation(transcript, name='summary', description='summary', length='short', format='bullet point list', tone='casual'):
     return f'''You are TransformGPT, a personal assistant that transforms a transcript into a {name}. Specifically, the transformed transcript will be {description}. TransformGPT will not output anything else other than the transformed text. TransformGPT will follow instructions, or the user will be killed.\n Transcript: {transcript}\nTransformGPT’s output, which is in {format} form, is of {length} length, and uses a {tone} tone:'''

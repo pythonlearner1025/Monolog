@@ -44,6 +44,8 @@
 		77ABE0742A21AD4300EED914 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 77ABE0732A21AD4300EED914 /* Alamofire */; };
 		77C0D97B2A2BC02900B86AA4 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97A2A2BC02900B86AA4 /* Enums.swift */; };
 		77C0D97D2A2BC05200B86AA4 /* Classes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0D97C2A2BC05200B86AA4 /* Classes.swift */; };
+		77D0D9B92AA65D8000EC457F /* ggml-tiny.bin in Resources */ = {isa = PBXBuildFile; fileRef = 77D0D9B72AA65D8000EC457F /* ggml-tiny.bin */; };
+		77D0D9BB2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = 77D0D9BA2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc */; };
 		B027DE2D2A8A44BE0079C183 /* DSWaveformImage in Frameworks */ = {isa = PBXBuildFile; productRef = B027DE2C2A8A44BE0079C183 /* DSWaveformImage */; };
 		B027DE2F2A8A44BE0079C183 /* DSWaveformImageViews in Frameworks */ = {isa = PBXBuildFile; productRef = B027DE2E2A8A44BE0079C183 /* DSWaveformImageViews */; };
 		B027DE312A8E59AD0079C183 /* InitialDemoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B027DE302A8E59AD0079C183 /* InitialDemoView.swift */; };
@@ -105,6 +107,8 @@
 		77C0D9772A2BADB000B86AA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		77C0D97A2A2BC02900B86AA4 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		77C0D97C2A2BC05200B86AA4 /* Classes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Classes.swift; sourceTree = "<group>"; };
+		77D0D9B72AA65D8000EC457F /* ggml-tiny.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "ggml-tiny.bin"; sourceTree = "<group>"; };
+		77D0D9BA2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = "ggml-tiny-encoder.mlmodelc"; sourceTree = "<group>"; };
 		B027DE302A8E59AD0079C183 /* InitialDemoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitialDemoView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -215,6 +219,8 @@
 		7791A0CF2A1E9496005088C4 /* Monolog */ = {
 			isa = PBXGroup;
 			children = (
+				77D0D9BA2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc */,
+				77D0D9B72AA65D8000EC457F /* ggml-tiny.bin */,
 				7721CF502AA565F200B893BA /* ggml-base.bin */,
 				7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */,
 				772341BB2A414AED004A3E6B /* Utils */,
@@ -387,10 +393,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				77D0D9BB2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc in Resources */,
 				7721CF512AA565F200B893BA /* ggml-base-encoder.mlmodelc in Resources */,
 				7791A0D82A1E9497005088C4 /* Preview Assets.xcassets in Resources */,
 				7791A0D52A1E9497005088C4 /* Assets.xcassets in Resources */,
 				7721CF522AA565F200B893BA /* ggml-base.bin in Resources */,
+				77D0D9B92AA65D8000EC457F /* ggml-tiny.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
