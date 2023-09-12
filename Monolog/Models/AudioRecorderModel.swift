@@ -25,7 +25,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
         AVNumberOfChannelsKey: 1,
         AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
     ]
-    let baseURL = "https://deforum.dev/api/v1/"
+    // TODO: change back to production api
+    let baseURL = "https://turing-api.com/test/api/v1/"
     var cancellables = Set<AnyCancellable>()
     private var cancellable: AnyCancellable?
     private var currentSample: Int
@@ -185,6 +186,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 var outputSettings = UserDefaults.standard.getOutputSettings(forKey: "Output Settings") ?? UserDefaults.standard.defaultOutputSettings
                 outputSettings.name = ""
                 outputSettings.prompt = ""
+                outputSettings.language = update.settings.language
                 settings.outputs.forEach({ outputType in
                     if outputType != .Transcript {
                         self.addLoadingOutput(type: outputType, settings: outputSettings, outputs:  recording.outputs)
@@ -283,7 +285,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 out.status = .loading
             }
         }
-        let transcript = getTranscript(outputs: recording.outputs)
+        let transcriptOutput = getTranscript(outputs: recording.outputs)!
+        let transcript = transcriptOutput.content
         generateOutput(transcript: transcript, outputType: output.type, outputSettings: output.settings).sink(
             receiveCompletion: {completion in
                 switch (completion) {
@@ -322,7 +325,8 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func regenerateTransformOutput(recording: Recording, output: Output) {
-        let transcript = getTranscript(outputs: recording.outputs)
+        let transcriptOutput = getTranscript(outputs: recording.outputs)!
+        let transcript = transcriptOutput.content
         generateTransformOutput(transcript: transcript, transformType: output.settings.transformType!, outputSettings: output.settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
@@ -361,13 +365,16 @@ class AudioRecorderModel : NSObject, ObservableObject {
     }
     
     func generateTransform(recording: Recording, transformType: TransformType, outputSettings: OutputSettings) {
-        let transcript = getTranscript(outputs: recording.outputs)
-        let custom_out = addLoadingOutput(type: .Custom, settings: outputSettings, outputs: recording.outputs)
-        generateTransformOutput(transcript: transcript, transformType: transformType, outputSettings: outputSettings).sink(
+        let transcriptOutput = getTranscript(outputs: recording.outputs)!
+        let transcript = transcriptOutput.content
+        var settings = outputSettings
+        settings.language = transcriptOutput.settings.language
+        let custom_out = addLoadingOutput(type: .Custom, settings: settings, outputs: recording.outputs)
+        generateTransformOutput(transcript: transcript, transformType: transformType, outputSettings: settings).sink(
             receiveCompletion: { completion in
                 switch (completion) {
                     case .failure(_):
-                    self.updateErrorOutput(custom_out.id.uuidString, settings: outputSettings, outputs: recording.outputs)
+                    self.updateErrorOutput(custom_out.id.uuidString, settings: settings, outputs: recording.outputs)
                         do {
                             let updatedData = try self.encoder.encode(recording)
                             let recordingPath = Util.buildFolderURL(recording.folderPath).appendingPathComponent(recording.filePath)
@@ -382,7 +389,7 @@ class AudioRecorderModel : NSObject, ObservableObject {
                 }
             },
             receiveValue: { update in
-                self.updateOutput(custom_out.id.uuidString, content: update.content, settings: outputSettings, outputs:  recording.outputs)
+                self.updateOutput(custom_out.id.uuidString, content: update.content, settings: settings, outputs:  recording.outputs)
                 do {
                     let updatedData = try self.encoder.encode(recording)
                     let folderURL = Util.buildFolderURL(recording.folderPath)
@@ -517,11 +524,11 @@ class AudioRecorderModel : NSObject, ObservableObject {
         let audioURL = rawFolderURL.appendingPathComponent(recording.audioPath)
         let local_transcribe = UserDefaults.standard.bool(forKey: "local_transcribe")
        
-        // local
+        // TODO: apply language
         if local_transcribe {
             return Future {promise in
                 let whisper = TranscribeModel()
-               whisper.transcribe(audioURL: audioURL) {result in
+                whisper.transcribe(audioURL: audioURL) {result in
                     switch result {
                     case .success(let transcript):
                         let update = Update(type: .Transcript, content: transcript, settings: OutputSettings.defaultSettings)
@@ -581,8 +588,13 @@ class AudioRecorderModel : NSObject, ObservableObject {
                     let decoder = JSONDecoder()
                     let response = try decoder.decode([String: String].self, from: data)
                     DispatchQueue.main.async {
+                        // incorp language
                         if let transcript = response["transcript"] {
-                            let update = Update(type: .Transcript, content: transcript, settings: OutputSettings.defaultSettings)
+                            var settings = OutputSettings.defaultSettings
+                            if let language = response["language"] {
+                                settings.language = language
+                            }
+                            let update = Update(type: .Transcript, content: transcript, settings: settings)
                             promise(.success(update))
                         } else {
                             promise(.failure(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"])))
@@ -653,11 +665,11 @@ extension AudioRecorderModel {
         return newOutput
     }
     
-    private func getTranscript(outputs: Outputs) -> String {
+    private func getTranscript(outputs: Outputs) -> Output? {
         if let index = outputs.outputs.firstIndex(where: {$0.type == .Transcript}) {
-            return outputs.outputs[index].content
+            return outputs.outputs[index]
         } else {
-            return ""
+            return nil
         }
     }
 }

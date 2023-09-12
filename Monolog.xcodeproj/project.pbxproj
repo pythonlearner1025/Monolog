@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		7721CF4D2AA5628E00B893BA /* SwiftWhisper in Frameworks */ = {isa = PBXBuildFile; productRef = 7721CF4C2AA5628E00B893BA /* SwiftWhisper */; };
-		7721CF512AA565F200B893BA /* ggml-base-encoder.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = 7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */; };
-		7721CF522AA565F200B893BA /* ggml-base.bin in Resources */ = {isa = PBXBuildFile; fileRef = 7721CF502AA565F200B893BA /* ggml-base.bin */; };
 		7721CF542AA569A300B893BA /* TranscribeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7721CF532AA569A300B893BA /* TranscribeModel.swift */; };
 		7721CF572AA5712200B893BA /* AudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7721CF562AA5712200B893BA /* AudioKit */; };
 		772341AF2A4146E7004A3E6B /* Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772341AE2A4146E7004A3E6B /* Previews.swift */; };
@@ -69,8 +67,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = "ggml-base-encoder.mlmodelc"; sourceTree = "<group>"; };
-		7721CF502AA565F200B893BA /* ggml-base.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "ggml-base.bin"; sourceTree = "<group>"; };
 		7721CF532AA569A300B893BA /* TranscribeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscribeModel.swift; sourceTree = "<group>"; };
 		772341AE2A4146E7004A3E6B /* Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Previews.swift; sourceTree = "<group>"; };
 		772341B02A41479A004A3E6B /* SheetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SheetViews.swift; sourceTree = "<group>"; };
@@ -221,8 +217,6 @@
 			children = (
 				77D0D9BA2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc */,
 				77D0D9B72AA65D8000EC457F /* ggml-tiny.bin */,
-				7721CF502AA565F200B893BA /* ggml-base.bin */,
-				7721CF4F2AA565EE00B893BA /* ggml-base-encoder.mlmodelc */,
 				772341BB2A414AED004A3E6B /* Utils */,
 				77C0D9772A2BADB000B86AA4 /* Info.plist */,
 				7791A0D42A1E9497005088C4 /* Assets.xcassets */,
@@ -394,10 +388,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				77D0D9BB2AA65D9900EC457F /* ggml-tiny-encoder.mlmodelc in Resources */,
-				7721CF512AA565F200B893BA /* ggml-base-encoder.mlmodelc in Resources */,
 				7791A0D82A1E9497005088C4 /* Preview Assets.xcassets in Resources */,
 				7791A0D52A1E9497005088C4 /* Assets.xcassets in Resources */,
-				7721CF522AA565F200B893BA /* ggml-base.bin in Resources */,
 				77D0D9B92AA65D8000EC457F /* ggml-tiny.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
