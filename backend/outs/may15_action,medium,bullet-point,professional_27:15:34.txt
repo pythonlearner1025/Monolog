@@ -1,7 +1,0 @@
-- Define requirements for a tool that learns iteratively about the user's interests while reading an article
-- Consider implementing an outline feature for blogs generated, similar to a Wikipedia table of contents
-- Experiment with generating questions for Q&A follow-up at the end of articles to promote engagement and retention
-- Notice what's missing or can be done better in everyday life and investigate the problem to develop solutions
-- Remember that competition is not always a negative thing and can indicate a market and demand for a product
-- Consider the value of doing hard work that others don't find appealing, as it can be a valuable skill and service
-- Don't solely rely on recipes or algorithms to generate ideas, but rather be intimately involved in a problem space that you care about and are passionate about.

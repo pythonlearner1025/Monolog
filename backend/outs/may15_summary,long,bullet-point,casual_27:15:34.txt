@@ -1,5 +1,0 @@
-- Paul Graham's main point in "How to Get Startup Ideas" is that one can't invent startup ideas, but rather one has to be intimately involved in a problem space that they're passionate about.
-- Living in the future and building interesting things is important because it bridges gaps between the future and the present that don't exist.
-- Notice how some things are odd and could be done better in everyday life and investigate the problem further.
-- Competition is not the main reason why startups die and having some competition is a sign that there is a market for the product.
-- The unsexy filter and the schlep filter are filters that could be valuable because people may pay for someone else to do the hard work.

@@ -1,9 +1,0 @@
-- Prototype a tool that offers users interesting questions about the text they are reading and learn iteratively about the user's interests
-- Consider generating bullet-point outlines for texts to make them quicker and easier to read
-- Develop an outline feature for blogs similar to Wikipedia's table of contents
-- Build things that bridge gaps between the future and the present by noticing what's missing, what's wrong, and what could be done better
-- Investigate problems that you yourself have or that someone else has and develop solutions for them
-- Focus on becoming the Zen master of your craft rather than trying to learn entrepreneurship or how to start a company
-- Don't be deterred by competition, it might signal that there's a market for your idea
-- Don't shy away from doing hard or unsexy work that could be valued by others
-- Look for demand and figure out why some things don't exist yet

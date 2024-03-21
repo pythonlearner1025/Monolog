@@ -1,5 +1,0 @@
-- Paul Graham's main point in "How to Get Startup Ideas" is that you must be intimately involved in some problem space that you're passionate about, and you should aim to live in the future by building things that are interesting.
-- Notice what's missing or could be done better in everyday life and investigate the problem further to develop solutions for it.
-- Competition is overestimated by young founders, and having some competition is actually beneficial as it indicates market demand.
-- Filters such as the schlep filter and unsexy filter can be roadblocks, but they can also be good habits to have in order to clear the way for good ideas.
-- Algorithmically looking for demand and trying to determine why some things are not there can be possible ways to have ideas.
